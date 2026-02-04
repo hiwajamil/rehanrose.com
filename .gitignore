@@ -1,0 +1,21 @@
+# Firebase / secrets - never commit
+*firebase*adminsdk*.json
+*-firebase-adminsdk-*.json
+*.env
+.env.*
+
+# Build and tool outputs
+/build/
+.dart_tool/
+.firebase/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# IDE
+.idea/
+*.iml
+
+# Misc
+.DS_Store
+*.log
