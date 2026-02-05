@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 
 enum PrimaryButtonVariant { primary, filled, outline }
@@ -25,6 +26,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final isOutline = widget.variant == PrimaryButtonVariant.outline;
     final isPrimary = widget.variant == PrimaryButtonVariant.primary;
     final fillColor = isPrimary
@@ -63,11 +65,11 @@ class _PrimaryButtonState extends State<PrimaryButton> {
         scale: scale,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        child: AnimatedContainer(
+          child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             color: _hovered ? hoverColor : baseColor,
-            borderRadius: BorderRadius.circular(40),
+            borderRadius: BorderRadius.circular(isMobile ? 12 : 40),
             border: Border.all(
               color: isOutline && !_hovered
                   ? AppColors.border
@@ -79,14 +81,17 @@ class _PrimaryButtonState extends State<PrimaryButton> {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: BorderRadius.circular(isMobile ? 12 : 40),
               onTap: widget.onPressed,
               hoverColor: Colors.transparent,
               splashColor: isOutline
                   ? AppColors.rose.withValues(alpha:0.08)
                   : Colors.white.withValues(alpha:0.2),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 16 : 26,
+                  vertical: isMobile ? 14 : 16,
+                ),
                 child: Text(
                   widget.label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(

@@ -1,0 +1,211 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart' as fa;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../core/constants/occasions.dart';
+import '../core/utils/bouquet_code_utils.dart';
+import '../data/models/flower_model.dart';
+import '../data/repositories/auth_repository.dart';
+import '../data/repositories/bouquet_repository.dart';
+import 'auth_controller.dart';
+import 'bouquets_controller.dart';
+
+/// Vendor status for UI.
+enum VendorStatus { pending, approved, rejected }
+
+/// Stream of bouquets for the current vendor (when signed in).
+final vendorBouquetsStreamProvider = StreamProvider<List<FlowerModel>>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value([]);
+  return ref
+      .watch(bouquetRepositoryProvider)
+      .watchBouquetsByVendor(user.uid);
+});
+
+/// Controller for vendor actions: application, sign-in, bouquet CRUD.
+class VendorController extends AsyncNotifier<void> {
+  AuthRepository get _authRepo => ref.read(authRepositoryProvider);
+  BouquetRepository get _bouquetRepo => ref.read(bouquetRepositoryProvider);
+
+  @override
+  Future<void> build() async {}
+
+  static Object? _unwrapError(Object? error) {
+    try {
+      final dynamic d = error;
+      if (d != null && d.error != null) return d.error as Object?;
+    } catch (_) {}
+    return error;
+  }
+
+  /// Submit vendor application (creates user, sets docs, signs out).
+  Future<void> submitApplication({
+    required String studioName,
+    required String ownerName,
+    required String email,
+    required String phone,
+    required String location,
+    required String password,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final credential = await _authRepo.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final uid = credential.user!.uid;
+      await _authRepo.setUserDoc(uid, {
+        'role': 'vendor',
+        'vendorStatus': 'pending',
+        'email': email.trim(),
+      });
+      await _authRepo.setVendorApplication(uid, {
+        'studioName': studioName.trim(),
+        'ownerName': ownerName.trim(),
+        'email': email.trim(),
+        'phone': phone.trim(),
+        'location': location.trim(),
+        'status': 'pending',
+      });
+      await _authRepo.signOut();
+      state = const AsyncValue.data(null);
+    } on fa.FirebaseAuthException catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    }
+  }
+
+  /// Sign in vendor; throws if not approved.
+  Future<VendorStatus> signInVendor({required String email, required String password}) async {
+    state = const AsyncValue.loading();
+    try {
+      await _authRepo.signInWithEmailAndPassword(email: email, password: password);
+      final user = _authRepo.currentUser;
+      if (user == null) {
+        state = const AsyncValue.data(null);
+        return VendorStatus.rejected;
+      }
+      final statusStr = await _authRepo.getVendorStatus(user.uid);
+      if (statusStr != 'approved') {
+        await _authRepo.signOut();
+        state = const AsyncValue.data(null);
+        if (statusStr == 'rejected') return VendorStatus.rejected;
+        return VendorStatus.pending;
+      }
+      state = const AsyncValue.data(null);
+      return VendorStatus.approved;
+    } on fa.FirebaseAuthException catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    }
+  }
+
+  /// Upload images and create bouquet. Returns generated code on success.
+  Future<String?> publishBouquet({
+    required fa.User user,
+    required String name,
+    required String description,
+    required int priceIqd,
+    required List<XFile> imageFiles,
+    required String occasion,
+  }) async {
+    if (!kOccasions.contains(occasion)) {
+      throw ArgumentError('Invalid occasion.');
+    }
+    state = const AsyncValue.loading();
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final imageUrls = <String>[];
+      for (var i = 0; i < imageFiles.length; i++) {
+        final bytes = await imageFiles[i]
+            .readAsBytes()
+            .timeout(const Duration(seconds: 15));
+        final url = await _bouquetRepo.uploadImage(
+          vendorId: user.uid,
+          timestamp: timestamp,
+          index: i,
+          bytes: bytes,
+        );
+        imageUrls.add(url);
+      }
+      final prefix = getOccasionPrefix(occasion);
+      final bouquetCode = await _bouquetRepo.reserveNextBouquetCode(prefix);
+      await _bouquetRepo.create(
+        vendorId: user.uid,
+        name: name,
+        description: description,
+        priceIqd: priceIqd,
+        imageUrls: imageUrls,
+        occasion: occasion,
+        bouquetCode: bouquetCode,
+      );
+      state = const AsyncValue.data(null);
+      return bouquetCode;
+    } on TimeoutException catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    } on fa.FirebaseException catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    } catch (e, st) {
+      state = AsyncValue.error(_unwrapError(e) ?? e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> updateBouquetPrice(String bouquetId, int priceIqd) async {
+    state = const AsyncValue.loading();
+    try {
+      await _bouquetRepo.updatePrice(bouquetId, priceIqd);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> replaceBouquetPhotos({
+    required fa.User user,
+    required String bouquetId,
+    required List<XFile> imageFiles,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final imageUrls = <String>[];
+      for (var i = 0; i < imageFiles.length; i++) {
+        final bytes = await imageFiles[i]
+            .readAsBytes()
+            .timeout(const Duration(seconds: 15));
+        final url = await _bouquetRepo.uploadImage(
+          vendorId: user.uid,
+          timestamp: timestamp,
+          index: i,
+          bytes: bytes,
+        );
+        imageUrls.add(url);
+      }
+      await _bouquetRepo.updateImageUrls(bouquetId, imageUrls);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteBouquet(String bouquetId) async {
+    state = const AsyncValue.loading();
+    try {
+      await _bouquetRepo.delete(bouquetId);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+}
+
+final vendorControllerProvider =
+    AsyncNotifierProvider<VendorController, void>(VendorController.new);

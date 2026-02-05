@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'core/constants/breakpoints.dart';
 import 'core/routing/app_router.dart';
 import 'core/services/firebase_init.dart' as fb;
 import 'core/theme/app_theme.dart';
@@ -83,9 +84,10 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: isMobile ? AppTheme.lightMobile() : AppTheme.light(),
       routerConfig: AppRouter.router,
     );
   }

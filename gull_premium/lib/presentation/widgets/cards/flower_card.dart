@@ -4,7 +4,8 @@ import '../../../core/services/whatsapp_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../common/order_via_whatsapp_button.dart';
 
-class FlowerCard extends StatefulWidget {
+/// Bouquet card: static, no hover/transform/transition. Calm, premium experience.
+class FlowerCard extends StatelessWidget {
   final String id;
   final String name;
   final String imageUrl;
@@ -26,35 +27,24 @@ class FlowerCard extends StatefulWidget {
     this.bouquetCode,
   });
 
-  @override
-  State<FlowerCard> createState() => _FlowerCardState();
-}
-
-class _FlowerCardState extends State<FlowerCard> {
-  bool _hovered = false;
+  /// Static shadow: no change on hover.
+  static final List<BoxShadow> _cardShadow = [
+    BoxShadow(
+      color: AppColors.shadow.withValues(alpha: 0.06),
+      blurRadius: 20,
+      offset: const Offset(0, 6),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        transform: Matrix4.identity()..translateByDouble(0.0, _hovered ? -6.0 : 0.0, 0.0, 0.0),
+      child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: AppColors.border),
-          boxShadow: _hovered
-              ? [
-                  const BoxShadow(
-                    color: AppColors.shadow,
-                    blurRadius: 24,
-                    offset: Offset(0, 12),
-                  ),
-                ]
-              : [],
+          boxShadow: _cardShadow,
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
@@ -62,21 +52,25 @@ class _FlowerCardState extends State<FlowerCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               InkWell(
-                onTap: widget.onTap,
+                onTap: onTap,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AspectRatio(
                       aspectRatio: 4 / 5,
-                      child: Image.network(
-                        widget.imageUrl,
-                        fit: BoxFit.cover,
-                        cacheWidth: 400,
-                        cacheHeight: 500,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Container(
-                          color: AppColors.border,
-                          child: const Center(child: Icon(Icons.local_florist)),
+                      child: ClipRect(
+                        child: Image.network(
+                          imageUrl.isEmpty
+                              ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
+                              : imageUrl,
+                          fit: BoxFit.cover,
+                          cacheWidth: 400,
+                          cacheHeight: 500,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                            color: AppColors.border,
+                            child: const Center(child: Icon(Icons.local_florist)),
+                          ),
                         ),
                       ),
                     ),
@@ -86,17 +80,17 @@ class _FlowerCardState extends State<FlowerCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.name,
+                            name,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            widget.note,
+                            note,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 14),
                           Text(
-                            widget.price,
+                            price,
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   color: AppColors.ink,
                                   fontWeight: FontWeight.w700,
@@ -117,11 +111,11 @@ class _FlowerCardState extends State<FlowerCard> {
                       width: double.infinity,
                       child: OrderViaWhatsAppButton(
                         onPressed: () => launchOrderWhatsApp(
-                          flowerName: widget.name,
-                          flowerPrice: widget.price,
-                          flowerId: widget.id,
-                          flowerImageUrl: widget.imageUrl,
-                          bouquetCode: widget.bouquetCode,
+                          flowerName: name,
+                          flowerPrice: price,
+                          flowerId: id,
+                          flowerImageUrl: imageUrl,
+                          bouquetCode: bouquetCode,
                         ),
                       ),
                     ),
@@ -141,7 +135,6 @@ class _FlowerCardState extends State<FlowerCard> {
           ),
         ),
       ),
-    ),
     );
   }
 }

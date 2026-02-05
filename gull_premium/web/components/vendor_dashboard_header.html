@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rehan Rose — Vendor Dashboard Header</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#F9F6F3',
+              surface: '#FFFFFF',
+              ink: '#2B2724',
+              inkMuted: '#6B6059',
+              border: '#E9E2DD',
+              rose: '#CC8A86',
+              roseLight: '#E7B9B4',
+            },
+          },
+          boxShadow: {
+            'header': '0 1px 0 0 rgba(233, 226, 221, 0.8)',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    /* Optional: prevent focus ring from breaking layout */
+    .vendor-header input:focus,
+    .vendor-header button:focus-visible {
+      outline: 2px solid #CC8A86;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body class="bg-brand-bg min-h-screen">
+  <!-- ============================================================ -->
+  <!-- VENDOR DASHBOARD HEADER — Tailwind CSS                       -->
+  <!-- Copy from <header> to </header> into your layout.             -->
+  <!-- Requires: Tailwind CSS, minimal JS for mobile search toggle.  -->
+  <!-- ============================================================ -->
+
+  <header
+    class="vendor-header sticky top-0 z-50 bg-brand-surface border-b border-brand-border shadow-header"
+    role="banner"
+  >
+    <div class="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <!-- 1. Brand / Logo (left) -->
+      <div class="flex shrink-0 items-center">
+        <a
+          href="/vendor"
+          class="text-brand-ink font-semibold tracking-tight hover:text-brand-rose transition-colors text-lg"
+          aria-label="Rehan Rose — Vendor dashboard home"
+        >
+          Rehan Rose
+        </a>
+      </div>
+
+      <!-- 2. Global search (center on desktop, hidden on mobile until toggled) -->
+      <div class="relative hidden flex-1 max-w-md mx-auto lg:block">
+        <label for="vendor-search-desktop" class="sr-only">Search orders or bouquets</label>
+        <div class="relative">
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-inkMuted" aria-hidden="true">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            id="vendor-search-desktop"
+            type="search"
+            placeholder="Search orders or bouquets..."
+            class="w-full rounded-lg border border-brand-border bg-brand-bg py-2.5 pl-10 pr-4 text-sm text-brand-ink placeholder-brand-inkMuted focus:border-brand-rose focus:ring-1 focus:ring-brand-rose transition-colors"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <!-- Mobile search overlay (visible when toggled) -->
+      <div
+        id="mobile-search-wrap"
+        class="fixed inset-0 z-50 bg-brand-surface px-4 pt-4 pb-6 lg:hidden hidden"
+        role="dialog"
+        aria-label="Search"
+        aria-hidden="true"
+      >
+        <div class="flex items-center gap-3">
+          <div class="relative flex-1">
+            <label for="vendor-search-mobile" class="sr-only">Search orders or bouquets</label>
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-inkMuted">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              id="vendor-search-mobile"
+              type="search"
+              placeholder="Search orders or bouquets..."
+              class="w-full rounded-lg border border-brand-border bg-brand-bg py-3 pl-10 pr-4 text-brand-ink placeholder-brand-inkMuted focus:border-brand-rose focus:ring-1 focus:ring-brand-rose"
+              autocomplete="off"
+            />
+          </div>
+          <button
+            type="button"
+            id="mobile-search-close"
+            class="shrink-0 rounded-lg border border-brand-border bg-brand-bg px-4 py-3 text-sm font-medium text-brand-ink hover:bg-brand-border transition-colors"
+            aria-label="Close search"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Right cluster: status, notifications, profile -->
+      <div class="flex shrink-0 items-center gap-3 sm:gap-4">
+        <!-- 3. Vendor status toggle (Online / Offline) -->
+        <div class="hidden sm:flex items-center gap-2" role="group" aria-label="Shop status">
+          <span id="status-label" class="text-sm font-medium text-brand-inkMuted">Offline</span>
+          <button
+            type="button"
+            id="status-toggle"
+            role="switch"
+            aria-checked="false"
+            aria-label="Toggle shop online or offline"
+            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border border-brand-border bg-brand-border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-rose focus:ring-offset-2"
+          >
+            <span
+              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 translate-x-0.5"
+              id="status-toggle-thumb"
+            ></span>
+          </button>
+        </div>
+
+        <!-- 4. Notification bell -->
+        <div class="relative">
+          <button
+            type="button"
+            class="relative rounded-lg p-2 text-brand-inkMuted hover:bg-brand-bg hover:text-brand-ink transition-colors"
+            aria-label="Notifications"
+            aria-expanded="false"
+            aria-haspopup="true"
+            id="notifications-button"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span
+              class="absolute -top-0.5 -right-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white"
+              id="notification-badge"
+            >
+              3
+            </span>
+          </button>
+          <!-- Dropdown placeholder (toggle with JS if needed) -->
+          <div
+            id="notifications-dropdown"
+            class="absolute right-0 top-full z-10 mt-2 w-72 rounded-lg border border-brand-border bg-brand-surface py-2 shadow-lg hidden"
+            role="menu"
+            aria-orientation="vertical"
+          >
+            <p class="px-4 py-3 text-sm text-brand-inkMuted">No dropdown content yet.</p>
+          </div>
+        </div>
+
+        <!-- 5. Profile dropdown -->
+        <div class="relative" id="profile-dropdown-wrap">
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-brand-ink hover:bg-brand-bg transition-colors"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-label="Vendor account menu"
+            id="profile-button"
+          >
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-rose/20 text-brand-rose text-sm font-semibold">
+              V
+            </span>
+            <span class="hidden text-left sm:block">
+              <span class="block text-sm font-medium text-brand-ink">Vendor Name</span>
+            </span>
+            <svg class="h-4 w-4 text-brand-inkMuted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div
+            id="profile-dropdown"
+            class="absolute right-0 top-full z-10 mt-2 w-56 rounded-lg border border-brand-border bg-brand-surface py-1 shadow-lg hidden"
+            role="menu"
+            aria-orientation="vertical"
+          >
+            <a href="#" class="block px-4 py-2.5 text-sm text-brand-ink hover:bg-brand-bg" role="menuitem">Profile</a>
+            <a href="#" class="block px-4 py-2.5 text-sm text-brand-ink hover:bg-brand-bg" role="menuitem">Shop Settings</a>
+            <div class="my-1 border-t border-brand-border" aria-hidden="true"></div>
+            <a href="#" class="block px-4 py-2.5 text-sm text-red-600 hover:bg-brand-bg" role="menuitem">Logout</a>
+          </div>
+        </div>
+
+        <!-- Mobile: search trigger (visible only on small screens) -->
+        <button
+          type="button"
+          class="rounded-lg p-2 text-brand-inkMuted hover:bg-brand-bg hover:text-brand-ink lg:hidden"
+          aria-label="Open search"
+          id="mobile-search-open"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Demo content (optional; remove in production) -->
+  <main class="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8">
+    <p class="text-brand-inkMuted text-sm">Vendor dashboard content goes here.</p>
+  </main>
+
+  <!-- Minimal JS: mobile search + status toggle + dropdowns -->
+  <script>
+    (function () {
+      var mobileSearchWrap = document.getElementById('mobile-search-wrap');
+      var mobileSearchOpen = document.getElementById('mobile-search-open');
+      var mobileSearchClose = document.getElementById('mobile-search-close');
+      var statusToggle = document.getElementById('status-toggle');
+      var statusLabel = document.getElementById('status-label');
+      var statusThumb = document.getElementById('status-toggle-thumb');
+      var profileButton = document.getElementById('profile-button');
+      var profileDropdown = document.getElementById('profile-dropdown');
+      var notificationsButton = document.getElementById('notifications-button');
+      var notificationsDropdown = document.getElementById('notifications-dropdown');
+
+      function openMobileSearch() {
+        if (!mobileSearchWrap) return;
+        mobileSearchWrap.classList.remove('hidden');
+        mobileSearchWrap.setAttribute('aria-hidden', 'false');
+        var input = document.getElementById('vendor-search-mobile');
+        if (input) { input.focus(); input.value = ''; }
+      }
+      function closeMobileSearch() {
+        if (!mobileSearchWrap) return;
+        mobileSearchWrap.classList.add('hidden');
+        mobileSearchWrap.setAttribute('aria-hidden', 'true');
+      }
+
+      if (mobileSearchOpen) mobileSearchOpen.addEventListener('click', openMobileSearch);
+      if (mobileSearchClose) mobileSearchClose.addEventListener('click', closeMobileSearch);
+
+      var isOnline = false;
+      function setStatus(online) {
+        isOnline = online;
+        if (statusToggle) statusToggle.setAttribute('aria-checked', online ? 'true' : 'false');
+        if (statusLabel) statusLabel.textContent = online ? 'Online' : 'Offline';
+        if (statusThumb) {
+          statusThumb.classList.toggle('translate-x-5', online);
+          statusThumb.classList.toggle('translate-x-0.5', !online);
+        }
+        statusToggle.classList.toggle('bg-emerald-500', online);
+        statusToggle.classList.toggle('border-emerald-500', online);
+        statusToggle.classList.toggle('bg-brand-border', !online);
+        statusToggle.classList.toggle('border-brand-border', !online);
+      }
+      if (statusToggle) {
+        statusToggle.addEventListener('click', function () { setStatus(!isOnline); });
+      }
+
+      function toggleDropdown(button, menu) {
+        var open = menu.classList.toggle('hidden');
+        button.setAttribute('aria-expanded', open ? 'false' : 'true');
+      }
+      function closeDropdown(menu) { menu.classList.add('hidden'); }
+
+      if (profileButton && profileDropdown) {
+        profileButton.addEventListener('click', function (e) {
+          e.stopPropagation();
+          toggleDropdown(profileButton, profileDropdown);
+          closeDropdown(notificationsDropdown);
+          if (notificationsButton) notificationsButton.setAttribute('aria-expanded', 'false');
+        });
+      }
+      if (notificationsButton && notificationsDropdown) {
+        notificationsButton.addEventListener('click', function (e) {
+          e.stopPropagation();
+          toggleDropdown(notificationsButton, notificationsDropdown);
+          closeDropdown(profileDropdown);
+          if (profileButton) profileButton.setAttribute('aria-expanded', 'false');
+        });
+      }
+      document.addEventListener('click', function () {
+        if (profileDropdown) closeDropdown(profileDropdown);
+        if (notificationsDropdown) closeDropdown(notificationsDropdown);
+        if (profileButton) profileButton.setAttribute('aria-expanded', 'false');
+        if (notificationsButton) notificationsButton.setAttribute('aria-expanded', 'false');
+      });
+    })();
+  </script>
+</body>
+</html>

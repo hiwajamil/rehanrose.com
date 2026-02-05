@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class FlowerModel {
   final String id;
   final String name;
@@ -19,12 +21,20 @@ class FlowerModel {
     this.createdAt,
   });
 
-  static String _requireOccasion(dynamic value) {
+  /// Backward compatibility: null or empty occasion → "All" so older docs still render.
+  static String _occasionFromJson(dynamic value) {
     final s = value?.toString();
-    if (s == null || s.isEmpty) {
-      throw FormatException('FlowerModel.occasion is required');
-    }
-    return s;
+    if (s == null) return 'All';
+    final t = s.trim();
+    if (t.isEmpty) return 'All';
+    return t;
+  }
+
+  static DateTime? _createdAtFromJson(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.tryParse(value.toString());
   }
 
   factory FlowerModel.fromJson(String id, Map<String, dynamic> json) {
@@ -34,11 +44,9 @@ class FlowerModel {
       description: json['description']?.toString() ?? '',
       priceIqd: (json['priceIqd'] as num?)?.toInt() ?? 0,
       imageUrls: (json['imageUrls'] as List?)?.cast<String>() ?? [],
-      occasion: _requireOccasion(json['occasion']),
+      occasion: _occasionFromJson(json['occasion']),
       bouquetCode: json['bouquetCode']?.toString() ?? '',
-      createdAt: (json['createdAt'] as dynamic) != null
-          ? DateTime.tryParse((json['createdAt'] as dynamic).toString())
-          : null,
+      createdAt: _createdAtFromJson(json['createdAt']),
     );
   }
 

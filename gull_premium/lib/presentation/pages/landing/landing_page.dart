@@ -1,24 +1,25 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../controllers/controllers.dart';
 import '../../widgets/cards/flower_card.dart';
 import '../../widgets/common/occasion_filter_chips.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
 
-class LandingPage extends StatefulWidget {
+class LandingPage extends ConsumerStatefulWidget {
   const LandingPage({super.key});
 
   @override
-  State<LandingPage> createState() => _LandingPageState();
+  ConsumerState<LandingPage> createState() => _LandingPageState();
 }
 
-class _LandingPageState extends State<LandingPage> {
+class _LandingPageState extends ConsumerState<LandingPage> {
   final _featuredSectionKey = GlobalKey();
-  String _selectedOccasion = 'All';
 
   void _scrollToFlowers() {
     final context = _featuredSectionKey.currentContext;
@@ -37,12 +38,7 @@ class _LandingPageState extends State<LandingPage> {
       child: Column(
         children: [
           _HeroSection(onShopFlowers: _scrollToFlowers),
-          _FeaturedSection(
-            key: _featuredSectionKey,
-            selectedOccasion: _selectedOccasion,
-            onSelectedOccasion: (occasion) =>
-                setState(() => _selectedOccasion = occasion),
-          ),
+          _FeaturedSection(key: _featuredSectionKey),
           _VendorSection(),
         ],
       ),
@@ -62,8 +58,10 @@ class _HeroSection extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 980;
+          final isMobile = constraints.maxWidth <= kMobileBreakpoint;
+          final innerPadding = isMobile ? 16.0 : 48.0;
           return Container(
-            padding: const EdgeInsets.all(48),
+            padding: EdgeInsets.all(innerPadding),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -130,24 +128,43 @@ class _HeroSection extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 28),
-                      Row(
-                        children: [
-                          _HeroBadge(
-                            label: 'Same-day delivery',
-                            icon: Icons.local_shipping_outlined,
-                          ),
-                          const SizedBox(width: 12),
-                          _HeroBadge(
-                            label: 'Ethically sourced',
-                            icon: Icons.eco_outlined,
-                          ),
-                          const SizedBox(width: 12),
-                          _HeroBadge(
-                            label: 'Concierge service',
-                            icon: Icons.volunteer_activism_outlined,
-                          ),
-                        ],
-                      ),
+                      isMobile
+                          ? Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: const [
+                                _HeroBadge(
+                                  label: 'Same-day delivery',
+                                  icon: Icons.local_shipping_outlined,
+                                ),
+                                _HeroBadge(
+                                  label: 'Ethically sourced',
+                                  icon: Icons.eco_outlined,
+                                ),
+                                _HeroBadge(
+                                  label: 'Concierge service',
+                                  icon: Icons.volunteer_activism_outlined,
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                _HeroBadge(
+                                  label: 'Same-day delivery',
+                                  icon: Icons.local_shipping_outlined,
+                                ),
+                                const SizedBox(width: 12),
+                                _HeroBadge(
+                                  label: 'Ethically sourced',
+                                  icon: Icons.eco_outlined,
+                                ),
+                                const SizedBox(width: 12),
+                                _HeroBadge(
+                                  label: 'Concierge service',
+                                  icon: Icons.volunteer_activism_outlined,
+                                ),
+                              ],
+                            ),
                     ],
                   ),
                 ),
@@ -208,13 +225,17 @@ class _HeroImageStackState extends State<_HeroImageStack>
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    final height = isMobile ? 280.0 : (widget.isNarrow ? 360.0 : 480.0);
+    final card1Height = isMobile ? 160.0 : (widget.isNarrow ? 220.0 : 280.0);
+    final card2Height = isMobile ? 180.0 : (widget.isNarrow ? 240.0 : 320.0);
     return SizedBox(
-      height: widget.isNarrow ? 360 : 480,
+      height: height,
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
           return Stack(
-            clipBehavior: Clip.none,
+            clipBehavior: isMobile ? Clip.hardEdge : Clip.none,
             children: [
               Positioned(
                 left: 0,
@@ -226,13 +247,13 @@ class _HeroImageStackState extends State<_HeroImageStack>
                     child: _HeroImageCard(
                       imageUrl:
                           'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=800&q=80',
-                      height: widget.isNarrow ? 220 : 280,
+                      height: card1Height,
                     ),
                   ),
                 ),
               ),
               Positioned(
-                right: widget.isNarrow ? 0 : -20,
+                right: isMobile ? 0 : (widget.isNarrow ? 0 : -20),
                 bottom: 0,
                 child: SlideTransition(
                   position: _slide,
@@ -241,7 +262,7 @@ class _HeroImageStackState extends State<_HeroImageStack>
                     child: _HeroImageCard(
                       imageUrl:
                           'https://images.unsplash.com/photo-1471899236350-e3016bf1e69e?auto=format&fit=crop&w=800&q=80',
-                      height: widget.isNarrow ? 240 : 320,
+                      height: card2Height,
                     ),
                   ),
                 ),
@@ -354,50 +375,13 @@ class _HeroBadgeState extends State<_HeroBadge> {
   }
 }
 
-class _FeaturedSection extends StatefulWidget {
-  const _FeaturedSection({
-    super.key,
-    required this.selectedOccasion,
-    required this.onSelectedOccasion,
-  });
-
-  final String selectedOccasion;
-  final ValueChanged<String> onSelectedOccasion;
+class _FeaturedSection extends ConsumerWidget {
+  const _FeaturedSection({super.key});
 
   @override
-  State<_FeaturedSection> createState() => _FeaturedSectionState();
-}
-
-class _FeaturedSectionState extends State<_FeaturedSection> {
-  /// All bouquets stream, used when a filtered occasion has no results.
-  static Stream<QuerySnapshot<Map<String, dynamic>>> get _allBouquetsStream =>
-      FirebaseFirestore.instance
-          .collection('bouquets')
-          .orderBy('createdAt', descending: true)
-          .limit(50)
-          .snapshots()
-          .timeout(const Duration(seconds: 5));
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedOccasion = widget.selectedOccasion;
-    final Query<Map<String, dynamic>> query;
-    if (selectedOccasion == 'All') {
-      query = FirebaseFirestore.instance
-          .collection('bouquets')
-          .orderBy('createdAt', descending: true)
-          .limit(50);
-    } else {
-      query = FirebaseFirestore.instance
-          .collection('bouquets')
-          .where('occasion', isEqualTo: selectedOccasion)
-          .orderBy('createdAt', descending: true)
-          .limit(50);
-    }
-
-    final bouquetsStream = query.snapshots().timeout(
-          const Duration(seconds: 5),
-        );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedOccasion = ref.watch(selectedOccasionProvider);
+    final bouquetsAsync = ref.watch(bouquetsStreamProvider);
 
     return SectionContainer(
       child: Column(
@@ -415,176 +399,98 @@ class _FeaturedSectionState extends State<_FeaturedSection> {
           const SizedBox(height: 24),
           OccasionFilterChips(
             selectedOccasion: selectedOccasion,
-            onSelected: widget.onSelectedOccasion,
+            onSelected: (occasion) =>
+                ref.read(selectedOccasionProvider.notifier).setOccasion(occasion),
           ),
           const SizedBox(height: 32),
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: bouquetsStream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        'Loading bouquets…',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppColors.inkMuted),
-                      ),
-                    ),
-                    _buildPlaceholderGrid(context),
-                  ],
+          bouquetsAsync.when(
+            loading: () => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                'Loading bouquets…',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppColors.inkMuted),
+              ),
+            ),
+            error: (err, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Could not load bouquets.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.inkMuted),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => ref.invalidate(bouquetsStreamProvider),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+            data: (bouquets) {
+              if (bouquets.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    selectedOccasion == 'All'
+                        ? 'No vendor bouquets yet.'
+                        : 'No bouquets for $selectedOccasion yet.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.inkMuted),
+                  ),
                 );
               }
-
-              if (snapshot.hasError) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        'Could not load bouquets. Showing samples.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppColors.inkMuted),
-                      ),
-                    ),
-                    _buildPlaceholderGrid(context),
-                  ],
-                );
-              }
-
-              final docs = snapshot.data?.docs ?? [];
-              if (docs.isEmpty) {
-                if (selectedOccasion == 'All') {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          'No vendor bouquets yet. Here are some samples.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: AppColors.inkMuted),
-                        ),
-                      ),
-                      _buildPlaceholderGrid(context),
-                    ],
-                  );
-                }
-                // For a specific occasion with no results, show all bouquets with a hint.
-                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: _allBouquetsStream,
-                  builder: (context, allSnapshot) {
-                    if (allSnapshot.connectionState == ConnectionState.waiting) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Text(
-                              'Loading…',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: AppColors.inkMuted),
-                            ),
-                          ),
-                          _buildPlaceholderGrid(context),
-                        ],
-                      );
-                    }
-                    final allDocs = allSnapshot.data?.docs ?? [];
-                    if (allDocs.isEmpty) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Text(
-                              'No bouquets for $selectedOccasion yet. Here are some samples.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: AppColors.inkMuted),
-                            ),
-                          ),
-                          _buildPlaceholderGrid(context),
-                        ],
-                      );
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            'No bouquets for $selectedOccasion yet. Showing all bouquets.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(color: AppColors.inkMuted),
-                          ),
-                        ),
-                        _buildBouquetGrid(context, allDocs),
-                      ],
-                    );
-                  },
-                );
-              }
-
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final isNarrow = constraints.maxWidth < 980;
+                  final isMobile = constraints.maxWidth <= kMobileBreakpoint;
                   return AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     switchInCurve: Curves.easeInOut,
                     switchOutCurve: Curves.easeInOut,
                     transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.05),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.03),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        )),
+                        child: child,
                       );
                     },
                     child: Wrap(
-                      key: ValueKey(widget.selectedOccasion),
+                      key: ValueKey(selectedOccasion),
                       spacing: 24,
                       runSpacing: 24,
-                      children: docs.map((doc) {
-                        final data = doc.data();
-                        final imageUrls =
-                            (data['imageUrls'] as List?)?.cast<String>() ?? [];
-                        final price = data['priceIqd']?.toString() ?? '--';
-                        final docId = doc.id;
-                        final bouquetCode = data['bouquetCode']?.toString();
+                      children: bouquets.map((b) {
+                        final imageUrl = b.imageUrls.isNotEmpty
+                            ? b.imageUrls.first
+                            : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
                         return SizedBox(
-                          width: isNarrow
+                          width: isNarrow || isMobile
                               ? constraints.maxWidth
                               : (constraints.maxWidth - 48) / 3,
                           child: FlowerCard(
-                            id: docId,
-                            name: data['name']?.toString() ?? 'Untitled bouquet',
-                            note: data['description']?.toString() ??
-                                'Vendor bouquet',
-                            price: 'IQD $price',
-                            imageUrl: imageUrls.isNotEmpty
-                                ? imageUrls.first
-                                : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80',
-                            onTap: () => context.go('/flower/$docId'),
-                            bouquetCode: bouquetCode,
+                            id: b.id,
+                            name: b.name,
+                            note: b.description,
+                            price: 'IQD ${b.priceIqd}',
+                            imageUrl: imageUrl,
+                            onTap: () => context.go('/flower/${b.id}'),
+                            bouquetCode: b.bouquetCode.isNotEmpty
+                                ? b.bouquetCode
+                                : null,
                           ),
                         );
                       }).toList(),
@@ -599,101 +505,15 @@ class _FeaturedSectionState extends State<_FeaturedSection> {
     );
   }
 
-  static const List<Map<String, String>> _placeholderBouquets = [
-    {
-      'name': 'Spring Garden',
-      'description': 'A fresh mix of seasonal blooms.',
-      'price': 'IQD 35,000',
-      'imageUrl': 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      'name': 'Romantic Roses',
-      'description': 'Classic red roses for your special day.',
-      'price': 'IQD 45,000',
-      'imageUrl': 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      'name': 'Minimalist White',
-      'description': 'Elegant white florals, soft and modern.',
-      'price': 'IQD 28,000',
-      'imageUrl': 'https://images.unsplash.com/photo-1471899236350-e3016bf1e69e?auto=format&fit=crop&w=800&q=80',
-    },
-  ];
-
-  Widget _buildPlaceholderGrid(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 980;
-        return Wrap(
-          spacing: 24,
-          runSpacing: 24,
-          children: _placeholderBouquets.map((item) {
-            return SizedBox(
-              width: isNarrow
-                  ? constraints.maxWidth
-                  : (constraints.maxWidth - 48) / 3,
-              child: FlowerCard(
-                id: 'placeholder-${item['name']}',
-                name: item['name']!,
-                note: item['description']!,
-                price: item['price']!,
-                imageUrl: item['imageUrl']!,
-                onTap: null,
-                bouquetCode: null,
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
-
-  Widget _buildBouquetGrid(
-    BuildContext context,
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 980;
-        return Wrap(
-          spacing: 24,
-          runSpacing: 24,
-          children: docs.map((doc) {
-            final data = doc.data();
-            final imageUrls =
-                (data['imageUrls'] as List?)?.cast<String>() ?? [];
-            final price = data['priceIqd']?.toString() ?? '--';
-            final docId = doc.id;
-            final bouquetCode = data['bouquetCode']?.toString();
-            return SizedBox(
-              width: isNarrow
-                  ? constraints.maxWidth
-                  : (constraints.maxWidth - 48) / 3,
-              child: FlowerCard(
-                id: docId,
-                name: data['name']?.toString() ?? 'Untitled bouquet',
-                note: data['description']?.toString() ?? 'Vendor bouquet',
-                price: 'IQD $price',
-                imageUrl: imageUrls.isNotEmpty
-                    ? imageUrls.first
-                    : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80',
-                onTap: () => context.go('/flower/$docId'),
-                bouquetCode: bouquetCode,
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
 }
 
 class _VendorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return SectionContainer(
       child: Container(
-        padding: const EdgeInsets.all(36),
+        padding: EdgeInsets.all(isMobile ? 16 : 36),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),

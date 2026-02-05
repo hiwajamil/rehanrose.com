@@ -1,20 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
 
-class AdminDashboardPage extends StatefulWidget {
+class AdminDashboardPage extends ConsumerStatefulWidget {
   const AdminDashboardPage({super.key});
 
   @override
-  State<AdminDashboardPage> createState() => _AdminDashboardPageState();
+  ConsumerState<AdminDashboardPage> createState() => _AdminDashboardPageState();
 }
 
-class _AdminDashboardPageState extends State<AdminDashboardPage> {
+class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final Set<String> _processingApplications = {};
@@ -35,83 +36,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       _showMessage('Enter your admin email and password.');
       return;
     }
-
     setState(() => _isSigningIn = true);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-    } on FirebaseAuthException catch (error) {
-      _showMessage(error.message ?? 'Unable to sign in.');
+      await ref.read(authRepositoryProvider).signInWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+    } on fa.FirebaseAuthException catch (e) {
+      _showMessage(e.message ?? 'Unable to sign in.');
     } finally {
-      if (mounted) {
-        setState(() => _isSigningIn = false);
-      }
-    }
-  }
-
-  Future<bool> _isAdmin(User user) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('admins')
-        .doc(user.uid)
-        .get();
-    return doc.exists;
-  }
-
-  Future<void> _approveApplication(
-    String applicationId,
-    Map<String, dynamic> data,
-    String adminId,
-  ) async {
-    setState(() => _processingApplications.add(applicationId));
-    try {
-      final firestore = FirebaseFirestore.instance;
-      await firestore.collection('vendor_applications').doc(applicationId).update({
-        'status': 'approved',
-        'approvedAt': FieldValue.serverTimestamp(),
-        'approvedBy': adminId,
-      });
-      await firestore.collection('users').doc(applicationId).set({
-        'vendorStatus': 'approved',
-      }, SetOptions(merge: true));
-      await firestore.collection('vendors').doc(applicationId).set({
-        'studioName': data['studioName'],
-        'ownerName': data['ownerName'],
-        'email': data['email'],
-        'phone': data['phone'],
-        'location': data['location'],
-        'approvedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      _showMessage('Application approved.');
-    } catch (_) {
-      _showMessage('Unable to approve application.');
-    } finally {
-      if (mounted) {
-        setState(() => _processingApplications.remove(applicationId));
-      }
-    }
-  }
-
-  Future<void> _rejectApplication(String applicationId, String adminId) async {
-    setState(() => _processingApplications.add(applicationId));
-    try {
-      final firestore = FirebaseFirestore.instance;
-      await firestore.collection('vendor_applications').doc(applicationId).update({
-        'status': 'rejected',
-        'rejectedAt': FieldValue.serverTimestamp(),
-        'rejectedBy': adminId,
-      });
-      await firestore.collection('users').doc(applicationId).set({
-        'vendorStatus': 'rejected',
-      }, SetOptions(merge: true));
-      _showMessage('Application rejected.');
-    } catch (_) {
-      _showMessage('Unable to reject application.');
-    } finally {
-      if (mounted) {
-        setState(() => _processingApplications.remove(applicationId));
-      }
+      if (mounted) setState(() => _isSigningIn = false);
     }
   }
 
@@ -123,25 +57,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authAsync = ref.watch(authStateProvider);
     return AppScaffold(
       child: SectionContainer(
         padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
-        child: StreamBuilder<User?>(
-          stream: FirebaseAuth.instance.authStateChanges(),
-          builder: (context, snapshot) {
-            final user = snapshot.data;
-            if (user == null) {
-              return _buildAdminSignIn(context);
-            }
-
+        child: authAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => _buildAdminSignIn(context),
+          data: (user) {
+            if (user == null) return _buildAdminSignIn(context);
             if (_cachedAdminUserId == user.uid && _cachedIsAdmin != null) {
               if (_cachedIsAdmin!) {
                 return _buildAdminDashboard(context, user.uid);
               }
-              return _buildNotAuthorized(context);
+              return _buildNotAuthorized(context, user);
             }
             return FutureBuilder<bool>(
-              future: _isAdmin(user),
+              future: ref.read(authRepositoryProvider).isAdmin(user.uid),
               builder: (context, adminSnapshot) {
                 if (adminSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -151,9 +83,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   _cachedIsAdmin = isAdmin;
                   _cachedAdminUserId = user.uid;
                 }
-                if (!isAdmin) {
-                  return _buildNotAuthorized(context);
-                }
+                if (!isAdmin) return _buildNotAuthorized(context, user);
                 return _buildAdminDashboard(context, user.uid);
               },
             );
@@ -187,7 +117,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Sign in to review vendor applications.',
+            'Sign in to review vendor applications. If you see "Access restricted", add your UID to the admins collection in Firestore (instructions shown there).',
             style:
                 Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
           ),
@@ -219,7 +149,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _buildNotAuthorized(BuildContext context) {
+  Widget _buildNotAuthorized(BuildContext context, fa.User user) {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -229,6 +159,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'Access restricted',
@@ -236,14 +167,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'This account is not registered as a super admin.',
+            'This account is not registered as a super admin. To grant access, add a document in Firestore:',
             style:
                 Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
+          ),
+          const SizedBox(height: 12),
+          SelectableText(
+            'Collection: admins\nDocument ID: ${user.uid}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                  color: AppColors.inkMuted,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You can create an empty document in Firebase Console (Firestore → admins → Add document with the ID above). Then sign out and sign in again.',
+            style:
+                Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted),
           ),
           const SizedBox(height: 20),
           PrimaryButton(
             label: 'Sign out',
-            onPressed: () => FirebaseAuth.instance.signOut(),
+            onPressed: () => ref.read(authRepositoryProvider).signOut(),
             variant: PrimaryButtonVariant.outline,
           ),
         ],
@@ -252,10 +197,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildAdminDashboard(BuildContext context, String adminId) {
-    final applicationsStream = FirebaseFirestore.instance
-        .collection('vendor_applications')
-        .where('status', isEqualTo: 'pending')
-        .snapshots();
+    final applicationsAsync = ref.watch(pendingVendorApplicationsStreamProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,20 +211,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             const Spacer(),
             PrimaryButton(
               label: 'Sign out',
-              onPressed: () => FirebaseAuth.instance.signOut(),
+              onPressed: () => ref.read(authRepositoryProvider).signOut(),
               variant: PrimaryButtonVariant.outline,
             ),
           ],
         ),
         const SizedBox(height: 20),
-        StreamBuilder<QuerySnapshot>(
-          stream: applicationsStream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final docs = snapshot.data?.docs ?? [];
+        applicationsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => Text(
+            'Unable to load applications.',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.inkMuted),
+          ),
+          data: (snapshot) {
+            final docs = snapshot.docs;
             if (docs.isEmpty) {
               return Text(
                 'No pending applications.',
@@ -292,10 +237,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ?.copyWith(color: AppColors.inkMuted),
               );
             }
-
             return Column(
               children: docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
+                final data = doc.data();
                 final isProcessing = _processingApplications.contains(doc.id);
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
@@ -337,11 +281,31 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               label: isProcessing ? 'Working...' : 'Approve',
                               onPressed: isProcessing
                                   ? () {}
-                                  : () => _approveApplication(
-                                        doc.id,
-                                        data,
-                                        adminId,
-                                      ),
+                                  : () async {
+                                        setState(() =>
+                                            _processingApplications.add(doc.id));
+                                        try {
+                                          await ref
+                                              .read(authRepositoryProvider)
+                                              .approveVendorApplication(
+                                                doc.id,
+                                                data,
+                                                adminId,
+                                              );
+                                          if (mounted) {
+                                            _showMessage('Application approved.');
+                                          }
+                                        } catch (_) {
+                                          if (mounted) {
+                                            _showMessage('Unable to approve application.');
+                                          }
+                                        } finally {
+                                          if (mounted) {
+                                            setState(() =>
+                                                _processingApplications.remove(doc.id));
+                                          }
+                                        }
+                                      },
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -350,7 +314,27 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               label: isProcessing ? 'Working...' : 'Reject',
                               onPressed: isProcessing
                                   ? () {}
-                                  : () => _rejectApplication(doc.id, adminId),
+                                  : () async {
+                                        setState(() =>
+                                            _processingApplications.add(doc.id));
+                                        try {
+                                          await ref
+                                              .read(authRepositoryProvider)
+                                              .rejectVendorApplication(doc.id, adminId);
+                                          if (mounted) {
+                                            _showMessage('Application rejected.');
+                                          }
+                                        } catch (_) {
+                                          if (mounted) {
+                                            _showMessage('Unable to reject application.');
+                                          }
+                                        } finally {
+                                          if (mounted) {
+                                            setState(() =>
+                                                _processingApplications.remove(doc.id));
+                                          }
+                                        }
+                                      },
                               variant: PrimaryButtonVariant.outline,
                             ),
                           ),

@@ -1,37 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../controllers/controllers.dart';
+import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../common/primary_button.dart';
 
-class AppScaffold extends StatelessWidget {
+/// Wraps the app with a consistent layout. Shows the public website header
+/// (logo, Flowers, Occasions, Vendors, About, Become a Vendor) except when
+/// the user is on the vendor dashboard (route /vendor and authenticated).
+/// Vendor dashboard pages render their own [VendorDashboardHeader].
+class AppScaffold extends ConsumerWidget {
   final Widget child;
 
   const AppScaffold({super.key, required this.child});
 
+  /// True when we are on a vendor route and the user is authenticated,
+  /// so the vendor page will show [VendorDashboardHeader] and we must not
+  /// show the public nav (Flowers, Occasions, etc.).
+  static bool _isVendorDashboard(BuildContext context, WidgetRef ref) {
+    final path = GoRouterState.of(context).uri.path;
+    if (!path.startsWith('/vendor')) return false;
+    final auth = ref.watch(authStateProvider);
+    return auth.hasValue && auth.value != null;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showPublicHeader = !_isVendorDashboard(context, ref);
+
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const _TopBar(),
-            child,
-            const SizedBox(height: 80),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              if (showPublicHeader) const _PublicHeader(),
+              child,
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _TopBar extends StatelessWidget {
-  const _TopBar();
+/// Public website header: logo + nav links + Become a Vendor.
+/// Shown for unauthenticated users and for non-vendor routes.
+class _PublicHeader extends StatelessWidget {
+  const _PublicHeader();
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    final horizontalPadding = isMobile ? 16.0 : 48.0;
+    final verticalPadding = isMobile ? 16.0 : 28.0;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 28),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
       child: Row(
         children: [
           GestureDetector(
@@ -48,10 +75,12 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          const _NavItem(label: 'Flowers'),
-          const _NavItem(label: 'Occasions'),
-          const _NavItem(label: 'Vendors'),
-          const _NavItem(label: 'About'),
+          if (!isMobile) ...[
+            const _NavItem(label: 'Flowers'),
+            const _NavItem(label: 'Occasions'),
+            const _NavItem(label: 'Vendors'),
+            const _NavItem(label: 'About'),
+          ],
           PrimaryButton(
             label: 'Become a Vendor',
             onPressed: () => context.go('/vendor'),

@@ -1,35 +1,50 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../controllers/controllers.dart';
 import '../../../core/services/whatsapp_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/common/order_via_whatsapp_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
 
-class ProductDetailPage extends StatelessWidget {
+class ProductDetailPage extends ConsumerWidget {
   final String flowerId;
 
   const ProductDetailPage({super.key, required this.flowerId});
 
   @override
-  Widget build(BuildContext context) {
-    return AppScaffold(
-      child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        future: FirebaseFirestore.instance
-            .collection('bouquets')
-            .doc(flowerId)
-            .get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SectionContainer(
-              padding: EdgeInsets.symmetric(vertical: 72),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bouquetAsync = ref.watch(bouquetDetailProvider(flowerId));
 
-          if (!snapshot.hasData || snapshot.data!.data() == null) {
+    return AppScaffold(
+      child: bouquetAsync.when(
+        loading: () => const SectionContainer(
+          padding: EdgeInsets.symmetric(vertical: 72),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (_, __) => SectionContainer(
+          padding: const EdgeInsets.symmetric(vertical: 72),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Product not found',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => context.pop(),
+                  child: const Text('Go back'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (bouquet) {
+          if (bouquet == null) {
             return SectionContainer(
               padding: const EdgeInsets.symmetric(vertical: 72),
               child: Center(
@@ -50,20 +65,13 @@ class ProductDetailPage extends StatelessWidget {
               ),
             );
           }
-
-          final data = snapshot.data!.data()!;
-          final imageUrls =
-              (data['imageUrls'] as List?)?.cast<String>() ?? [];
-          final imageUrl = imageUrls.isNotEmpty
-              ? imageUrls.first
+          final imageUrl = bouquet.imageUrls.isNotEmpty
+              ? bouquet.imageUrls.first
               : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
-          final name = data['name']?.toString() ?? 'Untitled bouquet';
-          final priceIqd = data['priceIqd']?.toString() ?? '--';
-          final price = 'IQD $priceIqd';
-          final description =
-              data['description']?.toString() ?? 'Vendor bouquet';
-          final bouquetCode = data['bouquetCode']?.toString();
-
+          final price = 'IQD ${bouquet.priceIqd}';
+          final bouquetCode = bouquet.bouquetCode.isNotEmpty
+              ? bouquet.bouquetCode
+              : null;
           return SectionContainer(
             padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
             child: LayoutBuilder(
@@ -75,13 +83,14 @@ class ProductDetailPage extends StatelessWidget {
                     if (isNarrow) ...[
                       _buildImage(imageUrl),
                       const SizedBox(height: 24),
-                      _buildInfo(context, name, description, price, bouquetCode),
+                      _buildInfo(context, bouquet.name, bouquet.description,
+                          price, bouquetCode),
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
                         child: OrderViaWhatsAppButton(
                           onPressed: () => launchOrderWhatsApp(
-                            flowerName: name,
+                            flowerName: bouquet.name,
                             flowerPrice: price,
                             flowerId: flowerId,
                             flowerImageUrl: imageUrl,
@@ -103,13 +112,14 @@ class ProductDetailPage extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildInfo(context, name, description, price, bouquetCode),
+                                _buildInfo(context, bouquet.name,
+                                    bouquet.description, price, bouquetCode),
                                 const SizedBox(height: 28),
                                 SizedBox(
                                   width: double.infinity,
                                   child: OrderViaWhatsAppButton(
                                     onPressed: () => launchOrderWhatsApp(
-                                      flowerName: name,
+                                      flowerName: bouquet.name,
                                       flowerPrice: price,
                                       flowerId: flowerId,
                                       flowerImageUrl: imageUrl,
