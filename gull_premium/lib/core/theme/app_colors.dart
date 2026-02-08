@@ -11,4 +11,13 @@ class AppColors {
   static const Color inkMuted = Color(0xFF6B6059);
   static const Color border = Color(0xFFE9E2DD);
   static const Color shadow = Color(0x1A2B2724);
+
+  /// Header: soft off-white, luxury feel
+  static const Color headerBackground = Color(0xFFFAF7F2);
+  /// Header border (neutral-200)
+  static const Color headerBorder = Color(0xFFE5E5E0);
+  /// Dark charcoal text (no pure black)
+  static const Color inkCharcoal = Color(0xFF1A1A1A);
+  /// Nav default
+  static const Color navMuted = Color(0xFF525252);
 }

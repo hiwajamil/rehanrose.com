@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../../core/constants/emotion_categories.dart';
 import '../models/flower_model.dart';
 
 /// Repository for bouquet (flower) data. Abstracts Firestore and Storage.
@@ -37,17 +38,45 @@ class BouquetRepository {
     }
   }
 
-  /// Stream of bouquets, optionally filtered by occasion.
-  /// [occasion] null or 'All' = all bouquets; otherwise filter by occasion.
+  /// One-time fetch of bouquets for the public landing page. Prefer this over
+  /// [watchBouquets] on web to avoid stream never emitting (e.g. custom domain).
+  /// [occasion] null or 'All' = all bouquets; otherwise filter by emotion value (with backward compat).
+  Future<List<FlowerModel>> getBouquets({String? occasion}) async {
+    Query<Map<String, dynamic>> query = _bouquets.limit(_limit);
+
+    if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
+      final storedValues = storedValuesForFilter(occasion);
+      if (storedValues.isNotEmpty) {
+        query = _bouquets
+            .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
+            .limit(_limit);
+      }
+    }
+
+    final snap = await query.get().timeout(_queryTimeout);
+    final list = _parseBouquetDocs(snap.docs);
+    list.sort((a, b) {
+      final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
+      final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
+      return bMs.compareTo(aMs);
+    });
+    return list;
+  }
+
+  /// Stream of bouquets, optionally filtered by emotion value.
+  /// [occasion] null or 'All' = all bouquets; otherwise filter by emotion (with backward compat).
   /// Does NOT use orderBy(createdAt) so documents without createdAt (e.g. older data) are included.
   /// Sorts in Dart by createdAt descending (null createdAt treated as oldest).
   Stream<List<FlowerModel>> watchBouquets({String? occasion}) {
     Query<Map<String, dynamic>> query = _bouquets.limit(_limit);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
-      query = _bouquets
-          .where('occasion', isEqualTo: occasion)
-          .limit(_limit);
+      final storedValues = storedValuesForFilter(occasion);
+      if (storedValues.isNotEmpty) {
+        query = _bouquets
+            .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
+            .limit(_limit);
+      }
     }
 
     return query.snapshots().timeout(_queryTimeout).map((snap) {

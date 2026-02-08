@@ -11,7 +11,6 @@ class VendorDashboardHeader extends StatefulWidget {
   final String vendorName;
   final int unreadNotificationCount;
   final VoidCallback? onProfile;
-  final VoidCallback? onShopSettings;
   final VoidCallback? onLogout;
   final ValueChanged<bool>? onShopStatusChanged;
   /// Optional leading widget (e.g. menu icon for drawer). Shown before brand on small screens.
@@ -22,7 +21,6 @@ class VendorDashboardHeader extends StatefulWidget {
     this.vendorName = 'Vendor',
     this.unreadNotificationCount = 0,
     this.onProfile,
-    this.onShopSettings,
     this.onLogout,
     this.onShopStatusChanged,
     this.leading,
@@ -466,9 +464,8 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _dropdownItem(context, 'Profile', Icons.person_outline, widget.onProfile),
-              _dropdownItem(context, 'Shop Settings', Icons.settings_outlined, widget.onShopSettings),
               const Divider(height: 16),
-              _dropdownItem(context, 'Logout', Icons.logout, widget.onLogout, isDestructive: true),
+              _dropdownItem(context, 'Log out', Icons.logout, widget.onLogout, isDestructive: true),
             ],
           ),
         ),

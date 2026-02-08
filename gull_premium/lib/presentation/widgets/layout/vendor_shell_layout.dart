@@ -64,7 +64,6 @@ class VendorShellLayout extends ConsumerWidget {
       vendorName: name,
       unreadNotificationCount: 0,
       onProfile: () => context.go('/vendor/shop-settings'),
-      onShopSettings: () => context.go('/vendor/shop-settings'),
       onLogout: () => ref.read(authRepositoryProvider).signOut(),
     );
   }
@@ -93,7 +92,6 @@ class _HeaderInAppBar extends StatelessWidget {
         vendorName: name,
         unreadNotificationCount: 0,
         onProfile: () => context.go('/vendor/shop-settings'),
-        onShopSettings: () => context.go('/vendor/shop-settings'),
         onLogout: () => ref.read(authRepositoryProvider).signOut(),
       ),
     );

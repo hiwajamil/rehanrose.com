@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../core/constants/occasions.dart';
-import '../core/utils/bouquet_code_utils.dart';
+import '../core/constants/emotion_categories.dart';
+import '../core/utils/auth_error_utils.dart';
 import '../data/models/flower_model.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/bouquet_repository.dart';
@@ -77,7 +77,7 @@ class VendorController extends AsyncNotifier<void> {
     }
   }
 
-  /// Sign in vendor; throws if not approved.
+  /// Sign in vendor; throws if not approved. Throws [Exception] with user-friendly message on auth failure.
   Future<VendorStatus> signInVendor({required String email, required String password}) async {
     state = const AsyncValue.loading();
     try {
@@ -97,22 +97,28 @@ class VendorController extends AsyncNotifier<void> {
       state = const AsyncValue.data(null);
       return VendorStatus.approved;
     } on fa.FirebaseAuthException catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      rethrow;
+      final msg = e.message ?? authErrorMessage(e);
+      state = AsyncValue.error(Exception(msg), StackTrace.current);
+      throw Exception(msg);
+    } catch (e, st) {
+      final msg = authErrorMessage(e, fallback: 'Could not sign in. Please try again.');
+      state = AsyncValue.error(Exception(msg), st);
+      throw Exception(msg);
     }
   }
 
   /// Upload images and create bouquet. Returns generated code on success.
+  /// [emotion] is the normalized value (e.g. "birthday", "wedding") stored in Firestore.
   Future<String?> publishBouquet({
     required fa.User user,
     required String name,
     required String description,
     required int priceIqd,
     required List<XFile> imageFiles,
-    required String occasion,
+    required String emotion,
   }) async {
-    if (!kOccasions.contains(occasion)) {
-      throw ArgumentError('Invalid occasion.');
+    if (!kEmotionValues.contains(emotion)) {
+      throw ArgumentError('Invalid emotion.');
     }
     state = const AsyncValue.loading();
     try {
@@ -130,7 +136,8 @@ class VendorController extends AsyncNotifier<void> {
         );
         imageUrls.add(url);
       }
-      final prefix = getOccasionPrefix(occasion);
+      final prefix = codePrefixForEmotionValue(emotion);
+      if (prefix.isEmpty) throw ArgumentError('Invalid emotion. Cannot generate bouquet code.');
       final bouquetCode = await _bouquetRepo.reserveNextBouquetCode(prefix);
       await _bouquetRepo.create(
         vendorId: user.uid,
@@ -138,7 +145,7 @@ class VendorController extends AsyncNotifier<void> {
         description: description,
         priceIqd: priceIqd,
         imageUrls: imageUrls,
-        occasion: occasion,
+        occasion: emotion,
         bouquetCode: bouquetCode,
       );
       state = const AsyncValue.data(null);

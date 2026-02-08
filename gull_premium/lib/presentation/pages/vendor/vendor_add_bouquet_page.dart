@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/occasions.dart';
+import '../../../core/constants/emotion_categories.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/section_container.dart';
 
-/// Add new bouquet: name, occasion, price (IQD), max 3 images, description, availability.
-/// Bouquet ID is auto-generated (e.g. Bi-1, We-1, Th-1) per occasion.
+/// Add new bouquet: name, emotion, price (IQD), max 3 images, description, availability.
+/// Bouquet ID is auto-generated (e.g. Bi-1, We-1, Th-1) per emotion.
 class VendorAddBouquetPage extends ConsumerStatefulWidget {
   const VendorAddBouquetPage({super.key});
 
@@ -25,8 +25,8 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  String? _selectedOccasion;
-  String? _occasionError;
+  String? _selectedEmotionValue;
+  String? _emotionError;
   List<XFile> _images = [];
   bool _available = true;
   bool _submitting = false;
@@ -60,16 +60,16 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
       _message('Please enter a bouquet name.');
       return;
     }
-    if (_selectedOccasion == null || _selectedOccasion!.isEmpty) {
-      setState(() => _occasionError = 'Please select an occasion.');
-      _message('Please select an occasion.');
+    if (_selectedEmotionValue == null || _selectedEmotionValue!.isEmpty) {
+      setState(() => _emotionError = 'Please select what this bouquet says.');
+      _message('Please select what this bouquet says.');
       return;
     }
-    if (!kOccasions.contains(_selectedOccasion)) {
-      setState(() => _occasionError = 'Invalid occasion.');
+    if (!kEmotionValues.contains(_selectedEmotionValue)) {
+      setState(() => _emotionError = 'Invalid selection.');
       return;
     }
-    setState(() => _occasionError = null);
+    setState(() => _emotionError = null);
 
     if (price == null) {
       _message('Enter the price as a number in IQD.');
@@ -94,7 +94,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
             description: description,
             priceIqd: price,
             imageFiles: _images,
-            occasion: _selectedOccasion!,
+            emotion: _selectedEmotionValue!,
           );
       if (!mounted) return;
       _message(code != null ? 'Bouquet published. Code: $code' : 'Bouquet published.');
@@ -103,8 +103,8 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
       _priceController.clear();
       setState(() {
         _images = [];
-        _selectedOccasion = null;
-        _occasionError = null;
+        _selectedEmotionValue = null;
+        _emotionError = null;
       });
     } on TimeoutException catch (_) {
       _message('Publish timed out. Please try again.');
@@ -131,7 +131,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Bouquet ID is auto-generated from occasion (e.g. Birthday → Bi-1, We-2).',
+              'Bouquet ID is auto-generated from the feeling you choose (e.g. Celebrate Them → Bi-1, Bi-2).',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.inkMuted,
                   ),
@@ -162,13 +162,13 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                     maxLines: 3,
                   ),
                   const SizedBox(height: 20),
-                  _OccasionField(
-                    value: _selectedOccasion,
-                    error: _occasionError,
+                  _EmotionField(
+                    value: _selectedEmotionValue,
+                    error: _emotionError,
                     onChanged: (v) {
                       setState(() {
-                        _selectedOccasion = v;
-                        _occasionError = null;
+                        _selectedEmotionValue = v;
+                        _emotionError = null;
                       });
                     },
                   ),
@@ -240,16 +240,16 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                       Switch(
                         value: _available,
                         onChanged: (v) => setState(() => _available = v),
-                        activeColor: AppColors.rose,
+                        activeThumbColor: AppColors.rose,
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
                   PrimaryButton(
                     label: _submitting ? 'Publishing...' : 'Publish bouquet',
-                    onPressed: _submitting
+                    onPressed: _submitting || _selectedEmotionValue == null
                         ? () {}
-                        : (_selectedOccasion == null ? () {} : _submit),
+                        : _submit,
                   ),
                 ],
               ),
@@ -322,12 +322,12 @@ class _Field extends StatelessWidget {
   }
 }
 
-class _OccasionField extends StatelessWidget {
+class _EmotionField extends StatelessWidget {
   final String? value;
   final String? error;
   final ValueChanged<String?> onChanged;
 
-  const _OccasionField({
+  const _EmotionField({
     required this.value,
     required this.error,
     required this.onChanged,
@@ -339,7 +339,7 @@ class _OccasionField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Occasion',
+          'What does this bouquet say?',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w600,
@@ -347,7 +347,7 @@ class _OccasionField extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             errorText: error,
             filled: true,
@@ -365,9 +365,24 @@ class _OccasionField extends StatelessWidget {
               borderSide: const BorderSide(color: AppColors.rose),
             ),
           ),
-          hint: const Text('Select occasion'),
-          items: kOccasions
-              .map((o) => DropdownMenuItem<String>(value: o, child: Text(o)))
+          hint: const Text('Choose a feeling'),
+          items: kEmotions
+              .map((e) => DropdownMenuItem<String>(
+                    value: e.value,
+                    child: Row(
+                      children: [
+                        if (e.icon != null) ...[
+                          Icon(
+                            e.icon,
+                            size: 22,
+                            color: AppColors.rose,
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(child: Text(e.label)),
+                      ],
+                    ),
+                  ))
               .toList(),
           onChanged: onChanged,
         ),

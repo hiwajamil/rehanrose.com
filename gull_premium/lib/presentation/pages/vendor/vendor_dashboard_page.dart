@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/auth_error_utils.dart';
 import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
@@ -78,6 +79,8 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
       setState(() => _isSignIn = true);
     } on fa.FirebaseAuthException catch (e) {
       _showMessage(e.message ?? 'Unable to submit application.');
+    } catch (e, _) {
+      _showMessage(authErrorMessage(e, fallback: 'Unable to submit application. Please try again.'));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -105,8 +108,8 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
       }
     } on fa.FirebaseAuthException catch (e) {
       _showMessage(e.message ?? 'Unable to sign in.');
-    } catch (_) {
-      _showMessage('Could not verify vendor status. Try again or contact support.');
+    } catch (e, _) {
+      _showMessage(authErrorMessage(e, fallback: 'Could not sign in. Please check your email and password, or try again later.'));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
