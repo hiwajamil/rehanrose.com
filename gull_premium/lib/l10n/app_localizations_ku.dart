@@ -42,7 +42,7 @@ class AppLocalizationsKu extends AppLocalizations {
   String get heroTagline => 'چونکە هەندێک سات شایانی زیاتر لە ووتەن.';
 
   @override
-  String get emotionDropdownPrompt => 'ئەمڕۆ چی دەتەوێت بڵێیت؟';
+  String get emotionDropdownPrompt => 'چیت لە دڵدایە ئەمڕۆ ؟';
 
   @override
   String get searchPlaceholder => 'هەستێک هەڵبژێرە';
