@@ -1,0 +1,60 @@
+{
+  "@@locale": "en",
+  "appTitle": "Rehan Rose",
+  "navFlowers": "Flowers",
+  "navOccasions": "Occasions",
+  "navVendors": "Vendors",
+  "navAbout": "About",
+  "ctaBecomeVendor": "Become a Vendor",
+  "signIn": "Sign In",
+  "heroTitlePart1": "When words can't…\n",
+  "heroTitlePart2": "Let flowers speak.",
+  "heroSubtitle": "Delivering your deepest emotions, in the most beautiful way.",
+  "heroTagline": "Because some moments deserve more than words.",
+  "emotionDropdownPrompt": "What do you want to say today?",
+  "searchPlaceholder": "Choose an emotion",
+  "chooseEmotion": "Choose an emotion",
+  "emotionCelebrateThem": "Celebrate Them",
+  "emotionForeverBegins": "Forever Begins",
+  "emotionImHere": "I'm Here",
+  "emotionWithGratitude": "With Gratitude",
+  "emotionJustBecause": "Just Because",
+  "emotionWellDeserved": "Well Deserved",
+  "emotionStillYou": "Still You",
+  "emotionThinkingOfYou": "Thinking of You",
+  "flowersForEveryFeeling": "Flowers for every feeling.",
+  "eachBouquetCopy": "Each bouquet is designed to say what your heart already feels.",
+  "loadingBouquets": "Loading bouquets…",
+  "couldNotLoadBouquets": "Could not load bouquets.",
+  "retry": "Retry",
+  "noBouquetsYet": "No bouquets yet.",
+  "noBouquetsForFeeling": "No bouquets for this feeling yet.",
+  "carefullyCurated": "Carefully curated. Thoughtfully delivered.",
+  "sameDayDelivery": "Same-day delivery",
+  "trustedLocalFlorists": "Trusted local florists",
+  "handcraftedBouquets": "Handcrafted bouquets",
+  "splashMission": "We believe that every emotion deserves to arrive beautifully.",
+  "somethingWentWrong": "Something went wrong",
+  "refreshOrTryAgain": "Please refresh the page or try again later.",
+  "languageEnglish": "English",
+  "languageKurdish": "کوردی",
+  "languageArabic": "العربية",
+  "filterAll": "All",
+  "ctaButton": "Explore",
+  "microCopyFlowersThatSay": "Flowers that say {label}",
+  "@microCopyFlowersThatSay": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "microCopyBouquetsFor": "Bouquets for {label}",
+  "@microCopyBouquetsFor": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  }
+}

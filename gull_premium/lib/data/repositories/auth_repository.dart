@@ -55,6 +55,20 @@ class AuthRepository {
     return doc.exists;
   }
 
+  /// Get stored language preference for user. Returns null if not set.
+  Future<String?> getLanguage(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    return doc.data()?['language']?.toString();
+  }
+
+  /// Save user language preference (e.g. 'en', 'ar', 'ku').
+  Future<void> setLanguage(String uid, String languageCode) async {
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .set({'language': languageCode}, SetOptions(merge: true));
+  }
+
   /// Set user document (e.g. after sign up) with role and vendorStatus.
   /// Adds createdAt with server timestamp.
   Future<void> setUserDoc(String uid, Map<String, dynamic> data) async {

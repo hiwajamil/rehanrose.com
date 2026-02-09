@@ -3,40 +3,35 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/constants/emotion_categories.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/emotion_l10n.dart';
+import '../../../core/utils/rtl_utils.dart';
+import '../../../l10n/app_localizations.dart';
 
-/// Emotion-based dropdown for landing page.
-/// Label: "What do you want to say today?"
-/// Placeholder: "Choose an emotion"
-/// Selecting immediately filters bouquets (no submit).
+/// Emotion-based dropdown for landing page. Uses emotion value (e.g. 'birthday') and localized labels.
 class EmotionDropdown extends StatelessWidget {
-  final String? selectedEmotionLabel;
+  final String? selectedEmotionValue;
   final ValueChanged<String?> onChanged;
 
   const EmotionDropdown({
     super.key,
-    this.selectedEmotionLabel,
+    this.selectedEmotionValue,
     required this.onChanged,
   });
 
-  /// Micro-copy for selected emotion: "Flowers that say Love" or "Bouquets for Gratitude"
-  static String microCopyFor(String displayLabel) {
-    final text = displayLabel.replaceAll(RegExp(r'[^\w\s]'), '').trim();
-    if (text.isEmpty) return '';
-    if (['Love', 'Romance', 'Sympathy', 'Apology'].contains(text)) {
-      return 'Flowers that say $text';
-    }
-    return 'Bouquets for $text';
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    final selectedLabel = selectedEmotionValue != null
+        ? localizedEmotionLabel(l10n, selectedEmotionValue!)
+        : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'What do you want to say today?',
+          l10n.emotionDropdownPrompt,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w500,
@@ -58,33 +53,37 @@ class EmotionDropdown extends StatelessWidget {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: selectedEmotionLabel,
+              value: selectedEmotionValue,
               hint: Text(
-                'Choose an emotion',
+                l10n.chooseEmotion,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.inkMuted.withValues(alpha: 0.85),
                       fontWeight: FontWeight.w400,
                     ),
               ),
               isExpanded: true,
-              icon: Icon(
+              icon: directionalIcon(
+                context,
                 Icons.keyboard_arrow_down_rounded,
                 color: AppColors.inkMuted.withValues(alpha: 0.7),
               ),
               borderRadius: BorderRadius.circular(20),
-              padding: EdgeInsets.symmetric(
+              padding: EdgeInsetsDirectional.symmetric(
                 horizontal: isMobile ? 18 : 24,
                 vertical: isMobile ? 14 : 18,
               ),
               dropdownColor: Colors.white,
-              items: kEmotions.map((e) {
+              items: kEmotionValuesOrdered.map((value) {
+                final label = localizedEmotionLabel(l10n, value);
+                final entry = kEmotions.firstWhere((e) => e.value == value);
                 return DropdownMenuItem<String>(
-                  value: e.label,
+                  value: value,
                   child: Row(
+                    textDirection: Directionality.of(context),
                     children: [
-                      if (e.icon != null) ...[
+                      if (entry.icon != null) ...[
                         Icon(
-                          e.icon,
+                          entry.icon,
                           size: 22,
                           color: AppColors.rose,
                         ),
@@ -92,7 +91,7 @@ class EmotionDropdown extends StatelessWidget {
                       ],
                       Expanded(
                         child: Text(
-                          e.label,
+                          label,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: AppColors.ink,
                                 fontWeight: FontWeight.w500,
@@ -107,10 +106,10 @@ class EmotionDropdown extends StatelessWidget {
             ),
           ),
         ),
-        if (selectedEmotionLabel != null && selectedEmotionLabel!.isNotEmpty) ...[
+        if (selectedLabel != null && selectedLabel.isNotEmpty) ...[
           const SizedBox(height: 10),
           Text(
-            microCopyFor(selectedEmotionLabel!),
+            l10n.microCopyBouquetsFor(selectedLabel),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
                   color: AppColors.inkMuted.withValues(alpha: 0.9),

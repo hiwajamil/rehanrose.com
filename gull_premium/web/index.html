@@ -50,6 +50,7 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-x: none;
+      background: #F9F6F3;
     }
     img { max-width: 100%; height: auto; }
     input, textarea, select {
@@ -72,8 +73,14 @@
       padding: 2rem;
       text-align: center;
       font-size: clamp(14px, 4vw, 18px);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
     }
-    #loading { color: #333; }
+    #loading { color: #2B2724; background: #F9F6F3; }
     #load-error { display: none; color: #c00; }
     #loading h1, #load-error h1 { font-size: clamp(24px, 6vw, 40px); }
     #loading h2, #load-error h2 { font-size: clamp(20px, 5vw, 32px); }
@@ -114,12 +121,12 @@
       var loading = document.getElementById('loading');
       var errEl = document.getElementById('load-error');
       function hideLoading() { if (loading) loading.style.display = 'none'; }
-      function showError() { hideLoading(); if (errEl) errEl.style.display = 'block'; }
+      function showError() { hideLoading(); if (errEl) { errEl.style.display = 'flex'; errEl.style.background = '#F9F6F3'; } }
       window.addEventListener('flutter-first-frame', hideLoading);
       setTimeout(function() {
         if (document.querySelector('flutter-view') || document.querySelector('flt-glass-pane')) hideLoading();
         else if (loading && loading.style.display !== 'none') showError();
-      }, 15000);
+      }, 12000);
     })();
   </script>
 </body>

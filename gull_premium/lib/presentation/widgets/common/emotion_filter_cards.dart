@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/emotion_categories.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/emotion_l10n.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Emotion-based category cards. Soft colors, no animation overload.
-/// Selecting a card filters bouquets by the corresponding occasion.
 class EmotionFilterCards extends StatelessWidget {
   final String selectedOccasion;
   final ValueChanged<String> onSelected;
@@ -17,19 +18,20 @@ class EmotionFilterCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       children: [
         _EmotionCard(
-          label: 'All Feelings',
+          label: l10n.filterAll,
           isSelected: selectedOccasion == 'All',
           onTap: () => onSelected('All'),
         ),
         ...kEmotions.map((e) {
           final isSelected = selectedOccasion == e.value;
           return _EmotionCard(
-            label: e.label,
+            label: localizedEmotionLabel(l10n, e.value),
             isSelected: isSelected,
             onTap: () => onSelected(e.value),
           );
@@ -76,7 +78,7 @@ class _EmotionCardState extends State<_EmotionCard> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(28),

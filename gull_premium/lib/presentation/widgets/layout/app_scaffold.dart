@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/locale_provider.dart';
+import '../../../core/utils/rtl_utils.dart';
+import '../../../l10n/app_localizations.dart';
 import '../common/primary_button.dart';
 
 /// Wraps the app with a consistent layout. Shows the public website header
@@ -54,16 +57,17 @@ class AppScaffold extends ConsumerWidget {
   }
 }
 
-/// Public website header: brand, nav, actions. Clean, minimal, premium.
-class _PublicHeader extends StatelessWidget {
+/// Public website header: brand, nav, actions, language switcher.
+class _PublicHeader extends ConsumerWidget {
   const _PublicHeader();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    const maxWidth = 1280.0; // max-w-7xl
-    const horizontalPadding = 16.0; // px-4
-    const verticalPadding = 16.0; // py-4
+    const maxWidth = 1280.0;
+    const horizontalPadding = 16.0;
+    const verticalPadding = 16.0;
 
     return Container(
       width: double.infinity,
@@ -77,19 +81,21 @@ class _PublicHeader extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: maxWidth),
           child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: verticalPadding,
+            padding: EdgeInsetsDirectional.only(
+              start: horizontalPadding,
+              end: horizontalPadding,
+              top: verticalPadding,
+              bottom: verticalPadding,
             ),
             child: Row(
+              textDirection: Directionality.of(context),
               children: [
-                // —— Brand (left) ——
                 GestureDetector(
                   onTap: () => context.go('/'),
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: Text(
-                      'Rehan Rose',
+                      l10n.appTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: AppColors.inkCharcoal,
                             fontWeight: FontWeight.w600,
@@ -99,21 +105,21 @@ class _PublicHeader extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                // —— Center nav (desktop only) ——
                 if (!isMobile) ...[
-                  _NavLink(label: 'Flowers', onTap: () => context.go('/')),
+                  _NavLink(label: l10n.navFlowers, onTap: () => context.go('/')),
                   const SizedBox(width: 32),
-                  _NavLink(label: 'Occasions', onTap: () => context.go('/')),
+                  _NavLink(label: l10n.navOccasions, onTap: () => context.go('/')),
                   const SizedBox(width: 32),
-                  _NavLink(label: 'Vendors', onTap: () => context.go('/')),
+                  _NavLink(label: l10n.navVendors, onTap: () => context.go('/')),
                   const SizedBox(width: 32),
-                  _NavLink(label: 'About', onTap: () => context.go('/')),
+                  _NavLink(label: l10n.navAbout, onTap: () => context.go('/')),
                 ],
                 if (!isMobile) const Spacer(),
-                // —— Actions (right) ——
                 if (!isMobile) ...[
+                  _LanguageSwitcher(),
+                  const SizedBox(width: 16),
                   _HeaderOutlinedButton(
-                    label: 'Become a Vendor',
+                    label: l10n.ctaBecomeVendor,
                     onPressed: () => context.go('/vendor'),
                   ),
                   const SizedBox(width: 16),
@@ -132,6 +138,54 @@ class _PublicHeader extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Language dropdown: English, کوردی, العربية. Persists to SharedPreferences + Firestore.
+class _LanguageSwitcher extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return PopupMenuButton<String>(
+      tooltip: '',
+      offset: const Offset(0, 40),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.symmetric(horizontal: 8, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              languageDisplayName(locale.languageCode, context),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.inkCharcoal,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+            directionalIcon(context, Icons.keyboard_arrow_down_rounded,
+                size: 20, color: AppColors.inkCharcoal),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'en',
+          child: Text(l10n.languageEnglish),
+        ),
+        PopupMenuItem(
+          value: 'ku',
+          child: Text(l10n.languageKurdish),
+        ),
+        PopupMenuItem(
+          value: 'ar',
+          child: Text(l10n.languageArabic),
+        ),
+      ],
+      onSelected: (code) async {
+        await ref.read(localeProvider.notifier).setLocale(Locale(code));
+      },
     );
   }
 }
@@ -161,7 +215,7 @@ class _NavLinkState extends State<_NavLink> {
         onTap: widget.onTap,
         behavior: HitTestBehavior.opaque,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 4, vertical: 8),
           child: Text(
             widget.label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -201,7 +255,7 @@ class _HeaderOutlinedButtonState extends State<_HeaderOutlinedButton> {
       child: GestureDetector(
         onTap: widget.onPressed,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: _hovered
                 ? AppColors.border.withValues(alpha: 0.6)
@@ -241,9 +295,9 @@ class _SignInButtonState extends State<_SignInButton> {
       child: GestureDetector(
         onTap: () => context.go('/vendor'),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 8, vertical: 10),
           child: Text(
-            'Sign In',
+            AppLocalizations.of(context)!.signIn,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w500,
@@ -255,36 +309,39 @@ class _SignInButtonState extends State<_SignInButton> {
   }
 }
 
-/// Mobile drawer: nav links + primary actions. No sliding emphasis; calm list.
-class _MobileNavDrawer extends StatelessWidget {
+/// Mobile drawer: nav links, language switcher, primary actions.
+class _MobileNavDrawer extends ConsumerWidget {
   final VoidCallback onNavigate;
 
   const _MobileNavDrawer({required this.onNavigate});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final navItems = [
-      ('Flowers', () => context.go('/')),
-      ('Occasions', () => context.go('/')),
-      ('Vendors', () => context.go('/')),
-      ('About', () => context.go('/')),
+      (l10n.navFlowers, () => context.go('/')),
+      (l10n.navOccasions, () => context.go('/')),
+      (l10n.navVendors, () => context.go('/')),
+      (l10n.navAbout, () => context.go('/')),
     ];
 
     return Drawer(
       backgroundColor: AppColors.headerBackground,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Rehan Rose',
+                l10n.appTitle,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.inkCharcoal,
                       fontWeight: FontWeight.w600,
                     ),
               ),
+              const SizedBox(height: 24),
+              _LanguageSwitcher(),
               const SizedBox(height: 32),
               ...navItems.map((e) {
                 return Padding(
@@ -296,7 +353,7 @@ class _MobileNavDrawer extends StatelessWidget {
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
+                      padding: const EdgeInsetsDirectional.symmetric(
                         horizontal: 12,
                         vertical: 14,
                       ),
@@ -317,7 +374,7 @@ class _MobileNavDrawer extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: PrimaryButton(
-                  label: 'Become a Vendor',
+                  label: l10n.ctaBecomeVendor,
                   onPressed: () {
                     context.go('/vendor');
                     onNavigate();
@@ -334,7 +391,7 @@ class _MobileNavDrawer extends StatelessWidget {
                     onNavigate();
                   },
                   child: Text(
-                    'Sign In',
+                    l10n.signIn,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: AppColors.navMuted,
                           fontWeight: FontWeight.w500,

@@ -1,16 +1,40 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/constants/breakpoints.dart';
 import 'core/routing/app_router.dart';
 import 'core/services/firebase_init.dart' as fb;
 import 'core/theme/app_theme.dart';
+import 'controllers/controllers.dart';
+import 'core/utils/locale_provider.dart';
+import 'core/utils/material_localizations_fallback.dart';
+import 'core/utils/rtl_utils.dart';
+import 'data/repositories/auth_repository.dart';
 import 'firebase_options.dart';
+import 'l10n/app_localizations.dart';
 import 'presentation/widgets/common/splash_screen.dart';
+
+const String _localePrefKey = 'app_locale';
+
+/// Localization delegates with Kurdish (ku) fallbacks so Material/Cupertino
+/// widgets work when [GlobalMaterialLocalizations] / [GlobalCupertinoLocalizations]
+/// don't support ku. Fallback delegates must appear before the Global ones.
+const List<LocalizationsDelegate<dynamic>> _localizationsDelegates = [
+  AppLocalizations.delegate,
+  MaterialLocalizationsKuFallbackDelegate(),
+  CupertinoLocalizationsKuFallbackDelegate(),
+  GlobalMaterialLocalizations.delegate,
+  GlobalCupertinoLocalizations.delegate,
+  GlobalWidgetsLocalizations.delegate,
+];
 
 Future<void> main() async {
   runZonedGuarded(() async {
@@ -23,7 +47,6 @@ Future<void> main() async {
       debugPrintStack(stackTrace: details.stack);
     };
     ErrorWidget.builder = (details) {
-      // Never show raw exception strings (e.g. Pigeon/platform messages) to users.
       final showDetails = kDebugMode;
       return Material(
         child: Container(
@@ -71,7 +94,6 @@ Future<void> main() async {
     } catch (e, st) {
       debugPrint('Firebase.initializeApp failed: $e');
       debugPrintStack(stackTrace: st);
-      // On custom domain, fall back to default web config so Firestore/hosting still work.
       if (kIsWeb &&
           (Uri.base.host == 'rehanrose.com' || Uri.base.host == 'www.rehanrose.com')) {
         try {
@@ -88,7 +110,37 @@ Future<void> main() async {
       }
     }
 
-    runApp(const ProviderScope(child: MainAppWithSplash()));
+    // Resolve initial locale: SharedPreferences then Firestore (if logged in).
+    // Wrap in try/catch so web (e.g. rehanrose.com) never gets stuck on white screen
+    // if prefs or Firestore fail (storage disabled, CORS, etc.).
+    Locale initialLocale = const Locale('en');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? initialCode = prefs.getString(_localePrefKey);
+      final user = fa.FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        try {
+          final repo = AuthRepository();
+          final firestoreLang = await repo.getLanguage(user.uid);
+          if (firestoreLang != null && kSupportedLanguageCodes.contains(firestoreLang)) {
+            initialCode = firestoreLang;
+          }
+        } catch (_) {}
+      }
+      if (initialCode != null && kSupportedLanguageCodes.contains(initialCode)) {
+        initialLocale = Locale(initialCode);
+      }
+    } catch (e, st) {
+      debugPrint('Locale/prefs init failed (using en): $e');
+      debugPrintStack(stackTrace: st);
+    }
+
+    runApp(ProviderScope(
+      overrides: [
+        initialLocaleProvider.overrideWith((ref) => initialLocale),
+      ],
+      child: const MainAppWithSplash(),
+    ));
   }, (error, stack) {
     debugPrint('Uncaught error: $error');
     debugPrintStack(stackTrace: stack);
@@ -96,39 +148,56 @@ Future<void> main() async {
 }
 
 /// Wraps the app with a splash screen that shows the mission statement.
-class MainAppWithSplash extends StatefulWidget {
+class MainAppWithSplash extends ConsumerStatefulWidget {
   const MainAppWithSplash({super.key});
 
   @override
-  State<MainAppWithSplash> createState() => _MainAppWithSplashState();
+  ConsumerState<MainAppWithSplash> createState() => _MainAppWithSplashState();
 }
 
-class _MainAppWithSplashState extends State<MainAppWithSplash> {
+class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
   bool _splashComplete = false;
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authStateProvider, (prev, next) {
+      if (next.value != null) {
+        ref.read(localeProvider.notifier).syncFromFirestoreIfLoggedIn();
+      }
+    });
+    final locale = ref.watch(localeProvider);
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    final theme = isMobile
+        ? AppTheme.lightMobile(locale)
+        : AppTheme.light(locale);
+    final direction = textDirectionForLocale(locale);
+
     if (!_splashComplete) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
+        locale: locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: _localizationsDelegates,
+        theme: theme,
+        builder: (context, child) => Directionality(
+          textDirection: direction,
+          child: child!,
+        ),
         home: SplashScreen(
           onComplete: () => setState(() => _splashComplete = true),
         ),
       );
     }
-    return const MainApp();
-  }
-}
-
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      theme: isMobile ? AppTheme.lightMobile() : AppTheme.light(),
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: _localizationsDelegates,
+      theme: theme,
+      builder: (context, child) => Directionality(
+        textDirection: direction,
+        child: child!,
+      ),
       routerConfig: AppRouter.router,
     );
   }

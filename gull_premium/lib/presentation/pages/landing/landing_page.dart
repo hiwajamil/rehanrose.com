@@ -5,9 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/constants/breakpoints.dart';
-import '../../../core/constants/emotion_categories.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/cards/flower_card.dart';
 import '../../widgets/common/emotion_dropdown.dart';
 import '../../widgets/common/emotion_filter_cards.dart';
@@ -94,15 +94,20 @@ class _HeroSectionState extends State<_HeroSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final headlineSize = isMobile ? 40.0 : 80.0; // ~2.5rem mobile, ~5rem desktop
+    final headlineSize = isMobile ? 40.0 : 80.0;
+    final locale = Localizations.localeOf(context);
+    final isRTL = locale.languageCode == 'ar' || locale.languageCode == 'ku';
+    final headlineFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.cormorantGaramond;
+    final bodyFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.manrope;
+
     return SizedBox(
       width: double.infinity,
       height: isMobile ? 520 : 620,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Video background (autoplay, loop, muted)
           if (_videoController.value.isInitialized)
             ClipRRect(
               child: FittedBox(
@@ -116,7 +121,6 @@ class _HeroSectionState extends State<_HeroSection> {
             )
           else
             Container(color: AppColors.background),
-          // Gradient overlay for text readability
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -129,20 +133,21 @@ class _HeroSectionState extends State<_HeroSection> {
               ),
             ),
           ),
-          // Content
           Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 20 : 48,
-              vertical: isMobile ? 48 : 72,
+            padding: EdgeInsetsDirectional.only(
+              start: isMobile ? 20 : 48,
+              end: isMobile ? 20 : 48,
+              top: isMobile ? 48 : 72,
+              bottom: isMobile ? 48 : 72,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Hero headline — two lines, second line emphasized with brand color
                 RichText(
                   textAlign: TextAlign.center,
+                  textDirection: Directionality.of(context),
                   text: TextSpan(
-                    style: GoogleFonts.cormorantGaramond(
+                    style: headlineFont(
                       fontSize: headlineSize,
                       fontWeight: FontWeight.w400,
                       letterSpacing: 0.2,
@@ -162,10 +167,10 @@ class _HeroSectionState extends State<_HeroSection> {
                       ],
                     ),
                     children: [
-                      const TextSpan(text: "When words can't…\n"),
+                      TextSpan(text: l10n.heroTitlePart1),
                       TextSpan(
-                        text: 'Let flowers speak.',
-                        style: GoogleFonts.cormorantGaramond(
+                        text: l10n.heroTitlePart2,
+                        style: headlineFont(
                           fontSize: headlineSize,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.2,
@@ -185,9 +190,10 @@ class _HeroSectionState extends State<_HeroSection> {
                 ),
                 SizedBox(height: isMobile ? 20 : 28),
                 Text(
-                  'Delivering your deepest emotions, in the most beautiful way.',
+                  l10n.heroSubtitle,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
+                  textDirection: Directionality.of(context),
+                  style: bodyFont(
                     fontSize: isMobile ? 16 : 20,
                     fontWeight: FontWeight.w400,
                     color: Colors.white.withValues(alpha: 0.94),
@@ -203,8 +209,9 @@ class _HeroSectionState extends State<_HeroSection> {
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  'Because some moments deserve more than words.',
-                  style: GoogleFonts.manrope(
+                  l10n.heroTagline,
+                  textDirection: Directionality.of(context),
+                  style: bodyFont(
                     fontSize: isMobile ? 13 : 15,
                     fontWeight: FontWeight.w400,
                     color: Colors.white.withValues(alpha: 0.82),
@@ -227,7 +234,7 @@ class _HeroSectionState extends State<_HeroSection> {
   }
 }
 
-/// Emotion dropdown block below hero. Rounded, soft, premium, no hard borders.
+/// Emotion dropdown block below hero.
 class _EmotionDropdownBlock extends ConsumerWidget {
   final VoidCallback? onSelection;
 
@@ -236,12 +243,11 @@ class _EmotionDropdownBlock extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedOccasion = ref.watch(selectedOccasionProvider);
-    final selectedLabel = dropdownLabelForOccasion(selectedOccasion);
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 48),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      margin: EdgeInsetsDirectional.symmetric(horizontal: isMobile ? 16 : 48),
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 28),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(24),
@@ -254,10 +260,10 @@ class _EmotionDropdownBlock extends ConsumerWidget {
         ],
       ),
       child: EmotionDropdown(
-        selectedEmotionLabel: selectedLabel,
-        onChanged: (label) {
-          if (label != null) {
-            ref.read(selectedOccasionProvider.notifier).setFromDropdownEmotion(label);
+        selectedEmotionValue: selectedOccasion == 'All' ? null : selectedOccasion,
+        onChanged: (value) {
+          if (value != null) {
+            ref.read(selectedOccasionProvider.notifier).setOccasion(value);
             onSelection?.call();
           }
         },
@@ -274,20 +280,23 @@ class _TransitionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SectionContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 48),
       child: Column(
         children: [
           const SizedBox(height: 24),
           Text(
-            'Flowers for every feeling.',
+            l10n.flowersForEveryFeeling,
             textAlign: TextAlign.center,
+            textDirection: Directionality.of(context),
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 12),
           Text(
-            'Each bouquet is designed to say what your heart already feels.',
+            l10n.eachBouquetCopy,
             textAlign: TextAlign.center,
+            textDirection: Directionality.of(context),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
@@ -308,8 +317,9 @@ class _ProductsSection extends ConsumerWidget {
     final bouquetsAsync = ref.watch(landingBouquetsProvider);
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
 
+    final l10n = AppLocalizations.of(context)!;
     return SectionContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -323,7 +333,7 @@ class _ProductsSection extends ConsumerWidget {
             loading: () => Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: Text(
-                'Loading bouquets…',
+                l10n.loadingBouquets,
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
@@ -334,7 +344,7 @@ class _ProductsSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Could not load bouquets.',
+                  l10n.couldNotLoadBouquets,
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -344,7 +354,7 @@ class _ProductsSection extends ConsumerWidget {
                 TextButton.icon(
                   onPressed: () => ref.invalidate(landingBouquetsProvider),
                   icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Retry'),
+                  label: Text(l10n.retry),
                 ),
               ],
             ),
@@ -354,8 +364,8 @@ class _ProductsSection extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Text(
                     selectedOccasion == 'All'
-                        ? 'No bouquets yet.'
-                        : 'No bouquets for this feeling yet.',
+                        ? l10n.noBouquetsYet
+                        : l10n.noBouquetsForFeeling,
                     style: Theme.of(context)
                         .textTheme
                         .bodyMedium
@@ -404,14 +414,16 @@ class _TrustSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return SectionContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 48),
       child: Column(
         children: [
           Text(
-            'Carefully curated. Thoughtfully delivered.',
+            l10n.carefullyCurated,
             textAlign: TextAlign.center,
+            textDirection: Directionality.of(context),
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppColors.inkMuted,
                   fontWeight: FontWeight.w500,
@@ -422,18 +434,18 @@ class _TrustSection extends StatelessWidget {
             spacing: isMobile ? 12 : 24,
             runSpacing: 12,
             alignment: WrapAlignment.center,
-            children: const [
+            children: [
               _TrustBadge(
                 icon: Icons.local_shipping_outlined,
-                label: 'Same-day delivery',
+                label: l10n.sameDayDelivery,
               ),
               _TrustBadge(
                 icon: Icons.store_outlined,
-                label: 'Trusted local florists',
+                label: l10n.trustedLocalFlorists,
               ),
               _TrustBadge(
                 icon: Icons.eco_outlined,
-                label: 'Handcrafted bouquets',
+                label: l10n.handcraftedBouquets,
               ),
             ],
           ),
@@ -452,14 +464,15 @@ class _TrustBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
+      color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        textDirection: Directionality.of(context),
         children: [
           Icon(icon, size: 18, color: AppColors.inkMuted),
           const SizedBox(width: 10),

@@ -5,13 +5,13 @@ import '../../../core/constants/breakpoints.dart';
 class SectionContainer extends StatelessWidget {
   final Widget child;
   final double maxWidth;
-  final EdgeInsets padding;
+  final EdgeInsetsGeometry padding;
 
   const SectionContainer({
     super.key,
     required this.child,
     this.maxWidth = 1200,
-    this.padding = const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
+    this.padding = const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 56),
   });
 
   @override
@@ -19,9 +19,10 @@ class SectionContainer extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width <= kMobileBreakpoint;
     final effectivePadding = isMobile
-        ? const EdgeInsets.symmetric(horizontal: 16, vertical: 24)
+        ? const EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 24)
         : padding;
-    final horizontalPadding = effectivePadding.left + effectivePadding.right;
+    final resolved = effectivePadding.resolve(Directionality.of(context));
+    final horizontalPadding = resolved.left + resolved.right;
     final maxContentWidth = (width - horizontalPadding).clamp(0.0, maxWidth);
     return Padding(
       padding: effectivePadding,
