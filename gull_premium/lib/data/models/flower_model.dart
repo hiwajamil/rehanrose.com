@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../core/constants/emotion_category.dart';
+
 class FlowerModel {
   final String id;
   final String name;
@@ -10,6 +12,10 @@ class FlowerModel {
   final DateTime? createdAt;
   final String occasion;
 
+  /// Primary emotion category ID (love, apology, gratitude, sympathy, wellness, celebration).
+  /// Must match one of [kEmotionCategoryIds]. Used for filtering. Falls back to occasion if missing.
+  final String? emotionCategoryId;
+
   const FlowerModel({
     required this.id,
     required this.name,
@@ -18,6 +24,7 @@ class FlowerModel {
     required this.imageUrls,
     required this.occasion,
     required this.bouquetCode,
+    this.emotionCategoryId,
     this.createdAt,
   });
 
@@ -38,6 +45,12 @@ class FlowerModel {
   }
 
   factory FlowerModel.fromJson(String id, Map<String, dynamic> json) {
+    final rawEmotion = json['emotionCategoryId']?.toString().trim();
+    final emotionCategoryId = (rawEmotion != null &&
+            rawEmotion.isNotEmpty &&
+            isValidEmotionCategoryId(rawEmotion))
+        ? rawEmotion
+        : null;
     return FlowerModel(
       id: id,
       name: json['name']?.toString() ?? '',
@@ -46,6 +59,7 @@ class FlowerModel {
       imageUrls: (json['imageUrls'] as List?)?.cast<String>() ?? [],
       occasion: _occasionFromJson(json['occasion']),
       bouquetCode: json['bouquetCode']?.toString() ?? '',
+      emotionCategoryId: emotionCategoryId,
       createdAt: _createdAtFromJson(json['createdAt']),
     );
   }
@@ -58,6 +72,7 @@ class FlowerModel {
       'imageUrls': imageUrls,
       'occasion': occasion,
       'bouquetCode': bouquetCode,
+      if (emotionCategoryId != null) 'emotionCategoryId': emotionCategoryId!,
       if (createdAt != null) 'createdAt': createdAt,
     };
   }

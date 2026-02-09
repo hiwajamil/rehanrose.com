@@ -357,6 +357,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bouquets for {label}'**
   String microCopyBouquetsFor(String label);
+
+  /// No description provided for @cat_love.
+  ///
+  /// In en, this message translates to:
+  /// **'Love'**
+  String get cat_love;
+
+  /// No description provided for @cat_apology.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m Sorry'**
+  String get cat_apology;
+
+  /// No description provided for @cat_gratitude.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank You'**
+  String get cat_gratitude;
+
+  /// No description provided for @cat_sympathy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sympathy'**
+  String get cat_sympathy;
+
+  /// No description provided for @cat_wellness.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Well'**
+  String get cat_wellness;
+
+  /// No description provided for @cat_celebration.
+  ///
+  /// In en, this message translates to:
+  /// **'Celebration'**
+  String get cat_celebration;
+
+  /// No description provided for @vendor_emotion_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary Emotion'**
+  String get vendor_emotion_label;
+
+  /// No description provided for @vendor_emotion_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the primary emotion this flower conveys (e.g., do not select \'Love\' for a funeral).'**
+  String get vendor_emotion_hint;
+
+  /// No description provided for @home_question.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to say today?'**
+  String get home_question;
 }
 
 class _AppLocalizationsDelegate

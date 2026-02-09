@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../../core/constants/emotion_categories.dart';
+import '../../core/constants/emotion_category.dart';
 import '../models/flower_model.dart';
 
 /// Repository for bouquet (flower) data. Abstracts Firestore and Storage.
@@ -40,16 +41,22 @@ class BouquetRepository {
 
   /// One-time fetch of bouquets for the public landing page. Prefer this over
   /// [watchBouquets] on web to avoid stream never emitting (e.g. custom domain).
-  /// [occasion] null or 'All' = all bouquets; otherwise filter by emotion value (with backward compat).
+  /// [occasion] null or 'All' = all bouquets; if valid emotion category ID, filter by emotionCategoryId.
   Future<List<FlowerModel>> getBouquets({String? occasion}) async {
     Query<Map<String, dynamic>> query = _bouquets.limit(_limit);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
-      final storedValues = storedValuesForFilter(occasion);
-      if (storedValues.isNotEmpty) {
+      if (isValidEmotionCategoryId(occasion)) {
         query = _bouquets
-            .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
+            .where('emotionCategoryId', isEqualTo: occasion)
             .limit(_limit);
+      } else {
+        final storedValues = storedValuesForFilter(occasion);
+        if (storedValues.isNotEmpty) {
+          query = _bouquets
+              .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
+              .limit(_limit);
+        }
       }
     }
 
@@ -64,18 +71,24 @@ class BouquetRepository {
   }
 
   /// Stream of bouquets, optionally filtered by emotion value.
-  /// [occasion] null or 'All' = all bouquets; otherwise filter by emotion (with backward compat).
+  /// [occasion] null or 'All' = all bouquets; if valid emotion category ID, filter by emotionCategoryId.
   /// Does NOT use orderBy(createdAt) so documents without createdAt (e.g. older data) are included.
   /// Sorts in Dart by createdAt descending (null createdAt treated as oldest).
   Stream<List<FlowerModel>> watchBouquets({String? occasion}) {
     Query<Map<String, dynamic>> query = _bouquets.limit(_limit);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
-      final storedValues = storedValuesForFilter(occasion);
-      if (storedValues.isNotEmpty) {
+      if (isValidEmotionCategoryId(occasion)) {
         query = _bouquets
-            .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
+            .where('emotionCategoryId', isEqualTo: occasion)
             .limit(_limit);
+      } else {
+        final storedValues = storedValuesForFilter(occasion);
+        if (storedValues.isNotEmpty) {
+          query = _bouquets
+              .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
+              .limit(_limit);
+        }
       }
     }
 
@@ -125,7 +138,8 @@ class BouquetRepository {
 
   /// Creates a new bouquet and returns its id. Throws on failure.
   /// [imageUrls] must be download URLs (e.g. from Storage).
-  /// [bouquetCode] is the generated code (e.g. from controller using occasion prefix).
+  /// [bouquetCode] is the generated code (e.g. from controller using emotion prefix).
+  /// [emotionCategoryId] must be a valid ID from [kEmotionCategoryIds].
   Future<String> create({
     required String vendorId,
     required String name,
@@ -134,7 +148,11 @@ class BouquetRepository {
     required List<String> imageUrls,
     required String occasion,
     required String bouquetCode,
+    required String emotionCategoryId,
   }) async {
+    if (!isValidEmotionCategoryId(emotionCategoryId)) {
+      throw ArgumentError('Invalid emotionCategoryId. Must be one of: $kEmotionCategoryIds');
+    }
     final bouquetRef = _bouquets.doc();
     await bouquetRef.set({
       'vendorId': vendorId,
@@ -144,6 +162,7 @@ class BouquetRepository {
       'imageUrls': imageUrls,
       'bouquetCode': bouquetCode,
       'occasion': occasion,
+      'emotionCategoryId': emotionCategoryId,
       'createdAt': FieldValue.serverTimestamp(),
     });
     return bouquetRef.id;

@@ -144,4 +144,32 @@ class AppLocalizationsKu extends AppLocalizations {
   String microCopyBouquetsFor(String label) {
     return 'دەستەگوڵ بۆ $label';
   }
+
+  @override
+  String get cat_love => 'خۆشەویستی';
+
+  @override
+  String get cat_apology => 'لێم ببورە';
+
+  @override
+  String get cat_gratitude => 'سوپاسگوزاری';
+
+  @override
+  String get cat_sympathy => 'هاوخەمی';
+
+  @override
+  String get cat_wellness => 'سەلامەتی';
+
+  @override
+  String get cat_celebration => 'بۆنە و ئاهەنگ';
+
+  @override
+  String get vendor_emotion_label => 'هەستی سەرەکی';
+
+  @override
+  String get vendor_emotion_hint =>
+      'ئەو هەستە هەڵبژێرە کە گوڵەکە دەیگەیەنێت (تکایە گوڵی سور بۆ پرسە دیاری مەکە).';
+
+  @override
+  String get home_question => 'دەتەوێت ئەمڕۆ چی بڵێیت؟';
 }

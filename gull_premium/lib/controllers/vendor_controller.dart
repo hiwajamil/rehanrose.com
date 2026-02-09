@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../core/constants/emotion_categories.dart';
+import '../core/constants/emotion_category.dart';
 import '../core/utils/auth_error_utils.dart';
 import '../data/models/flower_model.dart';
 import '../data/repositories/auth_repository.dart';
@@ -108,17 +108,17 @@ class VendorController extends AsyncNotifier<void> {
   }
 
   /// Upload images and create bouquet. Returns generated code on success.
-  /// [emotion] is the normalized value (e.g. "birthday", "wedding") stored in Firestore.
+  /// [emotionCategoryId] must be one of [kEmotionCategoryIds] (love, apology, gratitude, etc.).
   Future<String?> publishBouquet({
     required fa.User user,
     required String name,
     required String description,
     required int priceIqd,
     required List<XFile> imageFiles,
-    required String emotion,
+    required String emotionCategoryId,
   }) async {
-    if (!kEmotionValues.contains(emotion)) {
-      throw ArgumentError('Invalid emotion.');
+    if (!isValidEmotionCategoryId(emotionCategoryId)) {
+      throw ArgumentError('Invalid emotionCategoryId. Must be one of: $kEmotionCategoryIds');
     }
     state = const AsyncValue.loading();
     try {
@@ -136,7 +136,7 @@ class VendorController extends AsyncNotifier<void> {
         );
         imageUrls.add(url);
       }
-      final prefix = codePrefixForEmotionValue(emotion);
+      final prefix = codePrefixForEmotionCategoryId(emotionCategoryId);
       if (prefix.isEmpty) throw ArgumentError('Invalid emotion. Cannot generate bouquet code.');
       final bouquetCode = await _bouquetRepo.reserveNextBouquetCode(prefix);
       await _bouquetRepo.create(
@@ -145,8 +145,9 @@ class VendorController extends AsyncNotifier<void> {
         description: description,
         priceIqd: priceIqd,
         imageUrls: imageUrls,
-        occasion: emotion,
+        occasion: emotionCategoryId,
         bouquetCode: bouquetCode,
+        emotionCategoryId: emotionCategoryId,
       );
       state = const AsyncValue.data(null);
       return bouquetCode;

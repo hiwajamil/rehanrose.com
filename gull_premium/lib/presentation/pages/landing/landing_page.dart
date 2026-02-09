@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/constants/breakpoints.dart';
+import '../../../core/constants/emotion_category.dart';
+import '../../../core/utils/emotion_category_l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../../l10n/app_localizations.dart';
@@ -41,6 +43,7 @@ class _LandingPageState extends ConsumerState<LandingPage> {
       child: Column(
         children: [
           const _HeroSection(),
+          _CategoryCardsSection(onCategorySelected: _scrollToProducts),
           Transform.translate(
             offset: const Offset(0, -48),
             child: _EmotionDropdownBlock(onSelection: _scrollToProducts),
@@ -229,6 +232,143 @@ class _HeroSectionState extends State<_HeroSection> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Category cards section: "What do you want to say today?" with emotion category grid.
+/// RTL-aware. Clicking a card filters products by emotionCategoryId and scrolls to products.
+class _CategoryCardsSection extends ConsumerWidget {
+  final VoidCallback? onCategorySelected;
+
+  const _CategoryCardsSection({this.onCategorySelected});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    final crossAxisCount = isMobile ? 2 : 4;
+    final locale = Localizations.localeOf(context);
+    final isRTL = locale.languageCode == 'ar' || locale.languageCode == 'ku';
+
+    return SectionContainer(
+      padding: EdgeInsetsDirectional.only(
+        start: isMobile ? 20 : 48,
+        end: isMobile ? 20 : 48,
+        top: 32,
+        bottom: 24,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.home_question,
+            textAlign: TextAlign.center,
+            textDirection: Directionality.of(context),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.ink,
+                ),
+          ),
+          const SizedBox(height: 24),
+          Directionality(
+            textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: crossAxisCount,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1.1,
+              children: kEmotionCategories.map((category) {
+                return _CategoryCard(
+                  category: category,
+                  title: localizedEmotionCategoryTitle(l10n, category.titleKey),
+                  onTap: () {
+                    ref.read(selectedOccasionProvider.notifier).setOccasion(category.id);
+                    onCategorySelected?.call();
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryCard extends StatefulWidget {
+  final EmotionCategory category;
+  final String title;
+  final VoidCallback onTap;
+
+  const _CategoryCard({
+    required this.category,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  State<_CategoryCard> createState() => _CategoryCardState();
+}
+
+class _CategoryCardState extends State<_CategoryCard> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = _hovered
+        ? widget.category.color.withValues(alpha: 0.9)
+        : widget.category.color;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsetsDirectional.all(20),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.border.withValues(alpha: 0.5),
+            ),
+            boxShadow: _hovered
+                ? [
+                    BoxShadow(
+                      color: AppColors.shadow.withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                widget.category.icon,
+                size: 40,
+                color: AppColors.rose,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                textDirection: Directionality.of(context),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

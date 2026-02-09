@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/breakpoints.dart';
-import '../../../core/constants/emotion_categories.dart';
+import '../../../core/constants/emotion_category.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/emotion_l10n.dart';
+import '../../../core/utils/emotion_category_l10n.dart';
 import '../../../core/utils/rtl_utils.dart';
 import '../../../l10n/app_localizations.dart';
 
-/// Emotion-based dropdown for landing page. Uses emotion value (e.g. 'birthday') and localized labels.
+/// Emotion-based dropdown for landing page. Uses new emotion categories (love, apology, etc.).
 class EmotionDropdown extends StatelessWidget {
   final String? selectedEmotionValue;
   final ValueChanged<String?> onChanged;
@@ -22,8 +22,9 @@ class EmotionDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final selectedLabel = selectedEmotionValue != null
-        ? localizedEmotionLabel(l10n, selectedEmotionValue!)
+    final selectedCategory = getEmotionCategoryById(selectedEmotionValue);
+    final selectedLabel = selectedCategory != null
+        ? localizedEmotionCategoryTitle(l10n, selectedCategory.titleKey)
         : null;
 
     return Column(
@@ -31,7 +32,7 @@ class EmotionDropdown extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          l10n.emotionDropdownPrompt,
+          l10n.home_question,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w500,
@@ -53,7 +54,9 @@ class EmotionDropdown extends StatelessWidget {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: selectedEmotionValue,
+              value: isValidEmotionCategoryId(selectedEmotionValue)
+                  ? selectedEmotionValue
+                  : null,
               hint: Text(
                 l10n.chooseEmotion,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -73,22 +76,19 @@ class EmotionDropdown extends StatelessWidget {
                 vertical: isMobile ? 14 : 18,
               ),
               dropdownColor: Colors.white,
-              items: kEmotionValuesOrdered.map((value) {
-                final label = localizedEmotionLabel(l10n, value);
-                final entry = kEmotions.firstWhere((e) => e.value == value);
+              items: kEmotionCategories.map((c) {
+                final label = localizedEmotionCategoryTitle(l10n, c.titleKey);
                 return DropdownMenuItem<String>(
-                  value: value,
+                  value: c.id,
                   child: Row(
                     textDirection: Directionality.of(context),
                     children: [
-                      if (entry.icon != null) ...[
-                        Icon(
-                          entry.icon,
-                          size: 22,
-                          color: AppColors.rose,
-                        ),
-                        const SizedBox(width: 12),
-                      ],
+                      Icon(
+                        c.icon,
+                        size: 22,
+                        color: AppColors.rose,
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           label,

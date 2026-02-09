@@ -56,5 +56,14 @@
         "type": "String"
       }
     }
-  }
+  },
+  "cat_love": "Love",
+  "cat_apology": "I'm Sorry",
+  "cat_gratitude": "Thank You",
+  "cat_sympathy": "Sympathy",
+  "cat_wellness": "Get Well",
+  "cat_celebration": "Celebration",
+  "vendor_emotion_label": "Primary Emotion",
+  "vendor_emotion_hint": "Choose the primary emotion this flower conveys (e.g., do not select 'Love' for a funeral).",
+  "home_question": "What do you want to say today?"
 }

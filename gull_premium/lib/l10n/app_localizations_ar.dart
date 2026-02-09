@@ -140,4 +140,31 @@ class AppLocalizationsAr extends AppLocalizations {
   String microCopyBouquetsFor(String label) {
     return 'باقات من أجل $label';
   }
+
+  @override
+  String get cat_love => 'الحب';
+
+  @override
+  String get cat_apology => 'أنا آسف';
+
+  @override
+  String get cat_gratitude => 'شكر وتقدير';
+
+  @override
+  String get cat_sympathy => 'المواساة';
+
+  @override
+  String get cat_wellness => 'الشفاء العاجل';
+
+  @override
+  String get cat_celebration => 'الاحتفالات';
+
+  @override
+  String get vendor_emotion_label => 'الشعور الأساسي';
+
+  @override
+  String get vendor_emotion_hint => 'اختر الشعور الذي تعبر عنه الزهرة.';
+
+  @override
+  String get home_question => 'ماذا تريد أن تقول اليوم؟';
 }

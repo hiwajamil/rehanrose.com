@@ -143,4 +143,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String microCopyBouquetsFor(String label) {
     return 'Bouquets for $label';
   }
+
+  @override
+  String get cat_love => 'Love';
+
+  @override
+  String get cat_apology => 'I\'m Sorry';
+
+  @override
+  String get cat_gratitude => 'Thank You';
+
+  @override
+  String get cat_sympathy => 'Sympathy';
+
+  @override
+  String get cat_wellness => 'Get Well';
+
+  @override
+  String get cat_celebration => 'Celebration';
+
+  @override
+  String get vendor_emotion_label => 'Primary Emotion';
+
+  @override
+  String get vendor_emotion_hint =>
+      'Choose the primary emotion this flower conveys (e.g., do not select \'Love\' for a funeral).';
+
+  @override
+  String get home_question => 'What do you want to say today?';
 }

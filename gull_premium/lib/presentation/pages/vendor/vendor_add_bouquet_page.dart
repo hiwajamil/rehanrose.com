@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/emotion_categories.dart';
+import '../../../core/constants/emotion_category.dart';
+import '../../../core/utils/emotion_category_l10n.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
@@ -25,7 +27,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  String? _selectedEmotionValue;
+  String? _selectedEmotionCategoryId;
   String? _emotionError;
   List<XFile> _images = [];
   bool _available = true;
@@ -60,12 +62,12 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
       _message('Please enter a bouquet name.');
       return;
     }
-    if (_selectedEmotionValue == null || _selectedEmotionValue!.isEmpty) {
+    if (_selectedEmotionCategoryId == null || _selectedEmotionCategoryId!.isEmpty) {
       setState(() => _emotionError = 'Please select what this bouquet says.');
       _message('Please select what this bouquet says.');
       return;
     }
-    if (!kEmotionValues.contains(_selectedEmotionValue)) {
+    if (!isValidEmotionCategoryId(_selectedEmotionCategoryId)) {
       setState(() => _emotionError = 'Invalid selection.');
       return;
     }
@@ -94,7 +96,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
             description: description,
             priceIqd: price,
             imageFiles: _images,
-            emotion: _selectedEmotionValue!,
+            emotionCategoryId: _selectedEmotionCategoryId!,
           );
       if (!mounted) return;
       _message(code != null ? 'Bouquet published. Code: $code' : 'Bouquet published.');
@@ -103,7 +105,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
       _priceController.clear();
       setState(() {
         _images = [];
-        _selectedEmotionValue = null;
+        _selectedEmotionCategoryId = null;
         _emotionError = null;
       });
     } on TimeoutException catch (_) {
@@ -163,11 +165,11 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   ),
                   const SizedBox(height: 20),
                   _EmotionField(
-                    value: _selectedEmotionValue,
+                    value: _selectedEmotionCategoryId,
                     error: _emotionError,
                     onChanged: (v) {
                       setState(() {
-                        _selectedEmotionValue = v;
+                        _selectedEmotionCategoryId = v;
                         _emotionError = null;
                       });
                     },
@@ -247,7 +249,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   const SizedBox(height: 24),
                   PrimaryButton(
                     label: _submitting ? 'Publishing...' : 'Publish bouquet',
-                    onPressed: _submitting || _selectedEmotionValue == null
+                    onPressed: _submitting || _selectedEmotionCategoryId == null
                         ? () {}
                         : _submit,
                   ),
@@ -335,11 +337,12 @@ class _EmotionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'What does this bouquet say?',
+          l10n.vendor_emotion_label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w600,
@@ -347,7 +350,7 @@ class _EmotionField extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: value,
+          value: value,
           decoration: InputDecoration(
             errorText: error,
             filled: true,
@@ -365,26 +368,37 @@ class _EmotionField extends StatelessWidget {
               borderSide: const BorderSide(color: AppColors.rose),
             ),
           ),
-          hint: const Text('Choose a feeling'),
-          items: kEmotions
-              .map((e) => DropdownMenuItem<String>(
-                    value: e.value,
+          hint: Text(l10n.chooseEmotion),
+          items: kEmotionCategories
+              .map((c) => DropdownMenuItem<String>(
+                    value: c.id,
                     child: Row(
+                      textDirection: Directionality.of(context),
                       children: [
-                        if (e.icon != null) ...[
-                          Icon(
-                            e.icon,
-                            size: 22,
-                            color: AppColors.rose,
+                        Icon(
+                          c.icon,
+                          size: 22,
+                          color: AppColors.rose,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            localizedEmotionCategoryTitle(l10n, c.titleKey),
                           ),
-                          const SizedBox(width: 12),
-                        ],
-                        Expanded(child: Text(e.label)),
+                        ),
                       ],
                     ),
                   ))
               .toList(),
           onChanged: onChanged,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.vendor_emotion_hint,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.inkMuted,
+                fontSize: 13,
+              ),
         ),
       ],
     );

@@ -42,5 +42,14 @@
   "filterAll": "الكل",
   "ctaButton": "استكشف",
   "microCopyFlowersThatSay": "ورود تقول {label}",
-  "microCopyBouquetsFor": "باقات من أجل {label}"
+  "microCopyBouquetsFor": "باقات من أجل {label}",
+  "cat_love": "الحب",
+  "cat_apology": "أنا آسف",
+  "cat_gratitude": "شكر وتقدير",
+  "cat_sympathy": "المواساة",
+  "cat_wellness": "الشفاء العاجل",
+  "cat_celebration": "الاحتفالات",
+  "vendor_emotion_label": "الشعور الأساسي",
+  "vendor_emotion_hint": "اختر الشعور الذي تعبر عنه الزهرة.",
+  "home_question": "ماذا تريد أن تقول اليوم؟"
 }

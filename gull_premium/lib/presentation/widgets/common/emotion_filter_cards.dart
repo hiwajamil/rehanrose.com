@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/emotion_categories.dart';
+import '../../../core/constants/emotion_category.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/emotion_l10n.dart';
+import '../../../core/utils/emotion_category_l10n.dart';
 import '../../../l10n/app_localizations.dart';
 
-/// Emotion-based category cards. Soft colors, no animation overload.
+/// Emotion-based category filter cards. Uses new emotion categories (love, apology, etc.).
 class EmotionFilterCards extends StatelessWidget {
   final String selectedOccasion;
   final ValueChanged<String> onSelected;
@@ -22,18 +22,19 @@ class EmotionFilterCards extends StatelessWidget {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
+      textDirection: Directionality.of(context),
       children: [
         _EmotionCard(
           label: l10n.filterAll,
           isSelected: selectedOccasion == 'All',
           onTap: () => onSelected('All'),
         ),
-        ...kEmotions.map((e) {
-          final isSelected = selectedOccasion == e.value;
+        ...kEmotionCategories.map((c) {
+          final isSelected = selectedOccasion == c.id;
           return _EmotionCard(
-            label: localizedEmotionLabel(l10n, e.value),
+            label: localizedEmotionCategoryTitle(l10n, c.titleKey),
             isSelected: isSelected,
-            onTap: () => onSelected(e.value),
+            onTap: () => onSelected(c.id),
           );
         }),
       ],
