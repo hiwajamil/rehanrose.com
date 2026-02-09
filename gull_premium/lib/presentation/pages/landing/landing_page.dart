@@ -515,11 +515,20 @@ class _ProductsSection extends ConsumerWidget {
               }
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final crossAxisCount = isMobile ? 1 : 3;
-                  final childWidth = (constraints.maxWidth - 48) / crossAxisCount;
+                  final width = MediaQuery.sizeOf(context).width;
+                  // Mobile: 2 cols, Tablet (md): 3 cols, Desktop (lg+): 4 cols
+                  final crossAxisCount = width < kMobileBreakpoint
+                      ? 2
+                      : width < kTabletBreakpoint
+                          ? 3
+                          : 4;
+                  final gap = width < kMobileBreakpoint ? 12.0 : 16.0;
+                  final gapTotal = (crossAxisCount - 1) * gap;
+                  final childWidth =
+                      (constraints.maxWidth - gapTotal) / crossAxisCount;
                   return Wrap(
-                    spacing: 24,
-                    runSpacing: 24,
+                    spacing: gap,
+                    runSpacing: gap,
                     children: bouquets.map((b) {
                       final imageUrl = b.imageUrls.isNotEmpty
                           ? b.imageUrls.first
@@ -534,6 +543,7 @@ class _ProductsSection extends ConsumerWidget {
                           imageUrl: imageUrl,
                           onTap: () => context.go('/flower/${b.id}'),
                           bouquetCode: b.bouquetCode.isNotEmpty ? b.bouquetCode : null,
+                          isCompact: isMobile,
                         ),
                       );
                     }).toList(),
