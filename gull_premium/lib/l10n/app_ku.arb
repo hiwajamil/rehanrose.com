@@ -51,5 +51,13 @@
   "cat_celebration": "بۆنە و ئاهەنگ",
   "vendor_emotion_label": "هەستی سەرەکی",
   "vendor_emotion_hint": "ئەو هەستە هەڵبژێرە کە گوڵەکە دەیگەیەنێت (تکایە گوڵی سور بۆ پرسە دیاری مەکە).",
-  "home_question": "دەتەوێت ئەمڕۆ چی بڵێیت؟"
+  "home_question": "دەتەوێت ئەمڕۆ چی بڵێیت؟",
+  "makeItPerfectSectionTitle": "دیارییەکەت تەواو بکە",
+  "makeItSpecialSectionTitle": "تایبەتی بکە",
+  "addVaseLabel": "گوڵدان زیاد بکە",
+  "addChocolateLabel": "چۆکلێت زیاد بکە",
+  "addCardLabel": "کارت زیاد بکە",
+  "selectLabel": "هەڵبژێرە",
+  "totalPriceLabel": "کۆی گشتی",
+  "orderViaWhatsApp": "داواکردن بە واتساپ"
 }

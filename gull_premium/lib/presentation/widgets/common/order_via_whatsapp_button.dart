@@ -16,46 +16,73 @@ class OrderViaWhatsAppButton extends StatelessWidget {
   /// Dark charcoal as specified (#1A1A1A).
   static const Color _buttonColor = Color(0xFF1A1A1A);
 
+  /// Readable font on mobile; compact on desktop.
+  static double _buttonFontSize(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).shortestSide;
+    return width < 600 ? 16.0 : 15.0;
+  }
+
+  /// Minimum touch target height (Material guideline).
+  static const double _minHeight = 48.0;
+
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).shortestSide < 600;
+    final fontSize = _buttonFontSize(context);
+    final iconSize = isMobile ? 20.0 : 18.0;
+    final padding = isMobile
+        ? const EdgeInsets.symmetric(horizontal: 20, vertical: 14)
+        : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+
+    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+        ) ??
+        TextStyle(
+          color: Colors.white,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+        );
+
+    final textChild = Text(
+      label,
+      style: textStyle,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
     return Material(
       color: _buttonColor,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const FaIcon(
-                FontAwesomeIcons.whatsapp,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ) ??
-                        const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _minHeight),
+          child: Padding(
+            padding: padding,
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FaIcon(
+                  FontAwesomeIcons.whatsapp,
+                  color: Colors.white,
+                  size: iconSize,
                 ),
-              ),
-            ],
+                SizedBox(width: isMobile ? 12 : 10),
+                Flexible(
+                  child: isMobile
+                      ? textChild
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: textChild,
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

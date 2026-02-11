@@ -172,4 +172,28 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get home_question => 'دەتەوێت ئەمڕۆ چی بڵێیت؟';
+
+  @override
+  String get makeItPerfectSectionTitle => 'دیارییەکەت تەواو بکە';
+
+  @override
+  String get makeItSpecialSectionTitle => 'تایبەتی بکە';
+
+  @override
+  String get addVaseLabel => 'گوڵدان زیاد بکە';
+
+  @override
+  String get addChocolateLabel => 'چۆکلێت زیاد بکە';
+
+  @override
+  String get addCardLabel => 'کارت زیاد بکە';
+
+  @override
+  String get selectLabel => 'هەڵبژێرە';
+
+  @override
+  String get totalPriceLabel => 'کۆی گشتی';
+
+  @override
+  String get orderViaWhatsApp => 'داواکردن بە واتساپ';
 }

@@ -6,6 +6,8 @@ import '../services/firebase_init.dart';
 import '../../controllers/controllers.dart';
 import '../../presentation/pages/landing/landing_page.dart';
 import '../../presentation/pages/admin/admin_dashboard_page.dart';
+import '../../presentation/pages/admin/manage_add_ons_page.dart';
+import '../../presentation/pages/product/order_customization_page.dart';
 import '../../presentation/pages/product/product_detail_page.dart';
 import '../../presentation/pages/vendor/vendor_dashboard_page.dart';
 import '../../presentation/pages/vendor/vendor_orders_page.dart';
@@ -33,6 +35,15 @@ class AppRouter {
           final id = state.pathParameters['id'] ?? '';
           return ProductDetailPage(flowerId: id);
         },
+        routes: [
+          GoRoute(
+            path: 'order',
+            builder: (context, state) {
+              final id = state.pathParameters['id'] ?? '';
+              return OrderCustomizationPage(flowerId: id);
+            },
+          ),
+        ],
       ),
       ShellRoute(
         builder: (context, state, child) {
@@ -84,6 +95,12 @@ class AppRouter {
       GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminDashboardPage(),
+        routes: [
+          GoRoute(
+            path: 'add-ons',
+            builder: (_, __) => const ManageAddOnsPage(),
+          ),
+        ],
       ),
     ],
   );

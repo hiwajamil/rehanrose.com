@@ -171,4 +171,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get home_question => 'What do you want to say today?';
+
+  @override
+  String get makeItPerfectSectionTitle => 'Make it Perfect?';
+
+  @override
+  String get makeItSpecialSectionTitle => 'Make it Special';
+
+  @override
+  String get addVaseLabel => 'Add Vase';
+
+  @override
+  String get addChocolateLabel => 'Add Chocolate';
+
+  @override
+  String get addCardLabel => 'Add Card';
+
+  @override
+  String get selectLabel => 'Select';
+
+  @override
+  String get totalPriceLabel => 'Total Price';
+
+  @override
+  String get orderViaWhatsApp => 'Order via WhatsApp';
 }

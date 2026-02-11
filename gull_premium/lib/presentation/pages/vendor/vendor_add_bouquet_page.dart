@@ -350,7 +350,7 @@ class _EmotionField extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             errorText: error,
             filled: true,

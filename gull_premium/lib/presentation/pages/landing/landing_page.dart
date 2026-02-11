@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 
@@ -541,7 +540,6 @@ class _ProductsSection extends ConsumerWidget {
                           note: b.description,
                           price: 'IQD ${b.priceIqd}',
                           imageUrl: imageUrl,
-                          onTap: () => context.go('/flower/${b.id}'),
                           bouquetCode: b.bouquetCode.isNotEmpty ? b.bouquetCode : null,
                           isCompact: isMobile,
                         ),

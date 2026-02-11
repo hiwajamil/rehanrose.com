@@ -3,20 +3,39 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../controllers/controllers.dart';
-import '../../../core/services/whatsapp_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/add_on_model.dart';
+import '../../widgets/common/make_it_perfect_section.dart';
 import '../../widgets/common/order_via_whatsapp_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
 
-class ProductDetailPage extends ConsumerWidget {
+class ProductDetailPage extends ConsumerStatefulWidget {
   final String flowerId;
 
   const ProductDetailPage({super.key, required this.flowerId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bouquetAsync = ref.watch(bouquetDetailProvider(flowerId));
+  ConsumerState<ProductDetailPage> createState() => _ProductDetailPageState();
+}
+
+class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
+  final Set<String> _selectedAddOnIds = {};
+
+  void _toggleAddOn(AddOnModel addOn) {
+    setState(() {
+      if (_selectedAddOnIds.contains(addOn.id)) {
+        _selectedAddOnIds.remove(addOn.id);
+      } else {
+        _selectedAddOnIds.add(addOn.id);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bouquetAsync = ref.watch(bouquetDetailProvider(widget.flowerId));
+    final addOnsAsync = ref.watch(addOnsProvider(null));
 
     return AppScaffold(
       child: bouquetAsync.when(
@@ -72,6 +91,25 @@ class ProductDetailPage extends ConsumerWidget {
           final bouquetCode = bouquet.bouquetCode.isNotEmpty
               ? bouquet.bouquetCode
               : null;
+          final addOns = addOnsAsync.maybeWhen(
+              data: (list) => list, orElse: () => <AddOnModel>[]);
+          Widget makeItPerfectSection() {
+            return addOnsAsync.when(
+              data: (list) => MakeItPerfectSection(
+                addOns: list,
+                selectedAddOnIds: _selectedAddOnIds,
+                onToggle: _toggleAddOn,
+                bouquetPriceIqd: bouquet.priceIqd,
+              ),
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            );
+          }
+
+          void onPlaceOrder() {
+            context.push('/flower/${widget.flowerId}/order');
+          }
+
           return SectionContainer(
             padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
             child: LayoutBuilder(
@@ -86,16 +124,12 @@ class ProductDetailPage extends ConsumerWidget {
                       _buildInfo(context, bouquet.name, bouquet.description,
                           price, bouquetCode),
                       const SizedBox(height: 24),
+                      makeItPerfectSection(),
+                      if (addOns.isNotEmpty) const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: OrderViaWhatsAppButton(
-                          onPressed: () => launchOrderWhatsApp(
-                            flowerName: bouquet.name,
-                            flowerPrice: price,
-                            flowerId: flowerId,
-                            flowerImageUrl: imageUrl,
-                            bouquetCode: bouquetCode,
-                          ),
+                          onPressed: onPlaceOrder,
                         ),
                       ),
                     ] else
@@ -115,16 +149,12 @@ class ProductDetailPage extends ConsumerWidget {
                                 _buildInfo(context, bouquet.name,
                                     bouquet.description, price, bouquetCode),
                                 const SizedBox(height: 28),
+                                makeItPerfectSection(),
+                                if (addOns.isNotEmpty) const SizedBox(height: 20),
                                 SizedBox(
                                   width: double.infinity,
                                   child: OrderViaWhatsAppButton(
-                                    onPressed: () => launchOrderWhatsApp(
-                                      flowerName: bouquet.name,
-                                      flowerPrice: price,
-                                      flowerId: flowerId,
-                                      flowerImageUrl: imageUrl,
-                                      bouquetCode: bouquetCode,
-                                    ),
+                                    onPressed: onPlaceOrder,
                                   ),
                                 ),
                               ],

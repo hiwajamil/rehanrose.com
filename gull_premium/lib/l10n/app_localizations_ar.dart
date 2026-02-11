@@ -167,4 +167,28 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get home_question => 'ماذا تريد أن تقول اليوم؟';
+
+  @override
+  String get makeItPerfectSectionTitle => 'أكمل هديتك';
+
+  @override
+  String get makeItSpecialSectionTitle => 'اجعلها مميزة';
+
+  @override
+  String get addVaseLabel => 'إضافة مزهرية';
+
+  @override
+  String get addChocolateLabel => 'إضافة شوكولاتة';
+
+  @override
+  String get addCardLabel => 'إضافة بطاقة';
+
+  @override
+  String get selectLabel => 'اختر';
+
+  @override
+  String get totalPriceLabel => 'السعر الإجمالي';
+
+  @override
+  String get orderViaWhatsApp => 'طلب عبر واتساب';
 }

@@ -51,5 +51,13 @@
   "cat_celebration": "الاحتفالات",
   "vendor_emotion_label": "الشعور الأساسي",
   "vendor_emotion_hint": "اختر الشعور الذي تعبر عنه الزهرة.",
-  "home_question": "ماذا تريد أن تقول اليوم؟"
+  "home_question": "ماذا تريد أن تقول اليوم؟",
+  "makeItPerfectSectionTitle": "أكمل هديتك",
+  "makeItSpecialSectionTitle": "اجعلها مميزة",
+  "addVaseLabel": "إضافة مزهرية",
+  "addChocolateLabel": "إضافة شوكولاتة",
+  "addCardLabel": "إضافة بطاقة",
+  "selectLabel": "اختر",
+  "totalPriceLabel": "السعر الإجمالي",
+  "orderViaWhatsApp": "طلب عبر واتساب"
 }

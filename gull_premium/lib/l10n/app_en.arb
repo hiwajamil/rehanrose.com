@@ -65,5 +65,13 @@
   "cat_celebration": "Celebration",
   "vendor_emotion_label": "Primary Emotion",
   "vendor_emotion_hint": "Choose the primary emotion this flower conveys (e.g., do not select 'Love' for a funeral).",
-  "home_question": "What do you want to say today?"
+  "home_question": "What do you want to say today?",
+  "makeItPerfectSectionTitle": "Make it Perfect?",
+  "makeItSpecialSectionTitle": "Make it Special",
+  "addVaseLabel": "Add Vase",
+  "addChocolateLabel": "Add Chocolate",
+  "addCardLabel": "Add Card",
+  "selectLabel": "Select",
+  "totalPriceLabel": "Total Price",
+  "orderViaWhatsApp": "Order via WhatsApp"
 }

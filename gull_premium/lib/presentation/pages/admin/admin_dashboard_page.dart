@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
@@ -209,6 +210,12 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const Spacer(),
+            PrimaryButton(
+              label: 'Manage Add-ons',
+              onPressed: () => context.go('/admin/add-ons'),
+              variant: PrimaryButtonVariant.outline,
+            ),
+            const SizedBox(width: 12),
             PrimaryButton(
               label: 'Sign out',
               onPressed: () => ref.read(authRepositoryProvider).signOut(),

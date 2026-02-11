@@ -411,6 +411,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What do you want to say today?'**
   String get home_question;
+
+  /// No description provided for @makeItPerfectSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it Perfect?'**
+  String get makeItPerfectSectionTitle;
+
+  /// No description provided for @makeItSpecialSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it Special'**
+  String get makeItSpecialSectionTitle;
+
+  /// No description provided for @addVaseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Vase'**
+  String get addVaseLabel;
+
+  /// No description provided for @addChocolateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Chocolate'**
+  String get addChocolateLabel;
+
+  /// No description provided for @addCardLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Card'**
+  String get addCardLabel;
+
+  /// No description provided for @selectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get selectLabel;
+
+  /// No description provided for @totalPriceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Price'**
+  String get totalPriceLabel;
+
+  /// No description provided for @orderViaWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Order via WhatsApp'**
+  String get orderViaWhatsApp;
 }
 
 class _AppLocalizationsDelegate
