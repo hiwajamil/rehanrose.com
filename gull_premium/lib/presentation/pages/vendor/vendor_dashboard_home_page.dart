@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/section_container.dart';
 
 /// Dashboard home: summary cards + alerts. Shown when authenticated at /vendor.
@@ -9,6 +10,7 @@ class VendorDashboardHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       child: SectionContainer(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
@@ -16,7 +18,7 @@ class VendorDashboardHomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Dashboard',
+              l10n.vendorDashboardTitle,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 24),
@@ -33,6 +35,7 @@ class VendorDashboardHomePage extends StatelessWidget {
 class _SummaryCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(
       builder: (context, constraints) {
         return Wrap(
@@ -40,23 +43,23 @@ class _SummaryCards extends StatelessWidget {
           runSpacing: 16,
           children: [
             _SummaryCard(
-              title: "Today's Orders",
+              title: l10n.vendorTodaysOrders,
               value: '0',
               icon: Icons.receipt_long_outlined,
             ),
             _SummaryCard(
-              title: 'Pending Orders',
+              title: l10n.vendorPendingOrders,
               value: '0',
               icon: Icons.schedule_outlined,
             ),
             _SummaryCard(
-              title: "Today's Revenue",
+              title: l10n.vendorTodaysRevenue,
               value: 'IQD 0',
               icon: Icons.payments_outlined,
             ),
             _SummaryCard(
-              title: 'Shop Status',
-              value: 'Offline',
+              title: l10n.vendorShopStatus,
+              value: l10n.offline,
               icon: Icons.storefront_outlined,
             ),
           ],
@@ -135,7 +138,7 @@ class _AlertsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Alerts',
+            AppLocalizations.of(context)!.vendorAlerts,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.ink,
                   fontWeight: FontWeight.w600,
@@ -143,14 +146,14 @@ class _AlertsSection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No orders needing confirmation.',
+            AppLocalizations.of(context)!.vendorNoOrdersNeedingConfirmation,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.inkMuted,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            'No new admin notices.',
+            AppLocalizations.of(context)!.vendorNoNewAdminNotices,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.inkMuted,
                 ),

@@ -195,4 +195,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderViaWhatsApp => 'Order via WhatsApp';
+
+  @override
+  String get vendorDefaultName => 'Vendor';
+
+  @override
+  String get vendorSearchBouquetHint => 'Search by bouquet code...';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get online => 'Online';
+
+  @override
+  String get offline => 'Offline';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get profile => 'Profile';
+
+  @override
+  String get logOut => 'Log out';
+
+  @override
+  String get noNewNotifications => 'No new notifications.';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get vendorNavDashboard => 'Dashboard';
+
+  @override
+  String get vendorNavOrders => 'Orders';
+
+  @override
+  String get vendorNavBouquets => 'Bouquets';
+
+  @override
+  String get vendorNavAddBouquet => 'Add Bouquet';
+
+  @override
+  String get vendorNavEarnings => 'Earnings';
+
+  @override
+  String get vendorNavNotifications => 'Notifications';
+
+  @override
+  String get vendorNavShopSettings => 'Shop Settings';
+
+  @override
+  String get vendorNavSupport => 'Support';
+
+  @override
+  String get vendorDashboardTitle => 'Dashboard';
+
+  @override
+  String get vendorTodaysOrders => 'Today\'s Orders';
+
+  @override
+  String get vendorPendingOrders => 'Pending Orders';
+
+  @override
+  String get vendorTodaysRevenue => 'Today\'s Revenue';
+
+  @override
+  String get vendorShopStatus => 'Shop Status';
+
+  @override
+  String get vendorAlerts => 'Alerts';
+
+  @override
+  String get vendorNoOrdersNeedingConfirmation =>
+      'No orders needing confirmation.';
+
+  @override
+  String get vendorNoNewAdminNotices => 'No new admin notices.';
 }

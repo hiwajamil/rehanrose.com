@@ -459,6 +459,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Order via WhatsApp'**
   String get orderViaWhatsApp;
+
+  /// No description provided for @vendorDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'Vendor'**
+  String get vendorDefaultName;
+
+  /// No description provided for @vendorSearchBouquetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by bouquet code...'**
+  String get vendorSearchBouquetHint;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @online.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get online;
+
+  /// No description provided for @offline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get offline;
+
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// No description provided for @profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profile;
+
+  /// No description provided for @logOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get logOut;
+
+  /// No description provided for @noNewNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No new notifications.'**
+  String get noNewNotifications;
+
+  /// No description provided for @menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get menu;
+
+  /// No description provided for @vendorNavDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get vendorNavDashboard;
+
+  /// No description provided for @vendorNavOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get vendorNavOrders;
+
+  /// No description provided for @vendorNavBouquets.
+  ///
+  /// In en, this message translates to:
+  /// **'Bouquets'**
+  String get vendorNavBouquets;
+
+  /// No description provided for @vendorNavAddBouquet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Bouquet'**
+  String get vendorNavAddBouquet;
+
+  /// No description provided for @vendorNavEarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Earnings'**
+  String get vendorNavEarnings;
+
+  /// No description provided for @vendorNavNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get vendorNavNotifications;
+
+  /// No description provided for @vendorNavShopSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop Settings'**
+  String get vendorNavShopSettings;
+
+  /// No description provided for @vendorNavSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get vendorNavSupport;
+
+  /// No description provided for @vendorDashboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get vendorDashboardTitle;
+
+  /// No description provided for @vendorTodaysOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Orders'**
+  String get vendorTodaysOrders;
+
+  /// No description provided for @vendorPendingOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Orders'**
+  String get vendorPendingOrders;
+
+  /// No description provided for @vendorTodaysRevenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Revenue'**
+  String get vendorTodaysRevenue;
+
+  /// No description provided for @vendorShopStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop Status'**
+  String get vendorShopStatus;
+
+  /// No description provided for @vendorAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts'**
+  String get vendorAlerts;
+
+  /// No description provided for @vendorNoOrdersNeedingConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'No orders needing confirmation.'**
+  String get vendorNoOrdersNeedingConfirmation;
+
+  /// No description provided for @vendorNoNewAdminNotices.
+  ///
+  /// In en, this message translates to:
+  /// **'No new admin notices.'**
+  String get vendorNoNewAdminNotices;
 }
 
 class _AppLocalizationsDelegate

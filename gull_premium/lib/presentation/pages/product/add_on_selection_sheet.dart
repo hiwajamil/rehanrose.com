@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/add_on_model.dart';
 
 /// Bottom sheet showing add-ons of one type in a grid; each card has image, price, ADD button.
@@ -135,7 +136,7 @@ class _AddOnGridTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                'IQD ${addOn.priceIqd}',
+                'IQD ${formatPriceIqd(addOn.priceIqd)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.inkMuted,
                     ),

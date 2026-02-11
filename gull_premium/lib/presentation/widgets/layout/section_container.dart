@@ -14,12 +14,20 @@ class SectionContainer extends StatelessWidget {
     this.padding = const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 56),
   });
 
+  /// Horizontal padding on very narrow phones (e.g. iPhone SE) for more content width.
+  static const double _narrowPhonePadding = 12.0;
+  static const double _mobilePadding = 16.0;
+  static const double _narrowPhoneWidth = 380.0;
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width <= kMobileBreakpoint;
     final effectivePadding = isMobile
-        ? const EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 24)
+        ? EdgeInsetsDirectional.symmetric(
+            horizontal: width < _narrowPhoneWidth ? _narrowPhonePadding : _mobilePadding,
+            vertical: 24,
+          )
         : padding;
     final resolved = effectivePadding.resolve(Directionality.of(context));
     final horizontalPadding = resolved.left + resolved.right;

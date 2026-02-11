@@ -196,4 +196,86 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get orderViaWhatsApp => 'داواکردن بە واتساپ';
+
+  @override
+  String get vendorDefaultName => 'فرۆشیار';
+
+  @override
+  String get vendorSearchBouquetHint => 'گەڕان بە کۆدی دەستەگوڵ...';
+
+  @override
+  String get search => 'گەڕان';
+
+  @override
+  String get cancel => 'پاشگەزبوونەوە';
+
+  @override
+  String get online => 'سەرھێڵ';
+
+  @override
+  String get offline => 'دەرەسەرھێڵ';
+
+  @override
+  String get notifications => 'ئاگاداریەکان';
+
+  @override
+  String get profile => 'پرۆفایل';
+
+  @override
+  String get logOut => 'چوونەدەرەوە';
+
+  @override
+  String get noNewNotifications => 'ئاگاداری نوێ نییە.';
+
+  @override
+  String get menu => 'لیستە';
+
+  @override
+  String get vendorNavDashboard => 'داشبۆرد';
+
+  @override
+  String get vendorNavOrders => 'داواکاریەکان';
+
+  @override
+  String get vendorNavBouquets => 'دەستەگوڵەکان';
+
+  @override
+  String get vendorNavAddBouquet => 'دەستەگوڵ زیاد بکە';
+
+  @override
+  String get vendorNavEarnings => 'داهات';
+
+  @override
+  String get vendorNavNotifications => 'ئاگاداریەکان';
+
+  @override
+  String get vendorNavShopSettings => 'ڕێکخستنی فرۆشگا';
+
+  @override
+  String get vendorNavSupport => 'پشتگیری';
+
+  @override
+  String get vendorDashboardTitle => 'داشبۆرد';
+
+  @override
+  String get vendorTodaysOrders => 'داواکاریەکانی ئەمڕۆ';
+
+  @override
+  String get vendorPendingOrders => 'داواکاری چاوەڕوان';
+
+  @override
+  String get vendorTodaysRevenue => 'داهاتی ئەمڕۆ';
+
+  @override
+  String get vendorShopStatus => 'دۆخی فرۆشگا';
+
+  @override
+  String get vendorAlerts => 'ئاگاداریەکان';
+
+  @override
+  String get vendorNoOrdersNeedingConfirmation =>
+      'هیچ داواکاریەک پێویستی بە ڕەزامەندی نییە.';
+
+  @override
+  String get vendorNoNewAdminNotices => 'ئاگاداری نوێی بەڕێوەبەرانی نییە.';
 }

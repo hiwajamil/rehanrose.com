@@ -38,7 +38,10 @@ class FlowerCard extends StatelessWidget {
     ),
   ];
 
-  static const double _compactPadding = 12.0;
+  static const double _compactPadding = 10.0;
+  /// Image aspect: 1:1 on compact (mobile) for balanced card height on narrow screens.
+  static const double _compactImageAspect = 1.0;
+  static const double _defaultImageAspect = 4 / 5;
 
   /// Single navigation target: Product Details & Customization (Vases, Chocolates, etc.).
   void _navigateToProductDetails(BuildContext context) {
@@ -47,8 +50,11 @@ class FlowerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = isCompact ? 16.0 : 24.0;
+    final borderRadius = isCompact ? 14.0 : 24.0;
     final contentPadding = isCompact ? _compactPadding : 20.0;
+    final imageAspect = isCompact ? _compactImageAspect : _defaultImageAspect;
+    final cacheW = isCompact ? 360 : 400;
+    final cacheH = isCompact ? 360 : 500;
     return RepaintBoundary(
       child: Container(
         decoration: BoxDecoration(
@@ -66,52 +72,34 @@ class FlowerCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(borderRadius),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  isCompact
-                      ? AspectRatio(
-                          aspectRatio: 4 / 5,
-                          child: ClipRect(
-                            child: Image.network(
-                              imageUrl.isEmpty
-                                  ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
-                                  : imageUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                              cacheWidth: 400,
-                              cacheHeight: 500,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                color: AppColors.border,
-                                child: const Center(
-                                    child: Icon(Icons.local_florist)),
-                              ),
+                  AspectRatio(
+                    aspectRatio: imageAspect,
+                    child: ClipRect(
+                      child: Image.network(
+                        imageUrl.isEmpty
+                            ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
+                            : imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        cacheWidth: cacheW,
+                        cacheHeight: cacheH,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Container(
+                              color: AppColors.border,
+                              child: const Center(
+                                  child: Icon(Icons.local_florist)),
                             ),
-                          ),
-                        )
-                      : AspectRatio(
-                          aspectRatio: 4 / 5,
-                          child: ClipRect(
-                            child: Image.network(
-                              imageUrl.isEmpty
-                                  ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
-                                  : imageUrl,
-                              fit: BoxFit.cover,
-                              cacheWidth: 400,
-                              cacheHeight: 500,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                color: AppColors.border,
-                                child: const Center(
-                                    child: Icon(Icons.local_florist)),
-                              ),
-                            ),
-                          ),
-                        ),
+                      ),
+                    ),
+                  ),
                   Padding(
                     padding: EdgeInsets.all(contentPadding),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           name,
@@ -121,16 +109,16 @@ class FlowerCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: isCompact ? 4 : 6),
+                        SizedBox(height: isCompact ? 2 : 6),
                         Text(
                           note,
                           style: isCompact
                               ? Theme.of(context).textTheme.bodySmall
                               : Theme.of(context).textTheme.bodyMedium,
-                          maxLines: isCompact ? 2 : null,
+                          maxLines: isCompact ? 1 : null,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: isCompact ? 8 : 14),
+                        SizedBox(height: isCompact ? 6 : 14),
                         Text(
                           price,
                           style: (isCompact
@@ -148,8 +136,9 @@ class FlowerCard extends StatelessWidget {
                     padding: EdgeInsets.symmetric(
                         horizontal: contentPadding, vertical: 0),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(height: isCompact ? 10 : 16),
+                        SizedBox(height: isCompact ? 8 : 16),
                         SizedBox(
                           width: double.infinity,
                           child: OrderViaWhatsAppButton(
@@ -157,15 +146,15 @@ class FlowerCard extends StatelessWidget {
                                 _navigateToProductDetails(context),
                           ),
                         ),
-                        SizedBox(height: isCompact ? 6 : 10),
+                        SizedBox(height: isCompact ? 4 : 10),
                         Text(
                           'Pay with FIB',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppColors.ink,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
-                        SizedBox(height: isCompact ? 12 : 20),
+                        SizedBox(height: isCompact ? 10 : 20),
                       ],
                     ),
                   ),

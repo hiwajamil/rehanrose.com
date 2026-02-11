@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../controllers/controllers.dart';
 import '../../../core/services/whatsapp_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/add_on_model.dart';
 import '../../../data/models/flower_model.dart';
 import '../../../l10n/app_localizations.dart';
@@ -86,7 +87,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
     final productUrl = '${Uri.base.origin}/flower/${widget.flowerId}';
     launchOrderWhatsApp(
       flowerName: bouquet.name,
-      flowerPrice: 'IQD ${bouquet.priceIqd}',
+      flowerPrice: iqdPriceString(bouquet.priceIqd),
       flowerId: widget.flowerId,
       flowerImageUrl: bouquet.imageUrls.isNotEmpty
           ? bouquet.imageUrls.first
@@ -188,7 +189,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'IQD ${bouquet.priceIqd}',
+                        iqdPriceString(bouquet.priceIqd),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: AppColors.ink,
                               fontWeight: FontWeight.w700,
@@ -303,7 +304,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                 ),
                           ),
                           Text(
-                            'IQD $total',
+                            'IQD ${formatPriceIqd(total)}',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   color: AppColors.ink,
                                   fontWeight: FontWeight.w700,
@@ -420,7 +421,7 @@ class _AddOnCard extends StatelessWidget {
               ),
               if (isSelected)
                 Text(
-                  'IQD ${selected!.priceIqd}',
+                  'IQD ${formatPriceIqd(selected!.priceIqd)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.inkMuted,
                       ),

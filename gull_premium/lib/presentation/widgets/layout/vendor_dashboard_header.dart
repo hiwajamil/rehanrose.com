@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Premium vendor dashboard header: brand, search, online/offline toggle,
 /// notifications, profile dropdown. Responsive (mobile + desktop).
@@ -18,7 +19,7 @@ class VendorDashboardHeader extends StatefulWidget {
 
   const VendorDashboardHeader({
     super.key,
-    this.vendorName = 'Vendor',
+    this.vendorName = 'Vendor', // Overridden by shell with localized default when needed
     this.unreadNotificationCount = 0,
     this.onProfile,
     this.onLogout,
@@ -138,7 +139,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
             border: Border.all(color: AppColors.border),
           ),
           child: Text(
-            'No new notifications.',
+            AppLocalizations.of(context)!.noNewNotifications,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.inkMuted,
                 ),
@@ -154,7 +155,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: Text(
-          'Rehan Rose',
+          AppLocalizations.of(context)!.appTitle,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w600,
@@ -183,13 +184,13 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
           controller: _searchController,
           onSubmitted: (_) => _submitBouquetSearch(context),
           decoration: InputDecoration(
-            hintText: 'Search by bouquet code...',
+            hintText: AppLocalizations.of(context)!.vendorSearchBouquetHint,
             hintStyle: TextStyle(color: AppColors.inkMuted, fontSize: 14),
             prefixIcon: Icon(Icons.search, size: 20, color: AppColors.inkMuted),
             suffixIcon: IconButton(
               icon: Icon(Icons.search, size: 20, color: AppColors.inkMuted),
               onPressed: () => _submitBouquetSearch(context),
-              tooltip: 'Search',
+              tooltip: AppLocalizations.of(context)!.search,
             ),
             filled: true,
             fillColor: AppColors.background,
@@ -240,7 +241,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
               focusNode: _searchFocusNode,
               onSubmitted: (_) => _submitBouquetSearch(context),
               decoration: InputDecoration(
-                hintText: 'Search by bouquet code...',
+                hintText: AppLocalizations.of(context)!.vendorSearchBouquetHint,
                 hintStyle: TextStyle(color: AppColors.inkMuted, fontSize: 14),
                 prefixIcon: Icon(Icons.search, size: 20, color: AppColors.inkMuted),
                 filled: true,
@@ -269,7 +270,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
           TextButton(
             onPressed: () => _submitBouquetSearch(context),
             child: Text(
-              'Search',
+              AppLocalizations.of(context)!.search,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.ink,
                     fontWeight: FontWeight.w600,
@@ -279,7 +280,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
           TextButton(
             onPressed: _closeOverlays,
             child: Text(
-              'Cancel',
+              AppLocalizations.of(context)!.cancel,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.inkMuted,
                     fontWeight: FontWeight.w500,
@@ -298,7 +299,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _isOnline ? 'Online' : 'Offline',
+            _isOnline ? AppLocalizations.of(context)!.online : AppLocalizations.of(context)!.offline,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.inkMuted,
                   fontWeight: FontWeight.w500,
@@ -365,7 +366,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
             backgroundColor: Colors.transparent,
             foregroundColor: AppColors.inkMuted,
           ),
-          tooltip: 'Notifications',
+          tooltip: AppLocalizations.of(context)!.notifications,
         ),
         if (widget.unreadNotificationCount > 0)
           Positioned(
@@ -395,8 +396,10 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   }
 
   Widget _buildProfileButton(BuildContext context, bool isMobile) {
-    final initial = widget.vendorName.isNotEmpty
-        ? widget.vendorName[0].toUpperCase()
+    final l10n = AppLocalizations.of(context)!;
+    final displayName = widget.vendorName.isNotEmpty ? widget.vendorName : l10n.vendorDefaultName;
+    final initial = displayName.isNotEmpty
+        ? displayName[0].toUpperCase()
         : 'V';
     return Material(
       color: Colors.transparent,
@@ -428,7 +431,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
               if (!isMobile) ...[
                 const SizedBox(width: 8),
                 Text(
-                  widget.vendorName,
+                  displayName,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppColors.ink,
                         fontWeight: FontWeight.w500,
@@ -463,9 +466,9 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _dropdownItem(context, 'Profile', Icons.person_outline, widget.onProfile),
+              _dropdownItem(context, AppLocalizations.of(context)!.profile, Icons.person_outline, widget.onProfile),
               const Divider(height: 16),
-              _dropdownItem(context, 'Log out', Icons.logout, widget.onLogout, isDestructive: true),
+              _dropdownItem(context, AppLocalizations.of(context)!.logOut, Icons.logout, widget.onLogout, isDestructive: true),
             ],
           ),
         ),

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/price_format_utils.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/add_on_model.dart';
 import '../../../data/repositories/repositories.dart';
@@ -325,7 +326,7 @@ class _AddOnListTile extends StatelessWidget {
                   ),
                 const SizedBox(height: 4),
                 Text(
-                  '${addOn.priceIqd} IQD',
+                  '${formatPriceIqd(addOn.priceIqd)} IQD',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppColors.rose,

@@ -191,4 +191,85 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get orderViaWhatsApp => 'طلب عبر واتساب';
+
+  @override
+  String get vendorDefaultName => 'بائع';
+
+  @override
+  String get vendorSearchBouquetHint => 'البحث برمز الباقة...';
+
+  @override
+  String get search => 'بحث';
+
+  @override
+  String get cancel => 'إلغاء';
+
+  @override
+  String get online => 'متصل';
+
+  @override
+  String get offline => 'غير متصل';
+
+  @override
+  String get notifications => 'الإشعارات';
+
+  @override
+  String get profile => 'الملف الشخصي';
+
+  @override
+  String get logOut => 'تسجيل الخروج';
+
+  @override
+  String get noNewNotifications => 'لا توجد إشعارات جديدة.';
+
+  @override
+  String get menu => 'القائمة';
+
+  @override
+  String get vendorNavDashboard => 'لوحة التحكم';
+
+  @override
+  String get vendorNavOrders => 'الطلبات';
+
+  @override
+  String get vendorNavBouquets => 'الباقات';
+
+  @override
+  String get vendorNavAddBouquet => 'إضافة باقة';
+
+  @override
+  String get vendorNavEarnings => 'الأرباح';
+
+  @override
+  String get vendorNavNotifications => 'الإشعارات';
+
+  @override
+  String get vendorNavShopSettings => 'إعدادات المتجر';
+
+  @override
+  String get vendorNavSupport => 'الدعم';
+
+  @override
+  String get vendorDashboardTitle => 'لوحة التحكم';
+
+  @override
+  String get vendorTodaysOrders => 'طلبات اليوم';
+
+  @override
+  String get vendorPendingOrders => 'طلبات قيد الانتظار';
+
+  @override
+  String get vendorTodaysRevenue => 'إيرادات اليوم';
+
+  @override
+  String get vendorShopStatus => 'حالة المتجر';
+
+  @override
+  String get vendorAlerts => 'التنبيهات';
+
+  @override
+  String get vendorNoOrdersNeedingConfirmation => 'لا توجد طلبات تحتاج تأكيد.';
+
+  @override
+  String get vendorNoNewAdminNotices => 'لا توجد إشعارات جديدة من الإدارة.';
 }

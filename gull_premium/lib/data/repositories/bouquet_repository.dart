@@ -138,6 +138,7 @@ class BouquetRepository {
 
   /// Creates a new bouquet and returns its id. Throws on failure.
   /// [imageUrls] must be download URLs (e.g. from Storage).
+  /// [thumbnailUrls] optional; same order as [imageUrls] for listing grid.
   /// [bouquetCode] is the generated code (e.g. from controller using emotion prefix).
   /// [emotionCategoryId] must be a valid ID from [kEmotionCategoryIds].
   Future<String> create({
@@ -146,6 +147,7 @@ class BouquetRepository {
     required String description,
     required int priceIqd,
     required List<String> imageUrls,
+    List<String>? thumbnailUrls,
     required String occasion,
     required String bouquetCode,
     required String emotionCategoryId,
@@ -153,8 +155,7 @@ class BouquetRepository {
     if (!isValidEmotionCategoryId(emotionCategoryId)) {
       throw ArgumentError('Invalid emotionCategoryId. Must be one of: $kEmotionCategoryIds');
     }
-    final bouquetRef = _bouquets.doc();
-    await bouquetRef.set({
+    final data = <String, dynamic>{
       'vendorId': vendorId,
       'name': name,
       'description': description,
@@ -164,7 +165,12 @@ class BouquetRepository {
       'occasion': occasion,
       'emotionCategoryId': emotionCategoryId,
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+    if (thumbnailUrls != null && thumbnailUrls.isNotEmpty) {
+      data['thumbnailUrls'] = thumbnailUrls;
+    }
+    final bouquetRef = _bouquets.doc();
+    await bouquetRef.set(data);
     return bouquetRef.id;
   }
 
@@ -193,9 +199,15 @@ class BouquetRepository {
     await _bouquets.doc(bouquetId).update({'priceIqd': priceIqd});
   }
 
-  /// Updates bouquet image URLs.
-  Future<void> updateImageUrls(String bouquetId, List<String> imageUrls) async {
-    await _bouquets.doc(bouquetId).update({'imageUrls': imageUrls});
+  /// Updates bouquet image URLs and optional thumbnail URLs.
+  Future<void> updateImageUrls(
+    String bouquetId,
+    List<String> imageUrls, {
+    List<String>? thumbnailUrls,
+  }) async {
+    final data = <String, dynamic>{'imageUrls': imageUrls};
+    if (thumbnailUrls != null) data['thumbnailUrls'] = thumbnailUrls;
+    await _bouquets.doc(bouquetId).update(data);
   }
 
   /// Deletes a bouquet.
@@ -203,20 +215,36 @@ class BouquetRepository {
     await _bouquets.doc(bouquetId).delete();
   }
 
-  /// Uploads image bytes and returns the download URL.
-  Future<String> uploadImage({
+  /// Result of uploading one image (full-size and optional thumbnail).
+  static const String webpContentType = 'image/webp';
+
+  /// Uploads image bytes (WebP or JPEG) and optional thumbnail; returns full URL and optional thumb URL.
+  /// Uses .webp path when [contentType] is [webpContentType].
+  Future<({String fullUrl, String? thumbUrl})> uploadImage({
     required String vendorId,
     required int timestamp,
     required int index,
     required Uint8List bytes,
+    String contentType = webpContentType,
+    Uint8List? thumbBytes,
   }) async {
-    final ref = _storage.ref('bouquets/$vendorId/$timestamp-$index.jpg');
-    await ref
-        .putData(
-          bytes,
-          SettableMetadata(contentType: 'image/jpeg'),
-        )
+    final ext = contentType == webpContentType ? 'webp' : 'jpg';
+    final fullRef = _storage.ref('bouquets/$vendorId/$timestamp-$index.$ext');
+    await fullRef
+        .putData(bytes, SettableMetadata(contentType: contentType))
         .timeout(const Duration(seconds: 45));
-    return ref.getDownloadURL();
+    final fullUrl = await fullRef.getDownloadURL();
+
+    String? thumbUrl;
+    if (thumbBytes != null && thumbBytes.isNotEmpty) {
+      final thumbRef =
+          _storage.ref('bouquets/$vendorId/$timestamp-${index}_thumb.$ext');
+      await thumbRef
+          .putData(thumbBytes, SettableMetadata(contentType: contentType))
+          .timeout(const Duration(seconds: 30));
+      thumbUrl = await thumbRef.getDownloadURL();
+    }
+
+    return (fullUrl: fullUrl, thumbUrl: thumbUrl);
   }
 }

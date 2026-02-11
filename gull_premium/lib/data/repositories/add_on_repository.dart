@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../../core/utils/image_compression_service.dart';
 import '../models/add_on_model.dart';
 
 /// Default add-ons shown when Firestore has none (vase = crucial, chocolate/card = emotional).
@@ -147,16 +148,18 @@ class AddOnRepository {
     await _addOns.doc(id).delete();
   }
 
-  /// Uploads image for an add-on; returns download URL. Use before or after creating the doc.
+  /// Uploads image for an add-on; compresses to WebP (max 1080px, 80% quality) then returns download URL.
+  /// Use before or after creating the doc.
   Future<String> uploadImage({
     required String addOnId,
     required Uint8List bytes,
   }) async {
-    final ref = _storage.ref('$_storagePath/$addOnId.jpg');
+    final compressed = await ImageCompressionService.compressToWebP(bytes);
+    final ref = _storage.ref('$_storagePath/$addOnId.webp');
     await ref
         .putData(
-          bytes,
-          SettableMetadata(contentType: 'image/jpeg'),
+          compressed,
+          SettableMetadata(contentType: 'image/webp'),
         )
         .timeout(const Duration(seconds: 45));
     return ref.getDownloadURL();

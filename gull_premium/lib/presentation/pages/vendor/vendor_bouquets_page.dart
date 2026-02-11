@@ -265,8 +265,8 @@ class _BouquetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = bouquet.imageUrls.isNotEmpty
-        ? bouquet.imageUrls.first
+    final imageUrl = bouquet.listingImageUrl.isNotEmpty
+        ? bouquet.listingImageUrl
         : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=400&q=80';
     final isNarrow = MediaQuery.sizeOf(context).width < 500;
 

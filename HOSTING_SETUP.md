@@ -27,8 +27,11 @@ From the project root:
 ```bash
 cd gull_premium
 flutter build web
+./scripts/patch_service_worker.ps1   # avoids Cache API error for 206 responses (e.g. video)
 cd ..
 firebase deploy
 ```
+
+On Windows PowerShell: `.\scripts\patch_service_worker.ps1`
 
 After DNS and the steps above are done, **https://rehanrose.com** should show the Rehan Rose app.

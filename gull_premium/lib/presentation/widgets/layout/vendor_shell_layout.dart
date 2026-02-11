@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import 'vendor_dashboard_header.dart';
 
 /// Vendor dashboard shell: fixed header + left sidebar (desktop) or drawer (mobile) + content.
@@ -56,10 +57,11 @@ class VendorShellLayout extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).value;
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
-        : (user?.email ?? 'Vendor');
+        : (user?.email ?? l10n.vendorDefaultName);
     return VendorDashboardHeader(
       vendorName: name,
       unreadNotificationCount: 0,
@@ -78,16 +80,17 @@ class _HeaderInAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).value;
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
-        : (user?.email ?? 'Vendor');
+        : (user?.email ?? l10n.vendorDefaultName);
     return SafeArea(
       child: VendorDashboardHeader(
         leading: IconButton(
           onPressed: onMenuTap,
           icon: const Icon(Icons.menu, color: AppColors.ink),
-          tooltip: 'Menu',
+          tooltip: l10n.menu,
         ),
         vendorName: name,
         unreadNotificationCount: 0,
@@ -105,6 +108,7 @@ class _VendorSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final path = GoRouterState.of(context).uri.path;
 
     return Container(
@@ -119,42 +123,42 @@ class _VendorSidebar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           children: [
             _NavTile(
-              label: 'Dashboard',
+              label: l10n.vendorNavDashboard,
               icon: Icons.dashboard_outlined,
               activeIcon: Icons.dashboard,
               path: '/vendor',
               currentPath: path,
             ),
             _NavTile(
-              label: 'Orders',
+              label: l10n.vendorNavOrders,
               icon: Icons.receipt_long_outlined,
               activeIcon: Icons.receipt_long,
               path: '/vendor/orders',
               currentPath: path,
             ),
             _NavTile(
-              label: 'Bouquets',
+              label: l10n.vendorNavBouquets,
               icon: Icons.local_florist_outlined,
               activeIcon: Icons.local_florist,
               path: '/vendor/bouquets',
               currentPath: path,
             ),
             _NavTile(
-              label: 'Add Bouquet',
+              label: l10n.vendorNavAddBouquet,
               icon: Icons.add_circle_outline,
               activeIcon: Icons.add_circle,
               path: '/vendor/bouquets/add',
               currentPath: path,
             ),
             _NavTile(
-              label: 'Earnings',
+              label: l10n.vendorNavEarnings,
               icon: Icons.payments_outlined,
               activeIcon: Icons.payments,
               path: '/vendor/earnings',
               currentPath: path,
             ),
             _NavTile(
-              label: 'Notifications',
+              label: l10n.vendorNavNotifications,
               icon: Icons.notifications_none,
               activeIcon: Icons.notifications,
               path: '/vendor/notifications',
@@ -162,14 +166,14 @@ class _VendorSidebar extends StatelessWidget {
             ),
             const Divider(height: 24),
             _NavTile(
-              label: 'Shop Settings',
+              label: l10n.vendorNavShopSettings,
               icon: Icons.settings_outlined,
               activeIcon: Icons.settings,
               path: '/vendor/shop-settings',
               currentPath: path,
             ),
             _NavTile(
-              label: 'Support',
+              label: l10n.vendorNavSupport,
               icon: Icons.help_outline,
               activeIcon: Icons.help,
               path: '/vendor/support',
@@ -244,7 +248,7 @@ class _VendorDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
               child: Text(
-                'Rehan Rose',
+                AppLocalizations.of(context)!.appTitle,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.ink,
                       fontWeight: FontWeight.w700,
@@ -253,67 +257,72 @@ class _VendorDrawer extends StatelessWidget {
             ),
             const Divider(height: 1),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                children: [
-                  _NavTile(
-                    label: 'Dashboard',
-                    icon: Icons.dashboard_outlined,
-                    activeIcon: Icons.dashboard,
-                    path: '/vendor',
-                    currentPath: path,
-                  ),
-                  _NavTile(
-                    label: 'Orders',
-                    icon: Icons.receipt_long_outlined,
-                    activeIcon: Icons.receipt_long,
-                    path: '/vendor/orders',
-                    currentPath: path,
-                  ),
-                  _NavTile(
-                    label: 'Bouquets',
-                    icon: Icons.local_florist_outlined,
-                    activeIcon: Icons.local_florist,
-                    path: '/vendor/bouquets',
-                    currentPath: path,
-                  ),
-                  _NavTile(
-                    label: 'Add Bouquet',
-                    icon: Icons.add_circle_outline,
-                    activeIcon: Icons.add_circle,
-                    path: '/vendor/bouquets/add',
-                    currentPath: path,
-                  ),
-                  _NavTile(
-                    label: 'Earnings',
-                    icon: Icons.payments_outlined,
-                    activeIcon: Icons.payments,
-                    path: '/vendor/earnings',
-                    currentPath: path,
-                  ),
-                  _NavTile(
-                    label: 'Notifications',
-                    icon: Icons.notifications_none,
-                    activeIcon: Icons.notifications,
-                    path: '/vendor/notifications',
-                    currentPath: path,
-                  ),
-                  const Divider(height: 24),
-                  _NavTile(
-                    label: 'Shop Settings',
-                    icon: Icons.settings_outlined,
-                    activeIcon: Icons.settings,
-                    path: '/vendor/shop-settings',
-                    currentPath: path,
-                  ),
-                  _NavTile(
-                    label: 'Support',
-                    icon: Icons.help_outline,
-                    activeIcon: Icons.help,
-                    path: '/vendor/support',
-                    currentPath: path,
-                  ),
-                ],
+              child: Builder(
+                builder: (context) {
+                  final l10n = AppLocalizations.of(context)!;
+                  return ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    children: [
+                      _NavTile(
+                        label: l10n.vendorNavDashboard,
+                        icon: Icons.dashboard_outlined,
+                        activeIcon: Icons.dashboard,
+                        path: '/vendor',
+                        currentPath: path,
+                      ),
+                      _NavTile(
+                        label: l10n.vendorNavOrders,
+                        icon: Icons.receipt_long_outlined,
+                        activeIcon: Icons.receipt_long,
+                        path: '/vendor/orders',
+                        currentPath: path,
+                      ),
+                      _NavTile(
+                        label: l10n.vendorNavBouquets,
+                        icon: Icons.local_florist_outlined,
+                        activeIcon: Icons.local_florist,
+                        path: '/vendor/bouquets',
+                        currentPath: path,
+                      ),
+                      _NavTile(
+                        label: l10n.vendorNavAddBouquet,
+                        icon: Icons.add_circle_outline,
+                        activeIcon: Icons.add_circle,
+                        path: '/vendor/bouquets/add',
+                        currentPath: path,
+                      ),
+                      _NavTile(
+                        label: l10n.vendorNavEarnings,
+                        icon: Icons.payments_outlined,
+                        activeIcon: Icons.payments,
+                        path: '/vendor/earnings',
+                        currentPath: path,
+                      ),
+                      _NavTile(
+                        label: l10n.vendorNavNotifications,
+                        icon: Icons.notifications_none,
+                        activeIcon: Icons.notifications,
+                        path: '/vendor/notifications',
+                        currentPath: path,
+                      ),
+                      const Divider(height: 24),
+                      _NavTile(
+                        label: l10n.vendorNavShopSettings,
+                        icon: Icons.settings_outlined,
+                        activeIcon: Icons.settings,
+                        path: '/vendor/shop-settings',
+                        currentPath: path,
+                      ),
+                      _NavTile(
+                        label: l10n.vendorNavSupport,
+                        icon: Icons.help_outline,
+                        activeIcon: Icons.help,
+                        path: '/vendor/support',
+                        currentPath: path,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],

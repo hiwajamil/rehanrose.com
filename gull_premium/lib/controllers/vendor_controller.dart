@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../core/constants/emotion_category.dart';
 import '../core/utils/auth_error_utils.dart';
+import '../core/utils/image_compression_service.dart';
 import '../data/models/flower_model.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/bouquet_repository.dart';
@@ -124,17 +125,23 @@ class VendorController extends AsyncNotifier<void> {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final imageUrls = <String>[];
+      final thumbnailUrls = <String>[];
       for (var i = 0; i < imageFiles.length; i++) {
         final bytes = await imageFiles[i]
             .readAsBytes()
             .timeout(const Duration(seconds: 15));
-        final url = await _bouquetRepo.uploadImage(
+        final fullBytes = await ImageCompressionService.compressToWebP(bytes);
+        final thumbBytes =
+            await ImageCompressionService.compressThumbnail(bytes);
+        final result = await _bouquetRepo.uploadImage(
           vendorId: user.uid,
           timestamp: timestamp,
           index: i,
-          bytes: bytes,
+          bytes: fullBytes,
+          thumbBytes: thumbBytes,
         );
-        imageUrls.add(url);
+        imageUrls.add(result.fullUrl);
+        if (result.thumbUrl != null) thumbnailUrls.add(result.thumbUrl!);
       }
       final prefix = codePrefixForEmotionCategoryId(emotionCategoryId);
       if (prefix.isEmpty) throw ArgumentError('Invalid emotion. Cannot generate bouquet code.');
@@ -145,6 +152,8 @@ class VendorController extends AsyncNotifier<void> {
         description: description,
         priceIqd: priceIqd,
         imageUrls: imageUrls,
+        thumbnailUrls:
+            thumbnailUrls.isEmpty ? null : thumbnailUrls,
         occasion: emotionCategoryId,
         bouquetCode: bouquetCode,
         emotionCategoryId: emotionCategoryId,
@@ -183,19 +192,30 @@ class VendorController extends AsyncNotifier<void> {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final imageUrls = <String>[];
+      final thumbnailUrls = <String>[];
       for (var i = 0; i < imageFiles.length; i++) {
         final bytes = await imageFiles[i]
             .readAsBytes()
             .timeout(const Duration(seconds: 15));
-        final url = await _bouquetRepo.uploadImage(
+        final fullBytes = await ImageCompressionService.compressToWebP(bytes);
+        final thumbBytes =
+            await ImageCompressionService.compressThumbnail(bytes);
+        final result = await _bouquetRepo.uploadImage(
           vendorId: user.uid,
           timestamp: timestamp,
           index: i,
-          bytes: bytes,
+          bytes: fullBytes,
+          thumbBytes: thumbBytes,
         );
-        imageUrls.add(url);
+        imageUrls.add(result.fullUrl);
+        if (result.thumbUrl != null) thumbnailUrls.add(result.thumbUrl!);
       }
-      await _bouquetRepo.updateImageUrls(bouquetId, imageUrls);
+      await _bouquetRepo.updateImageUrls(
+        bouquetId,
+        imageUrls,
+        thumbnailUrls:
+            thumbnailUrls.isEmpty ? null : thumbnailUrls,
+      );
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

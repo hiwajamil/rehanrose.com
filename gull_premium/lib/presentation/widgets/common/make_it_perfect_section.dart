@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/add_on_model.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -77,9 +78,9 @@ class MakeItPerfectSection extends StatelessWidget {
 
   String _totalLabel(BuildContext context) {
     if (selectedAddOnIds.isEmpty) {
-      return 'IQD $bouquetPriceIqd';
+      return 'IQD ${formatPriceIqd(bouquetPriceIqd)}';
     }
-    return 'IQD $bouquetPriceIqd + ${selectedAddOnIds.length} add-on(s) = IQD $totalPriceIqd';
+    return 'IQD ${formatPriceIqd(bouquetPriceIqd)} + ${selectedAddOnIds.length} add-on(s) = IQD ${formatPriceIqd(totalPriceIqd)}';
   }
 }
 
@@ -146,7 +147,7 @@ class _AddOnChip extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                'IQD ${addOn.priceIqd}',
+                'IQD ${formatPriceIqd(addOn.priceIqd)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.inkMuted,
                     ),

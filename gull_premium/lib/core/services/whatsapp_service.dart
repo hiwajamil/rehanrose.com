@@ -1,5 +1,6 @@
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/price_format_utils.dart';
 import '../../data/models/add_on_model.dart';
 
 /// Hardcoded Super Admin WhatsApp number (no '00' or '+').
@@ -30,9 +31,9 @@ Future<bool> launchOrderWhatsApp({
     '',
     'Flower: $flowerName - $flowerPrice',
     if (selectedAddOns != null && selectedAddOns.isNotEmpty) ...[
-      for (final a in selectedAddOns) 'Add-on: ${a.nameEn} - IQD ${a.priceIqd}',
+      for (final a in selectedAddOns) 'Add-on: ${a.nameEn} - ${iqdPriceString(a.priceIqd)}',
     ],
-    if (totalPriceIqd != null) 'Total Price: IQD $totalPriceIqd',
+    if (totalPriceIqd != null) 'Total Price: ${iqdPriceString(totalPriceIqd)}',
     if (productUrl != null && productUrl.isNotEmpty) 'Link: $productUrl',
   ];
   final body = lines.join('\n');

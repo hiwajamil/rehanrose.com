@@ -8,6 +8,8 @@ class FlowerModel {
   final String description;
   final int priceIqd;
   final List<String> imageUrls;
+  /// Thumbnail URLs for listing grid (same order as [imageUrls]). Use [imageUrls] when null/empty.
+  final List<String>? thumbnailUrls;
   final String bouquetCode;
   final DateTime? createdAt;
   final String occasion;
@@ -22,11 +24,22 @@ class FlowerModel {
     required this.description,
     required this.priceIqd,
     required this.imageUrls,
+    this.thumbnailUrls,
     required this.occasion,
     required this.bouquetCode,
     this.emotionCategoryId,
     this.createdAt,
   });
+
+  /// Best URL for listing/card: thumbnail if available, else first full image.
+  String get listingImageUrl {
+    if (thumbnailUrls != null &&
+        thumbnailUrls!.isNotEmpty &&
+        thumbnailUrls!.first.isNotEmpty) {
+      return thumbnailUrls!.first;
+    }
+    return imageUrls.isNotEmpty ? imageUrls.first : '';
+  }
 
   /// Backward compatibility: null or empty occasion → "All" so older docs still render.
   static String _occasionFromJson(dynamic value) {
@@ -51,12 +64,17 @@ class FlowerModel {
             isValidEmotionCategoryId(rawEmotion))
         ? rawEmotion
         : null;
+    final thumbRaw = json['thumbnailUrls'] as List?;
+    final thumbnailUrls = thumbRaw != null && thumbRaw.isNotEmpty
+        ? thumbRaw.cast<String>()
+        : null;
     return FlowerModel(
       id: id,
       name: json['name']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       priceIqd: (json['priceIqd'] as num?)?.toInt() ?? 0,
       imageUrls: (json['imageUrls'] as List?)?.cast<String>() ?? [],
+      thumbnailUrls: thumbnailUrls,
       occasion: _occasionFromJson(json['occasion']),
       bouquetCode: json['bouquetCode']?.toString() ?? '',
       emotionCategoryId: emotionCategoryId,
@@ -70,6 +88,8 @@ class FlowerModel {
       'description': description,
       'priceIqd': priceIqd,
       'imageUrls': imageUrls,
+      if (thumbnailUrls != null && thumbnailUrls!.isNotEmpty)
+        'thumbnailUrls': thumbnailUrls!,
       'occasion': occasion,
       'bouquetCode': bouquetCode,
       if (emotionCategoryId != null) 'emotionCategoryId': emotionCategoryId!,

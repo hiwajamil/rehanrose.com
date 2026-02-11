@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../controllers/controllers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/add_on_model.dart';
 import '../../widgets/common/make_it_perfect_section.dart';
 import '../../widgets/common/order_via_whatsapp_button.dart';
@@ -87,7 +88,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           final imageUrl = bouquet.imageUrls.isNotEmpty
               ? bouquet.imageUrls.first
               : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
-          final price = 'IQD ${bouquet.priceIqd}';
+          final price = iqdPriceString(bouquet.priceIqd);
           final bouquetCode = bouquet.bouquetCode.isNotEmpty
               ? bouquet.bouquetCode
               : null;

@@ -6,6 +6,7 @@ import 'package:video_player/video_player.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/constants/emotion_category.dart';
 import '../../../core/utils/emotion_category_l10n.dart';
+import '../../../core/utils/price_format_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../../l10n/app_localizations.dart';
@@ -467,7 +468,7 @@ class _ProductsSection extends ConsumerWidget {
             onSelected: (occasion) =>
                 ref.read(selectedOccasionProvider.notifier).setOccasion(occasion),
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: isMobile ? 24 : 40),
           bouquetsAsync.when(
             loading: () => Padding(
               padding: const EdgeInsets.only(bottom: 24),
@@ -521,7 +522,10 @@ class _ProductsSection extends ConsumerWidget {
                       : width < kTabletBreakpoint
                           ? 3
                           : 4;
-                  final gap = width < kMobileBreakpoint ? 12.0 : 16.0;
+                  // Narrow phones (e.g. iPhone SE): smaller gap so cards get more width
+                  final gap = width < kMobileBreakpoint
+                      ? (width < 380 ? 8.0 : 10.0)
+                      : 16.0;
                   final gapTotal = (crossAxisCount - 1) * gap;
                   final childWidth =
                       (constraints.maxWidth - gapTotal) / crossAxisCount;
@@ -529,8 +533,8 @@ class _ProductsSection extends ConsumerWidget {
                     spacing: gap,
                     runSpacing: gap,
                     children: bouquets.map((b) {
-                      final imageUrl = b.imageUrls.isNotEmpty
-                          ? b.imageUrls.first
+                      final imageUrl = b.listingImageUrl.isNotEmpty
+                          ? b.listingImageUrl
                           : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
                       return SizedBox(
                         width: childWidth,
@@ -538,7 +542,7 @@ class _ProductsSection extends ConsumerWidget {
                           id: b.id,
                           name: b.name,
                           note: b.description,
-                          price: 'IQD ${b.priceIqd}',
+                          price: iqdPriceString(b.priceIqd),
                           imageUrl: imageUrl,
                           bouquetCode: b.bouquetCode.isNotEmpty ? b.bouquetCode : null,
                           isCompact: isMobile,

@@ -151,14 +151,14 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                 children: [
                   _Field(
                     label: 'Bouquet name',
-                    hint: 'Spring Dawn',
+                    hint: '',
                     controller: _nameController,
                     icon: Icons.local_florist_outlined,
                   ),
                   const SizedBox(height: 20),
                   _Field(
                     label: 'Description',
-                    hint: 'Soft peonies with garden roses',
+                    hint: '',
                     controller: _descriptionController,
                     icon: Icons.notes_outlined,
                     maxLines: 3,
@@ -177,7 +177,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   const SizedBox(height: 20),
                   _Field(
                     label: 'Price (IQD)',
-                    hint: '45000',
+                    hint: '',
                     controller: _priceController,
                     icon: Icons.payments_outlined,
                     keyboardType: TextInputType.number,
@@ -297,6 +297,8 @@ class _Field extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          autocorrect: false,
+          enableSuggestions: false,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: AppColors.inkMuted),
