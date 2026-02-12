@@ -12,6 +12,7 @@ class VendorDashboardHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       child: SectionContainer(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
         child: Column(

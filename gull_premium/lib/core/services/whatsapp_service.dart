@@ -4,7 +4,7 @@ import '../utils/price_format_utils.dart';
 import '../../data/models/add_on_model.dart';
 
 /// Hardcoded Super Admin WhatsApp number (no '00' or '+').
-const String kWhatsAppOrderNumber = '9647501149414';
+const String kWhatsAppOrderNumber = '9647709818181';
 
 /// Greeting lines for the pre-filled order message (Kurdish + Arabic).
 const String kWhatsAppOrderGreetingKurdish =

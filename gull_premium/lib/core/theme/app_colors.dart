@@ -20,4 +20,14 @@ class AppColors {
   static const Color inkCharcoal = Color(0xFF1A1A1A);
   /// Nav default
   static const Color navMuted = Color(0xFF525252);
+  /// Offers / Sale nav link: subtle red accent to draw attention
+  static const Color navOffersAccent = Color(0xFFB8443A);
+
+  /// Footer: dark green background, high contrast with white text
+  static const Color footerBackground = Color(0xFF1B2E1F);
+  /// Slightly darker than footer for the bottom bar
+  static const Color footerBottomBarBackground = Color(0xFF141D16);
+  static const Color footerText = Color(0xFFF5F5F0);
+  static const Color footerTextMuted = Color(0xFFB8C4BA);
+  static const Color footerDivider = Color(0xFF2D4530);
 }

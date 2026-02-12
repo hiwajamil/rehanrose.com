@@ -20,6 +20,7 @@ class EmotionFilterCards extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Wrap(
+      alignment: WrapAlignment.center,
       spacing: 12,
       runSpacing: 12,
       textDirection: Directionality.of(context),
@@ -79,10 +80,10 @@ class _EmotionCardState extends State<_EmotionCard> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: borderColor, width: 1),
           ),
           child: Text(

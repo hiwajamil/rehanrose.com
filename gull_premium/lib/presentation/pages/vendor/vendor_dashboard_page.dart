@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../core/utils/auth_error_utils.dart';
 import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
@@ -129,6 +130,7 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
   }
 
   Widget _buildMarketing(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final horizontalPadding = isMobile ? 16.0 : 48.0;
     return Column(
@@ -168,7 +170,7 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Become a Gull vendor',
+                          l10n.vendorSignupHeadline,
                           style: Theme.of(context).textTheme.headlineLarge,
                         ),
                         const SizedBox(height: 16),

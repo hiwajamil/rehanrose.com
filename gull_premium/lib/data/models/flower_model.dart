@@ -18,6 +18,16 @@ class FlowerModel {
   /// Must match one of [kEmotionCategoryIds]. Used for filtering. Falls back to occasion if missing.
   final String? emotionCategoryId;
 
+  /// Explicit sale flag. A product is considered on sale if [isOnSale] is true OR [discountPrice] is set.
+  final bool isOnSale;
+  /// Discount/sale price in IQD. When set (and > 0), product is considered on sale even if [isOnSale] is false.
+  final int? discountPrice;
+
+  /// Number of times the product detail page was viewed. Used for analytics overview.
+  final int viewCount;
+  /// Number of times "Order via WhatsApp" was clicked for this product.
+  final int orderCount;
+
   const FlowerModel({
     required this.id,
     required this.name,
@@ -29,7 +39,15 @@ class FlowerModel {
     required this.bouquetCode,
     this.emotionCategoryId,
     this.createdAt,
+    this.isOnSale = false,
+    this.discountPrice,
+    this.viewCount = 0,
+    this.orderCount = 0,
   });
+
+  /// True if this product should be shown in Offers: [isOnSale] is true or [discountPrice] is set and > 0.
+  bool get isOnSaleEffective =>
+      isOnSale == true || (discountPrice != null && discountPrice! > 0);
 
   /// Best URL for listing/card: thumbnail if available, else first full image.
   String get listingImageUrl {
@@ -68,6 +86,13 @@ class FlowerModel {
     final thumbnailUrls = thumbRaw != null && thumbRaw.isNotEmpty
         ? thumbRaw.cast<String>()
         : null;
+    final isOnSale = json['isOnSale'] == true;
+    final discountPriceRaw = json['discountPrice'];
+    final discountPrice = discountPriceRaw != null
+        ? (discountPriceRaw is num ? discountPriceRaw.toInt() : int.tryParse(discountPriceRaw.toString()))
+        : null;
+    final viewCount = (json['viewCount'] as num?)?.toInt() ?? 0;
+    final orderCount = (json['orderCount'] as num?)?.toInt() ?? 0;
     return FlowerModel(
       id: id,
       name: json['name']?.toString() ?? '',
@@ -79,6 +104,10 @@ class FlowerModel {
       bouquetCode: json['bouquetCode']?.toString() ?? '',
       emotionCategoryId: emotionCategoryId,
       createdAt: _createdAtFromJson(json['createdAt']),
+      isOnSale: isOnSale,
+      discountPrice: discountPrice,
+      viewCount: viewCount,
+      orderCount: orderCount,
     );
   }
 
@@ -94,6 +123,10 @@ class FlowerModel {
       'bouquetCode': bouquetCode,
       if (emotionCategoryId != null) 'emotionCategoryId': emotionCategoryId!,
       if (createdAt != null) 'createdAt': createdAt,
+      if (isOnSale) 'isOnSale': true,
+      if (discountPrice != null) 'discountPrice': discountPrice!,
+      'viewCount': viewCount,
+      'orderCount': orderCount,
     };
   }
 }

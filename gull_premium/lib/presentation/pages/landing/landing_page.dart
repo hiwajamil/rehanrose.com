@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:seo/seo.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/constants/emotion_category.dart';
 import '../../../core/utils/emotion_category_l10n.dart';
 import '../../../core/utils/price_format_utils.dart';
+import '../../../core/utils/seo_meta_helper.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
+import '../../../data/models/flower_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/cards/flower_card.dart';
 import '../../widgets/common/emotion_dropdown.dart';
+import '../../widgets/common/product_grid_shimmer.dart';
 import '../../widgets/common/emotion_filter_cards.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
 
 class LandingPage extends ConsumerStatefulWidget {
-  const LandingPage({super.key});
+  const LandingPage({super.key, this.saleOnly = false});
+
+  /// When true, only products on sale (isOnSale or discountPrice set) are shown.
+  final bool saleOnly;
 
   @override
   ConsumerState<LandingPage> createState() => _LandingPageState();
@@ -25,6 +33,24 @@ class LandingPage extends ConsumerStatefulWidget {
 
 class _LandingPageState extends ConsumerState<LandingPage> {
   final _productsSectionKey = GlobalKey();
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    updatePageMeta(
+      title: kAppName,
+      description: 'Handcrafted flower bouquets for every feeling. Same-day delivery, trusted local florists.',
+      keywords: 'flowers, bouquets, Rehan Rose, florist, flower delivery',
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _scrollToProducts() {
     final ctx = _productsSectionKey.currentContext;
@@ -39,18 +65,24 @@ class _LandingPageState extends ConsumerState<LandingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final saleOnly = widget.saleOnly;
     return AppScaffold(
+      scrollController: _scrollController,
       child: Column(
         children: [
-          const _HeroSection(),
-          _CategoryCardsSection(onCategorySelected: _scrollToProducts),
-          Transform.translate(
-            offset: const Offset(0, -48),
-            child: _EmotionDropdownBlock(onSelection: _scrollToProducts),
+          if (!saleOnly) const _HeroSection(),
+          if (!saleOnly) _CategoryCardsSection(onCategorySelected: _scrollToProducts),
+          if (!saleOnly) const SizedBox(height: 32),
+          if (!saleOnly) _EmotionDropdownBlock(onSelection: _scrollToProducts),
+          if (!saleOnly) const SizedBox(height: 24),
+          if (!saleOnly) _TransitionSection(onExplore: _scrollToProducts),
+          if (saleOnly) const SizedBox(height: 32),
+          _ProductsSection(
+            key: _productsSectionKey,
+            scrollController: _scrollController,
+            onScrollToProducts: _scrollToProducts,
+            saleOnly: saleOnly,
           ),
-          const SizedBox(height: 24),
-          _TransitionSection(onExplore: _scrollToProducts),
-          _ProductsSection(key: _productsSectionKey, onScrollToProducts: _scrollToProducts),
           const _TrustSection(),
         ],
       ),
@@ -146,22 +178,68 @@ class _HeroSectionState extends State<_HeroSection> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                RichText(
-                  textAlign: TextAlign.center,
-                  textDirection: Directionality.of(context),
-                  text: TextSpan(
-                    style: headlineFont(
-                      fontSize: headlineSize,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 0.2,
-                      color: Colors.white,
-                      height: 1.2,
-                      shadows: [
-                        Shadow(
-                          color: AppColors.ink.withValues(alpha: 0.4),
-                          blurRadius: 16,
-                          offset: const Offset(0, 2),
+                Seo.text(
+                  text: '${l10n.heroTitlePart1} ${l10n.heroTitlePart2}',
+                  style: TextTagStyle.h1,
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    textDirection: Directionality.of(context),
+                    text: TextSpan(
+                      style: headlineFont(
+                        fontSize: headlineSize,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.2,
+                        color: Colors.white,
+                        height: 1.2,
+                        shadows: [
+                          Shadow(
+                            color: AppColors.ink.withValues(alpha: 0.4),
+                            blurRadius: 16,
+                            offset: const Offset(0, 2),
+                          ),
+                          Shadow(
+                            color: AppColors.ink.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      children: [
+                        TextSpan(text: l10n.heroTitlePart1),
+                        TextSpan(
+                          text: l10n.heroTitlePart2,
+                          style: headlineFont(
+                            fontSize: headlineSize,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                            color: AppColors.rosePrimary,
+                            height: 1.2,
+                            shadows: [
+                              Shadow(
+                                color: AppColors.ink.withValues(alpha: 0.5),
+                                blurRadius: 20,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: isMobile ? 20 : 28),
+                Seo.text(
+                  text: l10n.heroSubtitle,
+                  child: Text(
+                    l10n.heroSubtitle,
+                    textAlign: TextAlign.center,
+                    textDirection: Directionality.of(context),
+                    style: bodyFont(
+                      fontSize: isMobile ? 16 : 20,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.94),
+                      height: 1.5,
+                      shadows: [
                         Shadow(
                           color: AppColors.ink.withValues(alpha: 0.3),
                           blurRadius: 8,
@@ -169,63 +247,27 @@ class _HeroSectionState extends State<_HeroSection> {
                         ),
                       ],
                     ),
-                    children: [
-                      TextSpan(text: l10n.heroTitlePart1),
-                      TextSpan(
-                        text: l10n.heroTitlePart2,
-                        style: headlineFont(
-                          fontSize: headlineSize,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
-                          color: AppColors.rosePrimary,
-                          height: 1.2,
-                          shadows: [
-                            Shadow(
-                              color: AppColors.ink.withValues(alpha: 0.5),
-                              blurRadius: 20,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: isMobile ? 20 : 28),
-                Text(
-                  l10n.heroSubtitle,
-                  textAlign: TextAlign.center,
-                  textDirection: Directionality.of(context),
-                  style: bodyFont(
-                    fontSize: isMobile ? 16 : 20,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withValues(alpha: 0.94),
-                    height: 1.5,
-                    shadows: [
-                      Shadow(
-                        color: AppColors.ink.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
                   ),
                 ),
                 const SizedBox(height: 40),
-                Text(
-                  l10n.heroTagline,
-                  textDirection: Directionality.of(context),
-                  style: bodyFont(
-                    fontSize: isMobile ? 13 : 15,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withValues(alpha: 0.82),
-                    fontStyle: FontStyle.italic,
-                    shadows: [
-                      Shadow(
-                        color: AppColors.ink.withValues(alpha: 0.25),
-                        blurRadius: 6,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
+                Seo.text(
+                  text: l10n.heroTagline,
+                  child: Text(
+                    l10n.heroTagline,
+                    textDirection: Directionality.of(context),
+                    style: bodyFont(
+                      fontSize: isMobile ? 13 : 15,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.82),
+                      fontStyle: FontStyle.italic,
+                      shadows: [
+                        Shadow(
+                          color: AppColors.ink.withValues(alpha: 0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -248,7 +290,8 @@ class _CategoryCardsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final crossAxisCount = isMobile ? 2 : 4;
+    // More columns = smaller cells (~half area); text/icon sizes unchanged
+    final crossAxisCount = isMobile ? 3 : 6;
     final locale = Localizations.localeOf(context);
     final isRTL = locale.languageCode == 'ar' || locale.languageCode == 'ku';
 
@@ -262,14 +305,18 @@ class _CategoryCardsSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.home_question,
-            textAlign: TextAlign.center,
-            textDirection: Directionality.of(context),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.ink,
-                ),
+          Seo.text(
+            text: l10n.home_question,
+            style: TextTagStyle.h2,
+            child: Text(
+              l10n.home_question,
+              textAlign: TextAlign.center,
+              textDirection: Directionality.of(context),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.ink,
+                  ),
+            ),
           ),
           const SizedBox(height: 24),
           Directionality(
@@ -278,9 +325,9 @@ class _CategoryCardsSection extends ConsumerWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.1,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.0,
               children: kEmotionCategories.map((category) {
                 return _CategoryCard(
                   category: category,
@@ -329,10 +376,10 @@ class _CategoryCardState extends State<_CategoryCard> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          padding: const EdgeInsetsDirectional.all(20),
+          padding: const EdgeInsetsDirectional.all(10),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: AppColors.border.withValues(alpha: 0.5),
             ),
@@ -354,17 +401,20 @@ class _CategoryCardState extends State<_CategoryCard> {
                 size: 40,
                 color: AppColors.rose,
               ),
-              const SizedBox(height: 12),
-              Text(
-                widget.title,
-                textAlign: TextAlign.center,
-                textDirection: Directionality.of(context),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.ink,
-                    ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 6),
+              Seo.text(
+                text: widget.title,
+                child: Text(
+                  widget.title,
+                  textAlign: TextAlign.center,
+                  textDirection: Directionality.of(context),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink,
+                      ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -403,6 +453,7 @@ class _EmotionDropdownBlock extends ConsumerWidget {
         selectedEmotionValue: selectedOccasion == 'All' ? null : selectedOccasion,
         onChanged: (value) {
           if (value != null) {
+            ref.read(analyticsServiceProvider).logSearch(value);
             ref.read(selectedOccasionProvider.notifier).setOccasion(value);
             onSelection?.call();
           }
@@ -426,18 +477,25 @@ class _TransitionSection extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 24),
-          Text(
-            l10n.flowersForEveryFeeling,
-            textAlign: TextAlign.center,
-            textDirection: Directionality.of(context),
-            style: Theme.of(context).textTheme.headlineMedium,
+          Seo.text(
+            text: l10n.flowersForEveryFeeling,
+            style: TextTagStyle.h2,
+            child: Text(
+              l10n.flowersForEveryFeeling,
+              textAlign: TextAlign.center,
+              textDirection: Directionality.of(context),
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
           ),
           const SizedBox(height: 12),
-          Text(
-            l10n.eachBouquetCopy,
-            textAlign: TextAlign.center,
-            textDirection: Directionality.of(context),
-            style: Theme.of(context).textTheme.bodyLarge,
+          Seo.text(
+            text: l10n.eachBouquetCopy,
+            child: Text(
+              l10n.eachBouquetCopy,
+              textAlign: TextAlign.center,
+              textDirection: Directionality.of(context),
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
           ),
         ],
       ),
@@ -445,19 +503,170 @@ class _TransitionSection extends StatelessWidget {
   }
 }
 
-/// Products section: emotion filter + bouquet grid.
-class _ProductsSection extends ConsumerWidget {
+/// Products section: emotion filter + bouquet grid. Uses paginated fetch when !saleOnly.
+class _ProductsSection extends ConsumerStatefulWidget {
+  final ScrollController? scrollController;
   final VoidCallback? onScrollToProducts;
+  final bool saleOnly;
 
-  const _ProductsSection({super.key, this.onScrollToProducts});
+  const _ProductsSection({
+    super.key,
+    this.scrollController,
+    this.onScrollToProducts,
+    this.saleOnly = false,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedOccasion = ref.watch(selectedOccasionProvider);
-    final bouquetsAsync = ref.watch(landingBouquetsProvider);
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+  ConsumerState<_ProductsSection> createState() => _ProductsSectionState();
+}
 
+class _ProductsSectionState extends ConsumerState<_ProductsSection> {
+  static const double _scrollLoadMoreThreshold = 200;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.saleOnly && widget.scrollController != null) {
+      widget.scrollController!.addListener(_onScroll);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!widget.saleOnly) {
+        final occasion = ref.read(selectedOccasionProvider);
+        ref.read(paginatedProductsProvider.notifier).loadInitial(occasion == 'All' ? null : occasion);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController?.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final controller = widget.scrollController;
+    if (controller == null || !controller.hasClients) return;
+    final position = controller.position;
+    if (position.pixels >= position.maxScrollExtent - _scrollLoadMoreThreshold) {
+      ref.read(paginatedProductsProvider.notifier).fetchMoreProducts();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedOccasion = ref.watch(selectedOccasionProvider);
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final l10n = AppLocalizations.of(context)!;
+
+    if (widget.saleOnly) {
+      final bouquetsAsync = ref.watch(landingBouquetsProvider);
+      return SectionContainer(
+        padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Seo.text(
+              text: l10n.specialOffersTitle,
+              style: TextTagStyle.h2,
+              child: Text(
+                l10n.specialOffersTitle,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.inkCharcoal,
+                    ),
+              ),
+            ),
+            SizedBox(height: isMobile ? 16 : 24),
+            bouquetsAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.only(bottom: 24),
+                child: ProductGridShimmerGrid(itemCount: 6),
+              ),
+              error: (err, _) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.couldNotLoadBouquets,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.inkMuted),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () => ref.invalidate(landingBouquetsProvider),
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: Text(l10n.retry),
+                  ),
+                ],
+              ),
+              data: (bouquets) {
+                final list = bouquets.where((b) => b.isOnSaleEffective).toList();
+                if (list.isEmpty) {
+                  if (bouquets.isNotEmpty) {
+                    final fallbackList = bouquets.take(isMobile ? 4 : 8).toList();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            l10n.noOffersBrowseAll,
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: AppColors.inkMuted,
+                                ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: FilledButton.icon(
+                            onPressed: () => context.go('/'),
+                            icon: const Icon(Icons.local_florist_outlined, size: 20),
+                            label: Text(l10n.browseAllBouquets),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.rosePrimary,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        _BouquetGrid(
+                          list: fallbackList,
+                          isMobile: isMobile,
+                          orderButtonEnabled: ref.watch(connectivityStatusProvider).value ?? true,
+                        ),
+                      ],
+                    );
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Text(
+                      l10n.noOffersYet,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.inkMuted),
+                    ),
+                  );
+                }
+                return _BouquetGrid(
+                  list: list,
+                  isMobile: isMobile,
+                  orderButtonEnabled: ref.watch(connectivityStatusProvider).value ?? true,
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
+    ref.listen(selectedOccasionProvider, (prev, next) {
+      if (prev != next) {
+        ref.read(paginatedProductsProvider.notifier).loadInitial(next == 'All' ? null : next);
+      }
+    });
+
+    final paginated = ref.watch(paginatedProductsProvider);
     return SectionContainer(
       padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 24),
       child: Column(
@@ -465,22 +674,23 @@ class _ProductsSection extends ConsumerWidget {
         children: [
           EmotionFilterCards(
             selectedOccasion: selectedOccasion,
-            onSelected: (occasion) =>
-                ref.read(selectedOccasionProvider.notifier).setOccasion(occasion),
+            onSelected: (occasion) {
+              ref.read(analyticsServiceProvider).logSelectContent(
+                    contentType: 'category',
+                    itemId: occasion,
+                    itemName: occasion,
+                  );
+              ref.read(selectedOccasionProvider.notifier).setOccasion(occasion);
+            },
           ),
           SizedBox(height: isMobile ? 24 : 40),
-          bouquetsAsync.when(
-            loading: () => Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Text(
-                l10n.loadingBouquets,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.inkMuted),
-              ),
-            ),
-            error: (err, _) => Column(
+          if (paginated.isLoading && paginated.products.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 24),
+              child: ProductGridShimmerGrid(itemCount: 6),
+            )
+          else if (paginated.error != null && paginated.products.isEmpty)
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -492,70 +702,123 @@ class _ProductsSection extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 TextButton.icon(
-                  onPressed: () => ref.invalidate(landingBouquetsProvider),
+                  onPressed: () => ref.read(paginatedProductsProvider.notifier).loadInitial(
+                        selectedOccasion == 'All' ? null : selectedOccasion,
+                      ),
                   icon: const Icon(Icons.refresh, size: 18),
                   label: Text(l10n.retry),
                 ),
               ],
-            ),
-            data: (bouquets) {
-              if (bouquets.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Text(
-                    selectedOccasion == 'All'
-                        ? l10n.noBouquetsYet
-                        : l10n.noBouquetsForFeeling,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.inkMuted),
+            )
+          else if (paginated.products.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Text(
+                selectedOccasion == 'All'
+                    ? l10n.noBouquetsYet
+                    : l10n.noBouquetsForFeeling,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppColors.inkMuted),
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _BouquetGrid(
+                  list: paginated.products,
+                  isMobile: isMobile,
+                  orderButtonEnabled: ref.watch(connectivityStatusProvider).value ?? true,
+                ),
+                if (paginated.isLoadingMore)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )),
+                  )
+                else if (!paginated.hasMore && paginated.products.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: Text(
+                        l10n.reachedEndOfList,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.inkMuted,
+                            ),
+                      ),
+                    ),
                   ),
-                );
-              }
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = MediaQuery.sizeOf(context).width;
-                  // Mobile: 2 cols, Tablet (md): 3 cols, Desktop (lg+): 4 cols
-                  final crossAxisCount = width < kMobileBreakpoint
-                      ? 2
-                      : width < kTabletBreakpoint
-                          ? 3
-                          : 4;
-                  // Narrow phones (e.g. iPhone SE): smaller gap so cards get more width
-                  final gap = width < kMobileBreakpoint
-                      ? (width < 380 ? 8.0 : 10.0)
-                      : 16.0;
-                  final gapTotal = (crossAxisCount - 1) * gap;
-                  final childWidth =
-                      (constraints.maxWidth - gapTotal) / crossAxisCount;
-                  return Wrap(
-                    spacing: gap,
-                    runSpacing: gap,
-                    children: bouquets.map((b) {
-                      final imageUrl = b.listingImageUrl.isNotEmpty
-                          ? b.listingImageUrl
-                          : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
-                      return SizedBox(
-                        width: childWidth,
-                        child: FlowerCard(
-                          id: b.id,
-                          name: b.name,
-                          note: b.description,
-                          price: iqdPriceString(b.priceIqd),
-                          imageUrl: imageUrl,
-                          bouquetCode: b.bouquetCode.isNotEmpty ? b.bouquetCode : null,
-                          isCompact: isMobile,
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              );
-            },
-          ),
+              ],
+            ),
         ],
       ),
+    );
+  }
+}
+
+/// Reusable bouquet grid for landing and offers fallback.
+class _BouquetGrid extends StatelessWidget {
+  final List<FlowerModel> list;
+  final bool isMobile;
+  final bool orderButtonEnabled;
+
+  const _BouquetGrid({
+    required this.list,
+    required this.isMobile,
+    this.orderButtonEnabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final crossAxisCount = width < kMobileBreakpoint
+        ? 2
+        : width < kTabletBreakpoint
+            ? 3
+            : 4;
+    final gap = width < kMobileBreakpoint
+        ? (width < 380 ? 8.0 : 10.0)
+        : 16.0;
+    final gapTotal = (crossAxisCount - 1) * gap;
+    final l10n = AppLocalizations.of(context)!;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final childWidth = (constraints.maxWidth - gapTotal) / crossAxisCount;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: list.map((b) {
+            final imageUrl = b.listingImageUrl.isNotEmpty
+                ? b.listingImageUrl
+                : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
+            final displayPrice = b.isOnSaleEffective && b.discountPrice != null && b.discountPrice! > 0
+                ? formatPriceWithCurrency(b.discountPrice!, l10n.currencyIqd)
+                : formatPriceWithCurrency(b.priceIqd, l10n.currencyIqd);
+            final originalPrice = b.isOnSaleEffective && b.discountPrice != null && b.discountPrice! > 0
+                ? formatPriceWithCurrency(b.priceIqd, l10n.currencyIqd)
+                : null;
+            return SizedBox(
+              width: childWidth,
+              child: FlowerCard(
+                id: b.id,
+                name: b.name,
+                note: b.description,
+                price: displayPrice,
+                originalPrice: originalPrice,
+                imageUrl: imageUrl,
+                bouquetCode: b.bouquetCode.isNotEmpty ? b.bouquetCode : null,
+                isCompact: isMobile,
+                orderButtonEnabled: orderButtonEnabled,
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }
@@ -572,14 +835,17 @@ class _TrustSection extends StatelessWidget {
       padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 48),
       child: Column(
         children: [
-          Text(
-            l10n.carefullyCurated,
-            textAlign: TextAlign.center,
-            textDirection: Directionality.of(context),
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.inkMuted,
-                  fontWeight: FontWeight.w500,
-                ),
+          Seo.text(
+            text: l10n.carefullyCurated,
+            child: Text(
+              l10n.carefullyCurated,
+              textAlign: TextAlign.center,
+              textDirection: Directionality.of(context),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.inkMuted,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
           ),
           const SizedBox(height: 24),
           Wrap(
@@ -628,13 +894,16 @@ class _TrustBadge extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: AppColors.inkMuted),
           const SizedBox(width: 10),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.inkMuted,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
+          Seo.text(
+            text: label,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.inkMuted,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+            ),
           ),
         ],
       ),

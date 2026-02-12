@@ -9,6 +9,7 @@ import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/add_on_model.dart';
 import '../../../data/models/flower_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/order_via_whatsapp_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import 'add_on_selection_sheet.dart';
@@ -84,10 +85,11 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
   }
 
   void _orderViaWhatsApp(FlowerModel bouquet) {
+    final l10n = AppLocalizations.of(context)!;
     final productUrl = '${Uri.base.origin}/flower/${widget.flowerId}';
     launchOrderWhatsApp(
       flowerName: bouquet.name,
-      flowerPrice: iqdPriceString(bouquet.priceIqd),
+      flowerPrice: formatPriceWithCurrency(bouquet.priceIqd, l10n.currencyIqd),
       flowerId: widget.flowerId,
       flowerImageUrl: bouquet.imageUrls.isNotEmpty
           ? bouquet.imageUrls.first
@@ -166,16 +168,11 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                         borderRadius: BorderRadius.circular(16),
                         child: AspectRatio(
                           aspectRatio: 4 / 5,
-                          child: Image.network(
-                            imageUrl,
+                          child: AppCachedImage(
+                            imageUrl: imageUrl,
                             fit: BoxFit.cover,
-                            cacheWidth: 800,
-                            cacheHeight: 1000,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.border,
-                              child: const Center(
-                                  child: Icon(Icons.local_florist, size: 48)),
-                            ),
+                            memCacheWidth: 800,
+                            memCacheHeight: 1000,
                           ),
                         ),
                       ),
@@ -304,7 +301,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                 ),
                           ),
                           Text(
-                            'IQD ${formatPriceIqd(total)}',
+                            '${l10n.currencyIqd} ${formatPriceIqd(total)}',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   color: AppColors.ink,
                                   fontWeight: FontWeight.w700,
@@ -317,7 +314,14 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                         width: double.infinity,
                         child: OrderViaWhatsAppButton(
                           label: l10n.orderViaWhatsApp,
-                          onPressed: () => _orderViaWhatsApp(bouquet),
+                          onPressed: () {
+                            ref.read(analyticsServiceProvider).logClickWhatsApp(
+                                  itemId: bouquet.id,
+                                  itemName: bouquet.name,
+                                );
+                            _orderViaWhatsApp(bouquet);
+                          },
+                          enabled: ref.watch(connectivityStatusProvider).value ?? true,
                         ),
                       ),
                     ],
@@ -399,10 +403,11 @@ class _AddOnCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: AspectRatio(
                     aspectRatio: 1,
-                    child: Image.network(
-                      selected!.imageUrl,
+                    child: AppCachedImage(
+                      imageUrl: selected!.imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(_icon, size: 40, color: AppColors.inkMuted),
+                      errorIcon: _icon,
+                      errorIconSize: 40,
                     ),
                   ),
                 )
@@ -421,7 +426,7 @@ class _AddOnCard extends StatelessWidget {
               ),
               if (isSelected)
                 Text(
-                  'IQD ${formatPriceIqd(selected!.priceIqd)}',
+                  '${AppLocalizations.of(context)!.currencyIqd} ${formatPriceIqd(selected!.priceIqd)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.inkMuted,
                       ),

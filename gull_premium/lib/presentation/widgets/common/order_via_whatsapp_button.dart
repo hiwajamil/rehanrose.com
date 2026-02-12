@@ -3,14 +3,17 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 /// Minimalist CTA: Dark charcoal, rounded 8, white text, WhatsApp icon, no shadow.
 class OrderViaWhatsAppButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   /// Label: 'Order via WhatsApp' or Kurdish 'داواکردن بە نامە'.
   final String label;
+  /// When false, button is disabled (e.g. when offline). Defaults to true.
+  final bool enabled;
 
   const OrderViaWhatsAppButton({
     super.key,
     required this.onPressed,
     this.label = 'Order via WhatsApp',
+    this.enabled = true,
   });
 
   /// Dark charcoal as specified (#1A1A1A).
@@ -19,7 +22,7 @@ class OrderViaWhatsAppButton extends StatelessWidget {
   /// Readable font on mobile; compact on desktop.
   static double _buttonFontSize(BuildContext context) {
     final width = MediaQuery.sizeOf(context).shortestSide;
-    return width < 600 ? 16.0 : 15.0;
+    return width < 600 ? 18.0 : 16.0;
   }
 
   /// Minimum touch target height (Material guideline).
@@ -52,36 +55,39 @@ class OrderViaWhatsAppButton extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
     );
 
-    return Material(
-      color: _buttonColor,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onPressed,
+    final effectiveOnPressed = enabled ? onPressed : null;
+
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: Material(
+        color: _buttonColor,
         borderRadius: BorderRadius.circular(8),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: _minHeight),
-          child: Padding(
-            padding: padding,
-            child: Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                FaIcon(
-                  FontAwesomeIcons.whatsapp,
-                  color: Colors.white,
-                  size: iconSize,
-                ),
-                SizedBox(width: isMobile ? 12 : 10),
-                Flexible(
-                  child: isMobile
-                      ? textChild
-                      : FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: textChild,
-                        ),
-                ),
-              ],
+        child: InkWell(
+          onTap: effectiveOnPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _minHeight),
+            child: Padding(
+              padding: padding,
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FaIcon(
+                    FontAwesomeIcons.whatsapp,
+                    color: Colors.white,
+                    size: iconSize,
+                  ),
+                  SizedBox(width: isMobile ? 12 : 10),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: textChild,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

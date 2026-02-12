@@ -1,22 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:seo/seo.dart';
 
+import '../../../controllers/controllers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
+import '../common/app_cached_image.dart';
 import '../common/order_via_whatsapp_button.dart';
 
 /// Bouquet card: static, no hover/transform/transition. Calm, premium experience.
 /// When [isCompact] is true (mobile), uses reduced padding, capped image height, and smaller text.
 /// Tapping anywhere on the card (image, title, price, or button) navigates to Product Details & Customization (/flower/:id/order).
-class FlowerCard extends StatelessWidget {
+class FlowerCard extends ConsumerWidget {
   final String id;
   final String name;
   final String imageUrl;
   final String price;
   final String note;
+  /// When set, show strikethrough (sale: original price) and [price] as the sale price.
+  final String? originalPrice;
   /// Optional bouquet code (e.g. RR-355) for admin reference in WhatsApp orders.
   final String? bouquetCode;
   /// When true, use compact layout for mobile grid (smaller padding, image height, text).
   final bool isCompact;
+  /// When false, the Order via WhatsApp button is disabled (e.g. when offline). Defaults to true.
+  final bool orderButtonEnabled;
 
   const FlowerCard({
     super.key,
@@ -25,36 +34,37 @@ class FlowerCard extends StatelessWidget {
     required this.imageUrl,
     required this.price,
     required this.note,
+    this.originalPrice,
     this.bouquetCode,
     this.isCompact = false,
+    this.orderButtonEnabled = true,
   });
 
-  /// Static shadow: no change on hover.
+  /// Subtle shadow so the card pops slightly (compact design).
   static final List<BoxShadow> _cardShadow = [
-    BoxShadow(
-      color: AppColors.shadow.withValues(alpha: 0.06),
-      blurRadius: 20,
-      offset: const Offset(0, 6),
+    const BoxShadow(
+      color: Color(0x1A000000), // black12
+      blurRadius: 4,
+      spreadRadius: 0,
     ),
   ];
 
   static const double _compactPadding = 10.0;
-  /// Image aspect: 1:1 on compact (mobile) for balanced card height on narrow screens.
-  static const double _compactImageAspect = 1.0;
-  static const double _defaultImageAspect = 4 / 5;
+  /// Image aspect: taller portrait for bouquet photos (smaller ratio = taller image).
+  static const double _imageAspectRatio = 0.65;
 
   /// Single navigation target: Product Details & Customization (Vases, Chocolates, etc.).
-  void _navigateToProductDetails(BuildContext context) {
-    context.push('/flower/$id/order');
+  static void _navigateToProductDetails(BuildContext context, String flowerId) {
+    context.push('/flower/$flowerId/order');
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final borderRadius = isCompact ? 14.0 : 24.0;
     final contentPadding = isCompact ? _compactPadding : 20.0;
-    final imageAspect = isCompact ? _compactImageAspect : _defaultImageAspect;
     final cacheW = isCompact ? 360 : 400;
-    final cacheH = isCompact ? 360 : 500;
+    final cacheH = (cacheW / _imageAspectRatio).round();
     return RepaintBoundary(
       child: Container(
         decoration: BoxDecoration(
@@ -68,91 +78,142 @@ class FlowerCard extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => _navigateToProductDetails(context),
+              onTap: () => _navigateToProductDetails(context, id),
               borderRadius: BorderRadius.circular(borderRadius),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  AspectRatio(
-                    aspectRatio: imageAspect,
-                    child: ClipRect(
-                      child: Image.network(
-                        imageUrl.isEmpty
-                            ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
-                            : imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        cacheWidth: cacheW,
-                        cacheHeight: cacheH,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Container(
-                              color: AppColors.border,
-                              child: const Center(
-                                  child: Icon(Icons.local_florist)),
-                            ),
+                  Seo.image(
+                    alt: name,
+                    src: imageUrl.isEmpty
+                        ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
+                        : imageUrl,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(8),
+                      ),
+                      child: AspectRatio(
+                        aspectRatio: _imageAspectRatio,
+                        child: AppCachedImage(
+                          imageUrl: imageUrl.isEmpty
+                              ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
+                              : imageUrl,
+                          fit: BoxFit.cover,
+                          memCacheWidth: cacheW,
+                          memCacheHeight: cacheH,
+                        ),
                       ),
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.all(contentPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          name,
-                          style: isCompact
-                              ? Theme.of(context).textTheme.titleMedium
-                              : Theme.of(context).textTheme.titleLarge,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: isCompact ? 2 : 6),
-                        Text(
-                          note,
-                          style: isCompact
-                              ? Theme.of(context).textTheme.bodySmall
-                              : Theme.of(context).textTheme.bodyMedium,
-                          maxLines: isCompact ? 1 : null,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: isCompact ? 6 : 14),
-                        Text(
-                          price,
-                          style: (isCompact
-                                  ? Theme.of(context).textTheme.bodyMedium
-                                  : Theme.of(context).textTheme.bodyLarge)
-                              ?.copyWith(
-                                color: AppColors.ink,
-                                fontWeight: FontWeight.w700,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact ? 8 : contentPadding,
+                      vertical: isCompact ? 2 : 12,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Seo.text(
+                            text: name,
+                            style: TextTagStyle.h3,
+                            child: Text(
+                              name,
+                              style: isCompact
+                                  ? Theme.of(context).textTheme.titleMedium
+                                  : Theme.of(context).textTheme.titleLarge,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          SizedBox(height: isCompact ? 1 : 2),
+                          if (originalPrice != null)
+                            Seo.text(
+                              text: originalPrice!,
+                              child: Text(
+                                originalPrice!,
+                                style: (isCompact
+                                        ? Theme.of(context).textTheme.bodySmall
+                                        : Theme.of(context).textTheme.bodyMedium)
+                                    ?.copyWith(
+                                      color: AppColors.inkMuted,
+                                      decoration: TextDecoration.lineThrough,
+                                      decorationColor: AppColors.inkMuted,
+                                    ),
+                                textAlign: TextAlign.center,
                               ),
-                        ),
-                      ],
+                            ),
+                          if (originalPrice != null) SizedBox(height: isCompact ? 0 : 2),
+                          Seo.text(
+                            text: price,
+                            child: Text(
+                              price,
+                              style: (isCompact
+                                      ? Theme.of(context).textTheme.bodyMedium
+                                      : Theme.of(context).textTheme.bodyLarge)
+                                  ?.copyWith(
+                                    color: AppColors.rosePrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          if (note.isNotEmpty) ...[
+                            SizedBox(height: isCompact ? 1 : 2),
+                            Seo.text(
+                              text: note,
+                              child: Text(
+                                note,
+                                style: isCompact
+                                    ? Theme.of(context).textTheme.bodySmall
+                                    : Theme.of(context).textTheme.bodyMedium,
+                                maxLines: isCompact ? 1 : null,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(
-                        horizontal: contentPadding, vertical: 0),
+                      horizontal: isCompact ? 8 : contentPadding,
+                      vertical: 0,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: isCompact ? 8 : 16),
+                        SizedBox(height: isCompact ? 4 : 8),
                         SizedBox(
                           width: double.infinity,
                           child: OrderViaWhatsAppButton(
-                            onPressed: () =>
-                                _navigateToProductDetails(context),
+                            label: l10n.orderViaWhatsApp,
+                            onPressed: () {
+                              ref.read(analyticsServiceProvider).logClickWhatsApp(
+                                    itemId: id,
+                                    itemName: name,
+                                  );
+                              _navigateToProductDetails(context, id);
+                            },
+                            enabled: orderButtonEnabled,
                           ),
                         ),
                         SizedBox(height: isCompact ? 4 : 10),
-                        Text(
-                          'Pay with FIB',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.ink,
-                                fontWeight: FontWeight.w600,
-                              ),
+                        Center(
+                          child: Text(
+                            l10n.payWithFIB,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.ink,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
                         ),
                         SizedBox(height: isCompact ? 10 : 20),
                       ],

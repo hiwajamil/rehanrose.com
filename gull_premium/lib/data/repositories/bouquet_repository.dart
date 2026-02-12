@@ -22,6 +22,9 @@ class BouquetRepository {
   static const String _collection = 'bouquets';
   static const String _countersCollection = 'counters';
   static const int _limit = 50;
+  /// Page size for paginated product listing (infinite scroll).
+  static const int pageSize = 10;
+  static const int _analyticsLimit = 500;
   static const Duration _queryTimeout = Duration(seconds: 15);
 
   CollectionReference<Map<String, dynamic>> get _bouquets =>
@@ -37,6 +40,13 @@ class BouquetRepository {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Fetches all bouquets for admin analytics (summary totals, top by viewCount/orderCount).
+  /// Uses a higher limit than [getBouquets]. Does not filter by occasion.
+  Future<List<FlowerModel>> getAllBouquetsForAnalytics() async {
+    final snap = await _bouquets.limit(_analyticsLimit).get().timeout(_queryTimeout);
+    return _parseBouquetDocs(snap.docs);
   }
 
   /// One-time fetch of bouquets for the public landing page. Prefer this over
@@ -68,6 +78,45 @@ class BouquetRepository {
       return bMs.compareTo(aMs);
     });
     return list;
+  }
+
+  /// Paginated fetch for infinite scroll. Returns [items] and [lastDoc] for the next page.
+  /// Use [lastDoc] in [startAfter] for the next call. [occasion] same as [getBouquets].
+  /// Uses orderBy(createdAt, descending) for cursor stability; docs without createdAt may be excluded.
+  Future<({List<FlowerModel> items, QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc})> getBouquetsPage({
+    String? occasion,
+    int limit = pageSize,
+    QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
+  }) async {
+    Query<Map<String, dynamic>> query = _bouquets
+        .orderBy('createdAt', descending: true)
+        .limit(limit);
+
+    if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
+      if (isValidEmotionCategoryId(occasion)) {
+        query = _bouquets
+            .where('emotionCategoryId', isEqualTo: occasion)
+            .orderBy('createdAt', descending: true)
+            .limit(limit);
+      } else {
+        final storedValues = storedValuesForFilter(occasion);
+        if (storedValues.isNotEmpty) {
+          query = _bouquets
+              .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
+              .orderBy('createdAt', descending: true)
+              .limit(limit);
+        }
+      }
+    }
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    final snap = await query.get().timeout(_queryTimeout);
+    final list = _parseBouquetDocs(snap.docs);
+    final lastDoc = snap.docs.isEmpty ? null : snap.docs.last;
+    return (items: list, lastDoc: lastDoc);
   }
 
   /// Stream of bouquets, optionally filtered by emotion value.
@@ -213,6 +262,24 @@ class BouquetRepository {
   /// Deletes a bouquet.
   Future<void> delete(String bouquetId) async {
     await _bouquets.doc(bouquetId).delete();
+  }
+
+  /// Increments viewCount by 1 in Firestore. Fire-and-forget (silent, no loading).
+  /// Call when a user opens the product detail page.
+  void incrementViewCount(String bouquetId) {
+    _bouquets
+        .doc(bouquetId)
+        .update({'viewCount': FieldValue.increment(1)})
+        .catchError((_) {});
+  }
+
+  /// Increments orderCount by 1 in Firestore. Fire-and-forget (silent, no loading).
+  /// Call when a user clicks "Order via WhatsApp".
+  void incrementOrderCount(String bouquetId) {
+    _bouquets
+        .doc(bouquetId)
+        .update({'orderCount': FieldValue.increment(1)})
+        .catchError((_) {});
   }
 
   /// Result of uploading one image (full-size and optional thumbnail).

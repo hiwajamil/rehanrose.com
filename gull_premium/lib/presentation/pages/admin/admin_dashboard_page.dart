@@ -211,6 +211,12 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             ),
             const Spacer(),
             PrimaryButton(
+              label: 'Analytics',
+              onPressed: () => context.go('/admin/analytics'),
+              variant: PrimaryButtonVariant.outline,
+            ),
+            const SizedBox(width: 12),
+            PrimaryButton(
               label: 'Manage Add-ons',
               onPressed: () => context.go('/admin/add-ons'),
               variant: PrimaryButtonVariant.outline,

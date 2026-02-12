@@ -24,6 +24,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navAbout => 'About';
 
   @override
+  String get navOffers => 'Offers';
+
+  @override
+  String get navFlorists => 'Florists';
+
+  @override
+  String get navTrackOrder => 'Track Order';
+
+  @override
+  String get navHelp => 'Help';
+
+  @override
+  String get helpDeliveryAreas => 'Delivery Areas';
+
+  @override
+  String get helpContactUs => 'Contact Us';
+
+  @override
+  String get helpFaq => 'FAQ';
+
+  @override
+  String get occasionsShopByRecipient => 'Shop by Recipient';
+
+  @override
+  String get occasionsForMom => 'For Mom';
+
+  @override
+  String get occasionsForHer => 'For Her';
+
+  @override
+  String get occasionsForHim => 'For Him';
+
+  @override
+  String get navOccasionBirthday => 'Birthday';
+
+  @override
+  String get trackOrderTitle => 'Track Your Order';
+
+  @override
+  String get trackOrderHint => 'Enter your Order ID to see status.';
+
+  @override
+  String get orderIdLabel => 'Order ID';
+
+  @override
+  String get trackOrderButton => 'Check Status';
+
+  @override
+  String get orderNotFound => 'Order not found. Please check the ID.';
+
+  @override
+  String get orderStatusReceived => 'Received';
+
+  @override
+  String get orderStatusPreparing => 'Preparing';
+
+  @override
+  String get orderStatusOnTheWay => 'On the Way';
+
+  @override
+  String get orderStatusDelivered => 'Delivered';
+
+  @override
   String get ctaBecomeVendor => 'Become a Vendor';
 
   @override
@@ -96,6 +159,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noBouquetsForFeeling => 'No bouquets for this feeling yet.';
+
+  @override
+  String get reachedEndOfList => 'You\'ve reached the end.';
+
+  @override
+  String get noOffersYet => 'No offers at the moment.';
+
+  @override
+  String get specialOffersTitle => 'Special Offers';
+
+  @override
+  String get noOffersBrowseAll =>
+      'No special offers right now. Browse our full collection below.';
+
+  @override
+  String get browseAllBouquets => 'Browse all bouquets';
 
   @override
   String get carefullyCurated => 'Carefully curated. Thoughtfully delivered.';
@@ -197,6 +276,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderViaWhatsApp => 'Order via WhatsApp';
 
   @override
+  String get payWithFIB => 'Pay with FIB';
+
+  @override
+  String get currencyIqd => 'IQD';
+
+  @override
   String get vendorDefaultName => 'Vendor';
 
   @override
@@ -277,4 +362,148 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vendorNoNewAdminNotices => 'No new admin notices.';
+
+  @override
+  String get footerTagline => 'Delivering emotions, one flower at a time.';
+
+  @override
+  String get footerHelpCenter => 'Help Center';
+
+  @override
+  String get footerFlowerCareGuide => 'Flower Care Guide';
+
+  @override
+  String get footerFaqs => 'FAQs';
+
+  @override
+  String get footerCompanyTitle => 'Rehan Rose';
+
+  @override
+  String get footerAboutUs => 'About Us';
+
+  @override
+  String get aboutStoryHeading => 'Why we started Rehan Rose';
+
+  @override
+  String get vendorSignupHeadline => 'Become a Rehan Rose florist';
+
+  @override
+  String get footerBecomeFlorist => 'Become a Florist';
+
+  @override
+  String get footerPrivacyTerms => 'Privacy Policy & Terms';
+
+  @override
+  String get footerContactUs => 'Contact Us';
+
+  @override
+  String get footerChatOnWhatsApp => 'Chat on WhatsApp';
+
+  @override
+  String get footerAddress => 'Sulaymaniyah, Iraq';
+
+  @override
+  String footerCopyright(int year) {
+    return '© $year Rehan Rose. All rights reserved.';
+  }
+
+  @override
+  String get footerDeliveryZones => 'Delivery Locations';
+
+  @override
+  String get footerDeliveryZonesIntro => 'We deliver to the following areas:';
+
+  @override
+  String get flowerCareGuideIntro =>
+      'Simple tips to keep your flowers fresh longer:';
+
+  @override
+  String get flowerCareTipWater => 'Change water daily';
+
+  @override
+  String get flowerCareTipSun => 'Keep away from direct sun';
+
+  @override
+  String get flowerCareTipStems => 'Trim stems';
+
+  @override
+  String get faqPaymentQuestion => 'What payment methods do you accept?';
+
+  @override
+  String get faqPaymentAnswer =>
+      'We accept FastPay, ZainCash, FIB, and Visa. You can also pay via WhatsApp for your convenience.';
+
+  @override
+  String get faqDeliveryQuestion => 'How long does delivery take?';
+
+  @override
+  String get faqDeliveryAnswer =>
+      'We offer same-day delivery in supported areas. Orders placed before noon are typically delivered the same day; otherwise the next day.';
+
+  @override
+  String get faqReturnsQuestion => 'What is your return policy?';
+
+  @override
+  String get faqReturnsAnswer =>
+      'Due to the perishable nature of flowers, we cannot accept returns. If your order arrives damaged or incorrect, please contact us within 24 hours with photos and we will make it right.';
+
+  @override
+  String get legalPrivacyPolicyTitle => 'Privacy Policy';
+
+  @override
+  String get legalTermsOfServiceTitle => 'Terms of Service';
+
+  @override
+  String get legalPrivacyIntro =>
+      'Rehan Rose (\"we\") respects your privacy. This policy describes how we collect, use, and protect your information when you use our platform.';
+
+  @override
+  String get legalPrivacyData =>
+      'We collect information you provide when ordering (name, delivery address, phone, email), account details if you sign in or register as a vendor, and usage data such as device and browsing information to improve our service.';
+
+  @override
+  String get legalPrivacyUse =>
+      'We use this information to process orders, communicate with you, improve our website and services, and comply with legal obligations.';
+
+  @override
+  String get legalPrivacySharing =>
+      'We do not sell your personal data. We may share information with delivery partners and service providers necessary to fulfil orders and operate the platform, under strict confidentiality.';
+
+  @override
+  String get legalPrivacyContact =>
+      'For privacy-related questions, contact us at the email or address provided in the footer.';
+
+  @override
+  String get legalTermsIntro =>
+      'By using Rehan Rose, you agree to these Terms of Service. Please read them carefully.';
+
+  @override
+  String get legalTermsUse =>
+      'You may use our platform for lawful purposes only. You must provide accurate information when placing orders and not misuse the service (e.g. fraud, harassment, or violating applicable laws).';
+
+  @override
+  String get legalTermsOrders =>
+      'Orders are subject to availability and acceptance. Pricing and delivery terms are as shown at checkout. We and our florist partners aim to deliver fresh, quality bouquets; specific guarantees are as stated on the product and checkout pages.';
+
+  @override
+  String get legalTermsContact =>
+      'For questions about these terms, contact us using the details in the footer. We may update these terms from time to time; continued use after changes constitutes acceptance.';
+
+  @override
+  String get aboutStoryParagraph1 =>
+      'Rehan Rose started from a simple belief: every bouquet should carry the care of a real florist and the freshness of flowers that were chosen and arranged by hand. We wanted to bring that experience to you—without the middleman, without the long supply chains.';
+
+  @override
+  String get aboutStoryParagraph2 =>
+      'That\'s why we work only with local florists. Each bouquet on Rehan Rose is made by a florist in your region—people who know the seasons, the flowers, and the craft. When you order from us, you\'re supporting small businesses and getting flowers that were prepared the same day, not shipped from far away.';
+
+  @override
+  String get aboutStoryParagraph3 =>
+      'Fresh flowers, local talent, and a platform that connects you to both—that\'s the story behind Rehan Rose. Thank you for being part of it.';
+
+  @override
+  String get noInternetConnection => 'No Internet Connection';
+
+  @override
+  String get backOnline => 'Back Online';
 }

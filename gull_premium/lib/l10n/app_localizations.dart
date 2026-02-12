@@ -130,6 +130,132 @@ abstract class AppLocalizations {
   /// **'About'**
   String get navAbout;
 
+  /// No description provided for @navOffers.
+  ///
+  /// In en, this message translates to:
+  /// **'Offers'**
+  String get navOffers;
+
+  /// No description provided for @navFlorists.
+  ///
+  /// In en, this message translates to:
+  /// **'Florists'**
+  String get navFlorists;
+
+  /// No description provided for @navTrackOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Track Order'**
+  String get navTrackOrder;
+
+  /// No description provided for @navHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get navHelp;
+
+  /// No description provided for @helpDeliveryAreas.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Areas'**
+  String get helpDeliveryAreas;
+
+  /// No description provided for @helpContactUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Us'**
+  String get helpContactUs;
+
+  /// No description provided for @helpFaq.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQ'**
+  String get helpFaq;
+
+  /// No description provided for @occasionsShopByRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop by Recipient'**
+  String get occasionsShopByRecipient;
+
+  /// No description provided for @occasionsForMom.
+  ///
+  /// In en, this message translates to:
+  /// **'For Mom'**
+  String get occasionsForMom;
+
+  /// No description provided for @occasionsForHer.
+  ///
+  /// In en, this message translates to:
+  /// **'For Her'**
+  String get occasionsForHer;
+
+  /// No description provided for @occasionsForHim.
+  ///
+  /// In en, this message translates to:
+  /// **'For Him'**
+  String get occasionsForHim;
+
+  /// No description provided for @navOccasionBirthday.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday'**
+  String get navOccasionBirthday;
+
+  /// No description provided for @trackOrderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track Your Order'**
+  String get trackOrderTitle;
+
+  /// No description provided for @trackOrderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your Order ID to see status.'**
+  String get trackOrderHint;
+
+  /// No description provided for @orderIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Order ID'**
+  String get orderIdLabel;
+
+  /// No description provided for @trackOrderButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Status'**
+  String get trackOrderButton;
+
+  /// No description provided for @orderNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Order not found. Please check the ID.'**
+  String get orderNotFound;
+
+  /// No description provided for @orderStatusReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get orderStatusReceived;
+
+  /// No description provided for @orderStatusPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get orderStatusPreparing;
+
+  /// No description provided for @orderStatusOnTheWay.
+  ///
+  /// In en, this message translates to:
+  /// **'On the Way'**
+  String get orderStatusOnTheWay;
+
+  /// No description provided for @orderStatusDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get orderStatusDelivered;
+
   /// No description provided for @ctaBecomeVendor.
   ///
   /// In en, this message translates to:
@@ -273,6 +399,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No bouquets for this feeling yet.'**
   String get noBouquetsForFeeling;
+
+  /// No description provided for @reachedEndOfList.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the end.'**
+  String get reachedEndOfList;
+
+  /// No description provided for @noOffersYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No offers at the moment.'**
+  String get noOffersYet;
+
+  /// No description provided for @specialOffersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Special Offers'**
+  String get specialOffersTitle;
+
+  /// No description provided for @noOffersBrowseAll.
+  ///
+  /// In en, this message translates to:
+  /// **'No special offers right now. Browse our full collection below.'**
+  String get noOffersBrowseAll;
+
+  /// No description provided for @browseAllBouquets.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse all bouquets'**
+  String get browseAllBouquets;
 
   /// No description provided for @carefullyCurated.
   ///
@@ -460,6 +616,18 @@ abstract class AppLocalizations {
   /// **'Order via WhatsApp'**
   String get orderViaWhatsApp;
 
+  /// No description provided for @payWithFIB.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with FIB'**
+  String get payWithFIB;
+
+  /// No description provided for @currencyIqd.
+  ///
+  /// In en, this message translates to:
+  /// **'IQD'**
+  String get currencyIqd;
+
   /// No description provided for @vendorDefaultName.
   ///
   /// In en, this message translates to:
@@ -621,6 +789,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No new admin notices.'**
   String get vendorNoNewAdminNotices;
+
+  /// No description provided for @footerTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivering emotions, one flower at a time.'**
+  String get footerTagline;
+
+  /// No description provided for @footerHelpCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Help Center'**
+  String get footerHelpCenter;
+
+  /// No description provided for @footerFlowerCareGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Flower Care Guide'**
+  String get footerFlowerCareGuide;
+
+  /// No description provided for @footerFaqs.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQs'**
+  String get footerFaqs;
+
+  /// No description provided for @footerCompanyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehan Rose'**
+  String get footerCompanyTitle;
+
+  /// No description provided for @footerAboutUs.
+  ///
+  /// In en, this message translates to:
+  /// **'About Us'**
+  String get footerAboutUs;
+
+  /// No description provided for @aboutStoryHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Why we started Rehan Rose'**
+  String get aboutStoryHeading;
+
+  /// No description provided for @vendorSignupHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Become a Rehan Rose florist'**
+  String get vendorSignupHeadline;
+
+  /// No description provided for @footerBecomeFlorist.
+  ///
+  /// In en, this message translates to:
+  /// **'Become a Florist'**
+  String get footerBecomeFlorist;
+
+  /// No description provided for @footerPrivacyTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy & Terms'**
+  String get footerPrivacyTerms;
+
+  /// No description provided for @footerContactUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Us'**
+  String get footerContactUs;
+
+  /// No description provided for @footerChatOnWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat on WhatsApp'**
+  String get footerChatOnWhatsApp;
+
+  /// No description provided for @footerAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Sulaymaniyah, Iraq'**
+  String get footerAddress;
+
+  /// No description provided for @footerCopyright.
+  ///
+  /// In en, this message translates to:
+  /// **'© {year} Rehan Rose. All rights reserved.'**
+  String footerCopyright(int year);
+
+  /// No description provided for @footerDeliveryZones.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Locations'**
+  String get footerDeliveryZones;
+
+  /// No description provided for @footerDeliveryZonesIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'We deliver to the following areas:'**
+  String get footerDeliveryZonesIntro;
+
+  /// No description provided for @flowerCareGuideIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple tips to keep your flowers fresh longer:'**
+  String get flowerCareGuideIntro;
+
+  /// No description provided for @flowerCareTipWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Change water daily'**
+  String get flowerCareTipWater;
+
+  /// No description provided for @flowerCareTipSun.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep away from direct sun'**
+  String get flowerCareTipSun;
+
+  /// No description provided for @flowerCareTipStems.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim stems'**
+  String get flowerCareTipStems;
+
+  /// No description provided for @faqPaymentQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What payment methods do you accept?'**
+  String get faqPaymentQuestion;
+
+  /// No description provided for @faqPaymentAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'We accept FastPay, ZainCash, FIB, and Visa. You can also pay via WhatsApp for your convenience.'**
+  String get faqPaymentAnswer;
+
+  /// No description provided for @faqDeliveryQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'How long does delivery take?'**
+  String get faqDeliveryQuestion;
+
+  /// No description provided for @faqDeliveryAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'We offer same-day delivery in supported areas. Orders placed before noon are typically delivered the same day; otherwise the next day.'**
+  String get faqDeliveryAnswer;
+
+  /// No description provided for @faqReturnsQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What is your return policy?'**
+  String get faqReturnsQuestion;
+
+  /// No description provided for @faqReturnsAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Due to the perishable nature of flowers, we cannot accept returns. If your order arrives damaged or incorrect, please contact us within 24 hours with photos and we will make it right.'**
+  String get faqReturnsAnswer;
+
+  /// No description provided for @legalPrivacyPolicyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get legalPrivacyPolicyTitle;
+
+  /// No description provided for @legalTermsOfServiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get legalTermsOfServiceTitle;
+
+  /// No description provided for @legalPrivacyIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehan Rose (\"we\") respects your privacy. This policy describes how we collect, use, and protect your information when you use our platform.'**
+  String get legalPrivacyIntro;
+
+  /// No description provided for @legalPrivacyData.
+  ///
+  /// In en, this message translates to:
+  /// **'We collect information you provide when ordering (name, delivery address, phone, email), account details if you sign in or register as a vendor, and usage data such as device and browsing information to improve our service.'**
+  String get legalPrivacyData;
+
+  /// No description provided for @legalPrivacyUse.
+  ///
+  /// In en, this message translates to:
+  /// **'We use this information to process orders, communicate with you, improve our website and services, and comply with legal obligations.'**
+  String get legalPrivacyUse;
+
+  /// No description provided for @legalPrivacySharing.
+  ///
+  /// In en, this message translates to:
+  /// **'We do not sell your personal data. We may share information with delivery partners and service providers necessary to fulfil orders and operate the platform, under strict confidentiality.'**
+  String get legalPrivacySharing;
+
+  /// No description provided for @legalPrivacyContact.
+  ///
+  /// In en, this message translates to:
+  /// **'For privacy-related questions, contact us at the email or address provided in the footer.'**
+  String get legalPrivacyContact;
+
+  /// No description provided for @legalTermsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'By using Rehan Rose, you agree to these Terms of Service. Please read them carefully.'**
+  String get legalTermsIntro;
+
+  /// No description provided for @legalTermsUse.
+  ///
+  /// In en, this message translates to:
+  /// **'You may use our platform for lawful purposes only. You must provide accurate information when placing orders and not misuse the service (e.g. fraud, harassment, or violating applicable laws).'**
+  String get legalTermsUse;
+
+  /// No description provided for @legalTermsOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders are subject to availability and acceptance. Pricing and delivery terms are as shown at checkout. We and our florist partners aim to deliver fresh, quality bouquets; specific guarantees are as stated on the product and checkout pages.'**
+  String get legalTermsOrders;
+
+  /// No description provided for @legalTermsContact.
+  ///
+  /// In en, this message translates to:
+  /// **'For questions about these terms, contact us using the details in the footer. We may update these terms from time to time; continued use after changes constitutes acceptance.'**
+  String get legalTermsContact;
+
+  /// No description provided for @aboutStoryParagraph1.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehan Rose started from a simple belief: every bouquet should carry the care of a real florist and the freshness of flowers that were chosen and arranged by hand. We wanted to bring that experience to you—without the middleman, without the long supply chains.'**
+  String get aboutStoryParagraph1;
+
+  /// No description provided for @aboutStoryParagraph2.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s why we work only with local florists. Each bouquet on Rehan Rose is made by a florist in your region—people who know the seasons, the flowers, and the craft. When you order from us, you\'re supporting small businesses and getting flowers that were prepared the same day, not shipped from far away.'**
+  String get aboutStoryParagraph2;
+
+  /// No description provided for @aboutStoryParagraph3.
+  ///
+  /// In en, this message translates to:
+  /// **'Fresh flowers, local talent, and a platform that connects you to both—that\'s the story behind Rehan Rose. Thank you for being part of it.'**
+  String get aboutStoryParagraph3;
+
+  /// No description provided for @noInternetConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'No Internet Connection'**
+  String get noInternetConnection;
+
+  /// No description provided for @backOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Back Online'**
+  String get backOnline;
 }
 
 class _AppLocalizationsDelegate

@@ -11,6 +11,7 @@ import '../../../core/utils/price_format_utils.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/add_on_model.dart';
 import '../../../data/repositories/repositories.dart';
+import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
@@ -297,16 +298,15 @@ class _AddOnListTile extends StatelessWidget {
                     color: AppColors.background,
                     child: const Icon(Icons.image_not_supported, color: AppColors.inkMuted),
                   )
-                : Image.network(
-                    addOn.imageUrl,
+                : SizedBox(
                     width: 72,
                     height: 72,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    child: AppCachedImage(
+                      imageUrl: addOn.imageUrl,
                       width: 72,
                       height: 72,
-                      color: AppColors.background,
-                      child: const Icon(Icons.broken_image, color: AppColors.inkMuted),
+                      fit: BoxFit.cover,
+                      errorIconSize: 28,
                     ),
                   ),
           ),
@@ -530,7 +530,17 @@ class _AddEditAddOnDialogState extends State<_AddEditAddOnDialog> {
                   child: _imageBytes != null
                       ? Image.memory(_imageBytes!, height: 120, width: double.infinity, fit: BoxFit.cover)
                       : existing != null && existing.imageUrl.isNotEmpty
-                          ? Image.network(existing.imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover)
+                          ? SizedBox(
+                              height: 120,
+                              width: double.infinity,
+                              child: AppCachedImage(
+                                imageUrl: existing.imageUrl,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorIconSize: 40,
+                              ),
+                            )
                           : const SizedBox.shrink(),
                 ),
               ],

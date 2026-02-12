@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:seo/seo.dart';
 
 import '../../../controllers/controllers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
+import '../../../core/utils/seo_meta_helper.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../data/models/add_on_model.dart';
+import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/make_it_perfect_section.dart';
 import '../../widgets/common/order_via_whatsapp_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
@@ -22,6 +26,7 @@ class ProductDetailPage extends ConsumerStatefulWidget {
 
 class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   final Set<String> _selectedAddOnIds = {};
+  bool _hasLoggedViewItem = false;
 
   void _toggleAddOn(AddOnModel addOn) {
     setState(() {
@@ -37,6 +42,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   Widget build(BuildContext context) {
     final bouquetAsync = ref.watch(bouquetDetailProvider(widget.flowerId));
     final addOnsAsync = ref.watch(addOnsProvider(null));
+    final isOnline = ref.watch(connectivityStatusProvider).value ?? true;
 
     return AppScaffold(
       child: bouquetAsync.when(
@@ -64,6 +70,19 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           ),
         ),
         data: (bouquet) {
+          final l10n = AppLocalizations.of(context)!;
+          if (bouquet != null && !_hasLoggedViewItem) {
+            _hasLoggedViewItem = true;
+            final itemId = bouquet.id;
+            final itemName = bouquet.name;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(analyticsServiceProvider).logViewItem(
+                    itemId: itemId,
+                    itemName: itemName,
+                  );
+              ref.read(bouquetRepositoryProvider).incrementViewCount(itemId);
+            });
+          }
           if (bouquet == null) {
             return SectionContainer(
               padding: const EdgeInsets.symmetric(vertical: 72),
@@ -85,10 +104,15 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               ),
             );
           }
+          updatePageMeta(
+            title: '${bouquet.name} - $kAppName',
+            description: bouquet.description,
+            keywords: 'flowers, bouquet, ${bouquet.name}, Rehan Rose',
+          );
           final imageUrl = bouquet.imageUrls.isNotEmpty
               ? bouquet.imageUrls.first
               : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
-          final price = iqdPriceString(bouquet.priceIqd);
+          final price = formatPriceWithCurrency(bouquet.priceIqd, l10n.currencyIqd);
           final bouquetCode = bouquet.bouquetCode.isNotEmpty
               ? bouquet.bouquetCode
               : null;
@@ -108,6 +132,11 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           }
 
           void onPlaceOrder() {
+            ref.read(analyticsServiceProvider).logClickWhatsApp(
+                  itemId: bouquet.id,
+                  itemName: bouquet.name,
+                );
+            ref.read(bouquetRepositoryProvider).incrementOrderCount(bouquet.id);
             context.push('/flower/${widget.flowerId}/order');
           }
 
@@ -120,7 +149,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (isNarrow) ...[
-                      _buildImage(imageUrl),
+                      _buildImage(imageUrl, bouquet.name),
                       const SizedBox(height: 24),
                       _buildInfo(context, bouquet.name, bouquet.description,
                           price, bouquetCode),
@@ -131,6 +160,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                         width: double.infinity,
                         child: OrderViaWhatsAppButton(
                           onPressed: onPlaceOrder,
+                          enabled: isOnline,
                         ),
                       ),
                     ] else
@@ -139,7 +169,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                         children: [
                           Expanded(
                             flex: 5,
-                            child: _buildImage(imageUrl),
+                            child: _buildImage(imageUrl, bouquet.name),
                           ),
                           const SizedBox(width: 48),
                           Expanded(
@@ -156,6 +186,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                                   width: double.infinity,
                                   child: OrderViaWhatsAppButton(
                                     onPressed: onPlaceOrder,
+                                    enabled: isOnline,
                                   ),
                                 ),
                               ],
@@ -173,19 +204,19 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     );
   }
 
-  Widget _buildImage(String imageUrl) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: AspectRatio(
-        aspectRatio: 4 / 5,
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          cacheWidth: 800,
-          cacheHeight: 1000,
-          errorBuilder: (context, error, stackTrace) => Container(
-            color: AppColors.border,
-            child: const Center(child: Icon(Icons.local_florist, size: 48)),
+  Widget _buildImage(String imageUrl, String alt) {
+    return Seo.image(
+      alt: alt,
+      src: imageUrl,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 4 / 5,
+          child: AppCachedImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            memCacheWidth: 800,
+            memCacheHeight: 1000,
           ),
         ),
       ),
@@ -202,34 +233,47 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          name,
-          style: Theme.of(context).textTheme.headlineSmall,
+        Seo.text(
+          text: name,
+          style: TextTagStyle.h2,
+          child: Text(
+            name,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
         ),
         if (bouquetCode != null && bouquetCode.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text(
-            bouquetCode,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.inkMuted,
-                  fontWeight: FontWeight.w600,
-                ),
+          Seo.text(
+            text: bouquetCode,
+            child: Text(
+              bouquetCode,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.inkMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
           ),
         ],
         const SizedBox(height: 12),
-        Text(
-          description,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.inkMuted,
-              ),
+        Seo.text(
+          text: description,
+          child: Text(
+            description,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppColors.inkMuted,
+                ),
+          ),
         ),
         const SizedBox(height: 20),
-        Text(
-          price,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.ink,
-                fontWeight: FontWeight.w700,
-              ),
+        Seo.text(
+          text: price,
+          child: Text(
+            price,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
         ),
       ],
     );

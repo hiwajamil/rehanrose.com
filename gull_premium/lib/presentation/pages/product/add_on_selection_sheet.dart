@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/add_on_model.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../widgets/common/app_cached_image.dart';
 
 /// Bottom sheet showing add-ons of one type in a grid; each card has image, price, ADD button.
 class AddOnSelectionSheet extends StatelessWidget {
@@ -113,15 +115,11 @@ class _AddOnGridTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: addOn.imageUrl.isEmpty
                       ? Icon(Icons.card_giftcard, color: AppColors.inkMuted, size: 48)
-                      : Image.network(
-                          addOn.imageUrl,
+                      : AppCachedImage(
+                          imageUrl: addOn.imageUrl,
                           fit: BoxFit.cover,
-                          width: double.infinity,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.card_giftcard,
-                            color: AppColors.inkMuted,
-                            size: 48,
-                          ),
+                          errorIcon: Icons.card_giftcard,
+                          errorIconSize: 48,
                         ),
                 ),
               ),
@@ -136,7 +134,7 @@ class _AddOnGridTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                'IQD ${formatPriceIqd(addOn.priceIqd)}',
+                '${AppLocalizations.of(context)!.currencyIqd} ${formatPriceIqd(addOn.priceIqd)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.inkMuted,
                     ),

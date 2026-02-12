@@ -24,6 +24,69 @@ class AppLocalizationsAr extends AppLocalizations {
   String get navAbout => 'عن';
 
   @override
+  String get navOffers => 'العروض';
+
+  @override
+  String get navFlorists => 'بائعو الورود';
+
+  @override
+  String get navTrackOrder => 'تتبع الطلب';
+
+  @override
+  String get navHelp => 'المساعدة';
+
+  @override
+  String get helpDeliveryAreas => 'مناطق التوصيل';
+
+  @override
+  String get helpContactUs => 'اتصل بنا';
+
+  @override
+  String get helpFaq => 'الأسئلة الشائعة';
+
+  @override
+  String get occasionsShopByRecipient => 'تسوق حسب المستلم';
+
+  @override
+  String get occasionsForMom => 'للأم';
+
+  @override
+  String get occasionsForHer => 'لها';
+
+  @override
+  String get occasionsForHim => 'له';
+
+  @override
+  String get navOccasionBirthday => 'عيد الميلاد';
+
+  @override
+  String get trackOrderTitle => 'تتبع طلبك';
+
+  @override
+  String get trackOrderHint => 'أدخل معرف الطلب لمعرفة الحالة.';
+
+  @override
+  String get orderIdLabel => 'معرف الطلب';
+
+  @override
+  String get trackOrderButton => 'تحقق من الحالة';
+
+  @override
+  String get orderNotFound => 'الطلب غير موجود. يرجى التحقق من المعرف.';
+
+  @override
+  String get orderStatusReceived => 'مستلم';
+
+  @override
+  String get orderStatusPreparing => 'قيد التحضير';
+
+  @override
+  String get orderStatusOnTheWay => 'في الطريق';
+
+  @override
+  String get orderStatusDelivered => 'تم التوصيل';
+
+  @override
   String get ctaBecomeVendor => 'كن بائعاً';
 
   @override
@@ -94,6 +157,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noBouquetsForFeeling => 'لا توجد باقات لهذا الشعور بعد.';
+
+  @override
+  String get reachedEndOfList => 'وصلت إلى النهاية.';
+
+  @override
+  String get noOffersYet => 'لا توجد عروض حالياً.';
+
+  @override
+  String get specialOffersTitle => 'عروض خاصة';
+
+  @override
+  String get noOffersBrowseAll =>
+      'لا توجد عروض خاصة حالياً. تصفح مجموعتنا الكاملة أدناه.';
+
+  @override
+  String get browseAllBouquets => 'تصفح كل الباقات';
 
   @override
   String get carefullyCurated => 'مختارة بعناية. مُوصَلة باهتمام.';
@@ -193,6 +272,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orderViaWhatsApp => 'طلب عبر واتساب';
 
   @override
+  String get payWithFIB => 'الدفع بـ FIB';
+
+  @override
+  String get currencyIqd => 'دینار';
+
+  @override
   String get vendorDefaultName => 'بائع';
 
   @override
@@ -272,4 +357,148 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vendorNoNewAdminNotices => 'لا توجد إشعارات جديدة من الإدارة.';
+
+  @override
+  String get footerTagline => 'نوصل المشاعر، وردة بواحدة.';
+
+  @override
+  String get footerHelpCenter => 'مركز المساعدة';
+
+  @override
+  String get footerFlowerCareGuide => 'دليل العناية بالورود';
+
+  @override
+  String get footerFaqs => 'الأسئلة الشائعة';
+
+  @override
+  String get footerCompanyTitle => 'Rehan Rose';
+
+  @override
+  String get footerAboutUs => 'عنّا';
+
+  @override
+  String get aboutStoryHeading => 'لماذا أنشأنا Rehan Rose';
+
+  @override
+  String get vendorSignupHeadline => 'انضم كبائع ورد في Rehan Rose';
+
+  @override
+  String get footerBecomeFlorist => 'كن بائع ورد';
+
+  @override
+  String get footerPrivacyTerms => 'الخصوصية والشروط';
+
+  @override
+  String get footerContactUs => 'اتصل بنا';
+
+  @override
+  String get footerChatOnWhatsApp => 'تواصل عبر واتساب';
+
+  @override
+  String get footerAddress => 'السليمانية، العراق';
+
+  @override
+  String footerCopyright(int year) {
+    return '© $year Rehan Rose. جميع الحقوق محفوظة.';
+  }
+
+  @override
+  String get footerDeliveryZones => 'مناطق التوصيل';
+
+  @override
+  String get footerDeliveryZonesIntro => 'نوصّل إلى المناطق التالية:';
+
+  @override
+  String get flowerCareGuideIntro =>
+      'نصائح بسيطة لإبقاء ورودك طازجة لفترة أطول:';
+
+  @override
+  String get flowerCareTipWater => 'غيّر الماء يومياً';
+
+  @override
+  String get flowerCareTipSun => 'ابتعد عن أشعة الشمس المباشرة';
+
+  @override
+  String get flowerCareTipStems => 'قص السيقان';
+
+  @override
+  String get faqPaymentQuestion => 'ما طرق الدفع المتاحة؟';
+
+  @override
+  String get faqPaymentAnswer =>
+      'نقبل فاست باي، زين كاش، FIB، وفيزا. يمكنك أيضاً الدفع عبر واتساب.';
+
+  @override
+  String get faqDeliveryQuestion => 'كم تستغرق التوصيلة؟';
+
+  @override
+  String get faqDeliveryAnswer =>
+      'نقدم توصيلاً في نفس اليوم ضمن المناطق المدعومة. الطلبات قبل الظهر تُسلّم عادةً في نفس اليوم، وإلا في اليوم التالي.';
+
+  @override
+  String get faqReturnsQuestion => 'ما سياسة الإرجاع؟';
+
+  @override
+  String get faqReturnsAnswer =>
+      'بسبب طبيعة الورود القابلة للتلف، لا نستطيع قبول الإرجاع. إن وصل الطلب تالفاً أو خاطئاً، تواصل معنا خلال 24 ساعة مع صور وسنصلح الأمر.';
+
+  @override
+  String get legalPrivacyPolicyTitle => 'سياسة الخصوصية';
+
+  @override
+  String get legalTermsOfServiceTitle => 'شروط الخدمة';
+
+  @override
+  String get legalPrivacyIntro =>
+      'تحترم Rehan Rose (\"نحن\") خصوصيتك. تصف هذه السياسة كيفية جمعنا لمعلوماتك واستخدامها وحمايتها عند استخدام منصتنا.';
+
+  @override
+  String get legalPrivacyData =>
+      'نجمع المعلومات التي تقدمها عند الطلب (الاسم، عنوان التوصيل، الهاتف، البريد الإلكتروني)، وتفاصيل الحساب إن سجّلت الدخول أو كبائع، وبيانات الاستخدام مثل الجهاز وتصفح الموقع لتحسين خدمتنا.';
+
+  @override
+  String get legalPrivacyUse =>
+      'نستخدم هذه المعلومات لمعالجة الطلبات، والتواصل معك، وتحسين موقعنا وخدماتنا، والالتزام بالالتزامات القانونية.';
+
+  @override
+  String get legalPrivacySharing =>
+      'لا نبيع بياناتك الشخصية. قد نشارك معلومات مع شركاء التوصيل ومقدمي الخدمات اللازمين لتنفيذ الطلبات وتشغيل المنصة، بسرية تامة.';
+
+  @override
+  String get legalPrivacyContact =>
+      'لأسئلة الخصوصية، تواصل معنا على البريد أو العنوان المذكور في التذييل.';
+
+  @override
+  String get legalTermsIntro =>
+      'باستخدام Rehan Rose، فإنك توافق على شروط الخدمة هذه. يرجى قراءتها بعناية.';
+
+  @override
+  String get legalTermsUse =>
+      'يمكنك استخدام منصتنا لأغراض قانونية فقط. يجب تقديم معلومات دقيقة عند الطلب وعدم إساءة استخدام الخدمة (مثل الاحتيال أو المضايقة أو مخالفة القوانين المعمول بها).';
+
+  @override
+  String get legalTermsOrders =>
+      'الطلبات خاضعة للتوفر والقبول. الأسعار وشروط التوصيل كما تظهر عند الدفع. نحن وشركاؤنا بائعو الورود نهدف لتوصيل باقات طازجة وجودة؛ الضمانات المحددة كما هي مذكورة في صفحات المنتج والدفع.';
+
+  @override
+  String get legalTermsContact =>
+      'لأسئلة حول هذه الشروط، تواصل معنا باستخدام التفاصيل في التذييل. قد نحدّث هذه الشروط من وقت لآخر؛ الاستمرار بالاستخدام بعد التحديثات يُعد موافقة.';
+
+  @override
+  String get aboutStoryParagraph1 =>
+      'انطلق Rehan Rose من إيمان بسيط: أن تحمل كل باقة عناية بائع ورد حقيقي وطراوة ورود اختُيرت ورُتّبت باليد. أردنا أن نوصّل لك تلك التجربة—بدون وسيط، وبدون سلاسل توريد طويلة.';
+
+  @override
+  String get aboutStoryParagraph2 =>
+      'لذلك نعمل فقط مع بائعي ورود محليين. كل باقة على Rehan Rose يصنعها بائع ورد في منطقتك—أشخاص يعرفون الفصول والورود والحرفة. عندما تطلب منا، أنت تدعم المشاريع الصغيرة وتحصل على ورود جُهّزت في نفس اليوم، لا شُحنت من بعيد.';
+
+  @override
+  String get aboutStoryParagraph3 =>
+      'ورود طازجة، موهبة محلية، ومنصة تربطك بهما—هذه قصة Rehan Rose. شكراً لكونك جزءاً منها.';
+
+  @override
+  String get noInternetConnection => 'لا يوجد اتصال بالإنترنت';
+
+  @override
+  String get backOnline => 'عودة الاتصال';
 }

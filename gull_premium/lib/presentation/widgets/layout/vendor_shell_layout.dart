@@ -31,7 +31,14 @@ class VendorShellLayout extends ConsumerWidget {
                 ref: ref,
               ),
             ),
-            Expanded(child: child),
+            Expanded(
+              child: Material(
+                color: AppColors.background,
+                child: ClipRect(
+                  child: child,
+                ),
+              ),
+            ),
           ],
         ),
       );
@@ -47,7 +54,14 @@ class VendorShellLayout extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _VendorSidebar(width: _sidebarWidth.toDouble()),
-                Expanded(child: child),
+                Expanded(
+                  child: Material(
+                    color: AppColors.background,
+                    child: ClipRect(
+                      child: child,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

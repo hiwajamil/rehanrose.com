@@ -5,10 +5,16 @@ import 'package:go_router/go_router.dart';
 import '../services/firebase_init.dart';
 import '../../controllers/controllers.dart';
 import '../../presentation/pages/landing/landing_page.dart';
+import '../../presentation/pages/about/about_page.dart';
+import '../../presentation/pages/designers/designers_list_page.dart';
+import '../../presentation/pages/legal/legal_page.dart';
+import '../../presentation/pages/florists/vendor_profile_page.dart';
 import '../../presentation/pages/admin/admin_dashboard_page.dart';
+import '../../presentation/pages/admin/analytics_overview_page.dart';
 import '../../presentation/pages/admin/manage_add_ons_page.dart';
 import '../../presentation/pages/product/order_customization_page.dart';
 import '../../presentation/pages/product/product_detail_page.dart';
+import '../../presentation/pages/product/product_listing_page.dart';
 import '../../presentation/pages/vendor/vendor_dashboard_page.dart';
 import '../../presentation/pages/vendor/vendor_orders_page.dart';
 import '../../presentation/pages/vendor/vendor_bouquets_page.dart';
@@ -28,6 +34,36 @@ class AppRouter {
       GoRoute(
         path: '/',
         builder: (context, state) => const LandingPage(),
+      ),
+      GoRoute(
+        path: '/offers',
+        builder: (context, state) => const LandingPage(saleOnly: true),
+      ),
+      GoRoute(
+        path: '/about',
+        builder: (context, state) => const AboutPage(),
+      ),
+      GoRoute(
+        path: '/legal',
+        builder: (context, state) => const LegalPage(),
+      ),
+      GoRoute(
+        path: '/florists',
+        builder: (context, state) => const DesignersListPage(),
+      ),
+      GoRoute(
+        path: '/florist/:vendorId',
+        builder: (context, state) {
+          final vendorId = state.pathParameters['vendorId'] ?? '';
+          return VendorProfilePage(vendorId: vendorId);
+        },
+      ),
+      GoRoute(
+        path: '/products',
+        builder: (context, state) {
+          final category = state.uri.queryParameters['category'];
+          return ProductListingPage(filterByCategory: category);
+        },
       ),
       GoRoute(
         path: '/flower/:id',
@@ -99,6 +135,10 @@ class AppRouter {
           GoRoute(
             path: 'add-ons',
             builder: (_, __) => const ManageAddOnsPage(),
+          ),
+          GoRoute(
+            path: 'analytics',
+            builder: (_, __) => const AnalyticsOverviewPage(),
           ),
         ],
       ),

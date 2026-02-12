@@ -5,7 +5,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:seo/seo.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -20,6 +22,7 @@ import 'core/utils/rtl_utils.dart';
 import 'data/repositories/auth_repository.dart';
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
+import 'presentation/widgets/common/connectivity_banner.dart';
 import 'presentation/widgets/common/splash_screen.dart';
 
 const String _localePrefKey = 'app_locale';
@@ -62,6 +65,7 @@ Future<void> main() async {
                   Text(
                     'Something went wrong',
                     style: TextStyle(
+                      fontFamily: 'Rudaw',
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.grey[800],
@@ -72,7 +76,11 @@ Future<void> main() async {
                     showDetails
                         ? details.exceptionAsString()
                         : 'Please refresh the page or try again later.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    style: TextStyle(
+                      fontFamily: 'Rudaw',
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -91,6 +99,7 @@ Future<void> main() async {
       }
       await Firebase.initializeApp(options: options);
       fb.setFirebaseInitialized(true);
+      // Firebase Analytics is available; screen tracking via FirebaseAnalyticsObserver in AppRouter.
     } catch (e, st) {
       debugPrint('Firebase.initializeApp failed: $e');
       debugPrintStack(stackTrace: st);
@@ -135,6 +144,7 @@ Future<void> main() async {
       debugPrintStack(stackTrace: st);
     }
 
+    if (kIsWeb) usePathUrlStrategy();
     runApp(ProviderScope(
       overrides: [
         initialLocaleProvider.overrideWith((ref) => initialLocale),
@@ -167,13 +177,50 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
     });
     final locale = ref.watch(localeProvider);
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final theme = isMobile
+    final baseTheme = isMobile
         ? AppTheme.lightMobile(locale)
         : AppTheme.light(locale);
+    // Ensure Rudaw is used globally for headers and body text (Kurdish/Arabic support).
+    final theme = baseTheme.copyWith(
+      textTheme: baseTheme.textTheme.apply(fontFamily: 'Rudaw'),
+    );
     final direction = textDirectionForLocale(locale);
 
     if (!_splashComplete) {
-      return MaterialApp(
+      return SeoController(
+        enabled: true,
+        tree: WidgetTree(context: context),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: _localizationsDelegates,
+          theme: theme,
+          builder: (context, child) => Directionality(
+            textDirection: direction,
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                child!,
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ConnectivityBanner(),
+                ),
+              ],
+            ),
+          ),
+          home: SplashScreen(
+            onComplete: () => setState(() => _splashComplete = true),
+          ),
+        ),
+      );
+    }
+    return SeoController(
+      enabled: true,
+      tree: WidgetTree(context: context),
+      child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
         locale: locale,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -181,24 +228,21 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
         theme: theme,
         builder: (context, child) => Directionality(
           textDirection: direction,
-          child: child!,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              child!,
+              const Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: ConnectivityBanner(),
+              ),
+            ],
+          ),
         ),
-        home: SplashScreen(
-          onComplete: () => setState(() => _splashComplete = true),
-        ),
-      );
-    }
-    return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      locale: locale,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: _localizationsDelegates,
-      theme: theme,
-      builder: (context, child) => Directionality(
-        textDirection: direction,
-        child: child!,
+        routerConfig: AppRouter.router,
       ),
-      routerConfig: AppRouter.router,
     );
   }
 }

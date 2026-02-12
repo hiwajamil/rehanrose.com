@@ -59,47 +59,53 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final horizontalPadding = isMobile ? 16.0 : 32.0;
     final showOverlay = _showProfileMenu || _showNotificationsMenu;
+    // Fixed height so overlay doesn't expand the header and jam the content area.
+    final headerHeight = isMobile && _searchExpanded ? 116.0 : 56.0;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: AppColors.border)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow,
-                blurRadius: 0,
-                offset: Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 56,
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: Row(
-                  children: [
-                    if (widget.leading != null) widget.leading!,
-                    _buildBrand(context),
-                    if (!isMobile) Expanded(child: _buildCenterSearch(context)),
-                    const Spacer(),
-                    if (isMobile) _buildMobileSearchTrigger(context),
-                    if (!isMobile) _buildStatusToggle(context),
-                    _buildNotificationBell(context),
-                    _buildProfileButton(context, isMobile),
-                  ],
+    return SizedBox(
+      height: headerHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        fit: StackFit.passthrough,
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: AppColors.border)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadow,
+                  blurRadius: 0,
+                  offset: Offset(0, 1),
                 ),
-              ),
-              if (isMobile && _searchExpanded) _buildMobileSearchBar(context),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  height: 56,
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Row(
+                    children: [
+                      if (widget.leading != null) widget.leading!,
+                      _buildBrand(context),
+                      if (!isMobile) Expanded(child: _buildCenterSearch(context)),
+                      const Spacer(),
+                      if (isMobile) _buildMobileSearchTrigger(context),
+                      if (!isMobile) _buildStatusToggle(context),
+                      _buildNotificationBell(context),
+                      _buildProfileButton(context, isMobile),
+                    ],
+                  ),
+                ),
+                if (isMobile && _searchExpanded) _buildMobileSearchBar(context),
+              ],
+            ),
           ),
-        ),
-        if (showOverlay) _buildOverlay(context),
-      ],
+          if (showOverlay) _buildOverlay(context),
+        ],
+      ),
     );
   }
 

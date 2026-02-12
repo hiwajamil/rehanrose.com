@@ -8,6 +8,7 @@ import '../../../core/constants/emotion_categories.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/flower_model.dart';
+import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/section_container.dart';
 
@@ -286,17 +287,15 @@ class _BouquetCard extends StatelessWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl,
+                      child: SizedBox(
                         width: 72,
                         height: 72,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        child: AppCachedImage(
+                          imageUrl: imageUrl,
                           width: 72,
                           height: 72,
-                          color: AppColors.background,
-                          child: Icon(Icons.broken_image_outlined,
-                              color: AppColors.inkMuted, size: 28),
+                          fit: BoxFit.cover,
+                          errorIconSize: 28,
                         ),
                       ),
                     ),
@@ -366,17 +365,15 @@ class _BouquetCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
+                  child: SizedBox(
                     width: 86,
                     height: 86,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    child: AppCachedImage(
+                      imageUrl: imageUrl,
                       width: 86,
                       height: 86,
-                      color: AppColors.background,
-                      child: Icon(Icons.broken_image_outlined,
-                          color: AppColors.inkMuted, size: 32),
+                      fit: BoxFit.cover,
+                      errorIconSize: 32,
                     ),
                   ),
                 ),

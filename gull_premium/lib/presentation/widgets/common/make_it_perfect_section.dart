@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/add_on_model.dart';
 import '../../../l10n/app_localizations.dart';
+import 'app_cached_image.dart';
 
 /// Cross-sell section before Place Order: "Make it Perfect?" with add-ons.
 /// Shows horizontal scrollable list; selection updates via [onSelectionChanged].
@@ -77,10 +78,11 @@ class MakeItPerfectSection extends StatelessWidget {
   }
 
   String _totalLabel(BuildContext context) {
+    final currency = AppLocalizations.of(context)!.currencyIqd;
     if (selectedAddOnIds.isEmpty) {
-      return 'IQD ${formatPriceIqd(bouquetPriceIqd)}';
+      return '$currency ${formatPriceIqd(bouquetPriceIqd)}';
     }
-    return 'IQD ${formatPriceIqd(bouquetPriceIqd)} + ${selectedAddOnIds.length} add-on(s) = IQD ${formatPriceIqd(totalPriceIqd)}';
+    return '$currency ${formatPriceIqd(bouquetPriceIqd)} + ${selectedAddOnIds.length} add-on(s) = $currency ${formatPriceIqd(totalPriceIqd)}';
   }
 }
 
@@ -126,13 +128,10 @@ class _AddOnChip extends StatelessWidget {
                   aspectRatio: 1,
                   child: addOn.imageUrl.isEmpty
                       ? Icon(Icons.card_giftcard, color: AppColors.inkMuted)
-                      : Image.network(
-                          addOn.imageUrl,
+                      : AppCachedImage(
+                          imageUrl: addOn.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.card_giftcard,
-                            color: AppColors.inkMuted,
-                          ),
+                          errorIcon: Icons.card_giftcard,
                         ),
                 ),
               ),
@@ -147,7 +146,7 @@ class _AddOnChip extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                'IQD ${formatPriceIqd(addOn.priceIqd)}',
+                '${AppLocalizations.of(context)!.currencyIqd} ${formatPriceIqd(addOn.priceIqd)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.inkMuted,
                     ),

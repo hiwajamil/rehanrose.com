@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
+
+/// Global font family for Kurdish/Arabic support.
+const String _kFontFamily = 'Rudaw';
 
 class AppTheme {
   static ThemeData? _cachedLightEn;
@@ -39,38 +41,50 @@ class AppTheme {
     }
   }
 
+  static TextStyle _textStyle({
+    required double fontSize,
+    required FontWeight fontWeight,
+    double? letterSpacing,
+    double? height,
+    Color? color,
+  }) {
+    return TextStyle(
+      fontFamily: _kFontFamily,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      letterSpacing: letterSpacing,
+      height: height,
+      color: color,
+    );
+  }
+
   static ThemeData _buildLightTheme(Locale locale) {
-    final isRTL = locale.languageCode == 'ar' || locale.languageCode == 'ku';
-    final headlineFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.inter;
-    final baseTextTheme = isRTL
-        ? GoogleFonts.notoNaskhArabicTextTheme(const TextTheme())
-        : GoogleFonts.interTextTheme(const TextTheme());
-    final textTheme = baseTextTheme.copyWith(
-      headlineLarge: headlineFont(
+    final textTheme = TextTheme(
+      headlineLarge: _textStyle(
         fontSize: 56,
         fontWeight: FontWeight.w700,
         letterSpacing: -1.2,
         color: AppColors.ink,
       ),
-      headlineMedium: headlineFont(
+      headlineMedium: _textStyle(
         fontSize: 36,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.6,
         color: AppColors.ink,
       ),
-      titleLarge: headlineFont(
+      titleLarge: _textStyle(
         fontSize: 22,
         fontWeight: FontWeight.w600,
         letterSpacing: -0.2,
         color: AppColors.ink,
       ),
-      bodyLarge: headlineFont(
+      bodyLarge: _textStyle(
         fontSize: 18,
         fontWeight: FontWeight.w500,
         height: 1.5,
         color: AppColors.inkMuted,
       ),
-      bodyMedium: headlineFont(
+      bodyMedium: _textStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
         height: 1.5,
@@ -89,6 +103,7 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: _kFontFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
       textTheme: textTheme,
@@ -113,7 +128,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(40),
           ),
-          textStyle: headlineFont(
+          textStyle: _textStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,
@@ -124,42 +139,37 @@ class AppTheme {
   }
 
   static ThemeData _buildLightMobileTheme(Locale locale) {
-    final isRTL = locale.languageCode == 'ar' || locale.languageCode == 'ku';
-    final mobileFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.inter;
-    final baseTextTheme = isRTL
-        ? GoogleFonts.notoNaskhArabicTextTheme(const TextTheme())
-        : GoogleFonts.interTextTheme(const TextTheme());
-    final textTheme = baseTextTheme.copyWith(
-      headlineLarge: mobileFont(
+    final textTheme = TextTheme(
+      headlineLarge: _textStyle(
         fontSize: 28,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.6,
         color: AppColors.ink,
       ),
-      headlineMedium: mobileFont(
+      headlineMedium: _textStyle(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.2,
         color: AppColors.ink,
       ),
-      headlineSmall: mobileFont(
+      headlineSmall: _textStyle(
         fontSize: 20,
         fontWeight: FontWeight.w700,
         color: AppColors.ink,
       ),
-      titleLarge: mobileFont(
+      titleLarge: _textStyle(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         letterSpacing: -0.2,
         color: AppColors.ink,
       ),
-      bodyLarge: mobileFont(
+      bodyLarge: _textStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
         height: 1.5,
         color: AppColors.inkMuted,
       ),
-      bodyMedium: mobileFont(
+      bodyMedium: _textStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
         height: 1.5,
@@ -178,6 +188,7 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: _kFontFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
       textTheme: textTheme,
@@ -203,7 +214,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: mobileFont(
+          textStyle: _textStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,

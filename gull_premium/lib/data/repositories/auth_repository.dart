@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 
+import '../models/vendor_list_model.dart';
+
 /// Repository for authentication and user/vendor/admin status.
 class AuthRepository {
   AuthRepository({
@@ -151,5 +153,32 @@ class AuthRepository {
         .collection('vendor_applications')
         .where('status', isEqualTo: 'pending')
         .snapshots();
+  }
+
+  /// Fetches all approved vendors (designers/florists) from the [vendors] collection.
+  /// Each document represents one approved vendor; doc id is the vendor uid.
+  Future<List<VendorListModel>> getVendors() async {
+    final snap = await _firestore.collection('vendors').get();
+    final list = <VendorListModel>[];
+    for (final doc in snap.docs) {
+      try {
+        list.add(VendorListModel.fromFirestore(doc.id, doc.data()));
+      } catch (_) {
+        // Skip malformed docs
+      }
+    }
+    return list;
+  }
+
+  /// Fetches a single vendor by id (for profile page header). Returns null if not found.
+  Future<VendorListModel?> getVendorById(String vendorId) async {
+    final doc = await _firestore.collection('vendors').doc(vendorId).get();
+    final data = doc.data();
+    if (data == null) return null;
+    try {
+      return VendorListModel.fromFirestore(doc.id, data);
+    } catch (_) {
+      return null;
+    }
   }
 }
