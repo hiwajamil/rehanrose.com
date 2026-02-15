@@ -169,13 +169,22 @@ final bouquetDetailProvider =
 });
 
 /// Stream of bouquets for a specific vendor (public vendor profile page).
+/// Only approved products are shown to customers.
 final vendorProfileBouquetsProvider =
     StreamProvider.autoDispose.family<List<FlowerModel>, String>((ref, vendorId) {
-  return ref.watch(bouquetRepositoryProvider).watchBouquetsByVendor(vendorId);
+  return ref
+      .watch(bouquetRepositoryProvider)
+      .watchBouquetsByVendor(vendorId)
+      .map((list) => list.where((b) => b.isApproved).toList());
 });
 
 /// One-time fetch of all bouquets for admin analytics (totals, top by viewCount/orderCount).
 /// Invalidate to refresh: ref.invalidate(adminAnalyticsBouquetsProvider).
 final adminAnalyticsBouquetsProvider = FutureProvider<List<FlowerModel>>((ref) {
   return ref.read(bouquetRepositoryProvider).getAllBouquetsForAnalytics();
+});
+
+/// Stream of bouquets pending super admin approval. Used on admin dashboard.
+final pendingBouquetsStreamProvider = StreamProvider<List<FlowerModel>>((ref) {
+  return ref.watch(bouquetRepositoryProvider).watchPendingBouquets();
 });

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -73,14 +74,19 @@ class VendorShellLayout extends ConsumerWidget {
   Widget _buildHeader(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).value;
+    final email = user?.email ?? '';
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : (user?.email ?? l10n.vendorDefaultName);
     return VendorDashboardHeader(
+      userEmail: email,
       vendorName: name,
       unreadNotificationCount: 0,
-      onProfile: () => context.go('/vendor/shop-settings'),
-      onLogout: () => ref.read(authRepositoryProvider).signOut(),
+      onProfile: () => context.go('/vendor/profile'),
+      onLogout: () async {
+        await FirebaseAuth.instance.signOut();
+        if (context.mounted) context.go('/');
+      },
     );
   }
 }
@@ -96,6 +102,7 @@ class _HeaderInAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).value;
+    final email = user?.email ?? '';
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : (user?.email ?? l10n.vendorDefaultName);
@@ -106,10 +113,14 @@ class _HeaderInAppBar extends StatelessWidget {
           icon: const Icon(Icons.menu, color: AppColors.ink),
           tooltip: l10n.menu,
         ),
+        userEmail: email,
         vendorName: name,
         unreadNotificationCount: 0,
-        onProfile: () => context.go('/vendor/shop-settings'),
-        onLogout: () => ref.read(authRepositoryProvider).signOut(),
+        onProfile: () => context.go('/vendor/profile'),
+        onLogout: () async {
+          await FirebaseAuth.instance.signOut();
+          if (context.mounted) context.go('/');
+        },
       ),
     );
   }
@@ -140,7 +151,7 @@ class _VendorSidebar extends StatelessWidget {
               label: l10n.vendorNavDashboard,
               icon: Icons.dashboard_outlined,
               activeIcon: Icons.dashboard,
-              path: '/vendor',
+              path: '/dashboard',
               currentPath: path,
             ),
             _NavTile(
@@ -217,6 +228,12 @@ class _NavTile extends StatelessWidget {
 
   bool get _isActive {
     if (path == '/vendor') return currentPath == '/vendor' || currentPath == '/vendor/';
+    if (path == '/dashboard') {
+      return currentPath == '/dashboard' ||
+          currentPath == '/dashboard/' ||
+          currentPath == '/vendor' ||
+          currentPath == '/vendor/';
+    }
     return currentPath == path || currentPath.startsWith('$path/');
   }
 
@@ -281,7 +298,7 @@ class _VendorDrawer extends StatelessWidget {
                         label: l10n.vendorNavDashboard,
                         icon: Icons.dashboard_outlined,
                         activeIcon: Icons.dashboard,
-                        path: '/vendor',
+                        path: '/dashboard',
                         currentPath: path,
                       ),
                       _NavTile(

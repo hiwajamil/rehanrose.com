@@ -18,6 +18,17 @@ class FlowerModel {
   /// Must match one of [kEmotionCategoryIds]. Used for filtering. Falls back to occasion if missing.
   final String? emotionCategoryId;
 
+  /// Vendor (user) ID who created this bouquet. Used for admin pending list and ownership.
+  final String? vendorId;
+
+  /// Approval status: 'pending' (awaiting admin), 'approved' (shown on main screen), 'rejected'.
+  /// Null/absent is treated as approved for backward compatibility.
+  final String? approvalStatus;
+
+  /// Canonical status for UI and logic. Values: 'pending', 'approved', 'rejected'.
+  /// Defaults to 'approved' when [approvalStatus] is null (legacy docs).
+  String get status => approvalStatus ?? 'approved';
+
   /// Explicit sale flag. A product is considered on sale if [isOnSale] is true OR [discountPrice] is set.
   final bool isOnSale;
   /// Discount/sale price in IQD. When set (and > 0), product is considered on sale even if [isOnSale] is false.
@@ -38,6 +49,8 @@ class FlowerModel {
     required this.occasion,
     required this.bouquetCode,
     this.emotionCategoryId,
+    this.vendorId,
+    this.approvalStatus,
     this.createdAt,
     this.isOnSale = false,
     this.discountPrice,
@@ -48,6 +61,13 @@ class FlowerModel {
   /// True if this product should be shown in Offers: [isOnSale] is true or [discountPrice] is set and > 0.
   bool get isOnSaleEffective =>
       isOnSale == true || (discountPrice != null && discountPrice! > 0);
+
+  /// True when bouquet is approved (or legacy doc without field) and can be shown on main screen.
+  bool get isApproved =>
+      approvalStatus == null || approvalStatus == 'approved';
+
+  /// True when bouquet is waiting for super admin approval.
+  bool get isPendingApproval => approvalStatus == 'pending';
 
   /// Best URL for listing/card: thumbnail if available, else first full image.
   String get listingImageUrl {
@@ -93,6 +113,8 @@ class FlowerModel {
         : null;
     final viewCount = (json['viewCount'] as num?)?.toInt() ?? 0;
     final orderCount = (json['orderCount'] as num?)?.toInt() ?? 0;
+    final vendorId = json['vendorId']?.toString();
+    final approvalStatus = json['approvalStatus']?.toString();
     return FlowerModel(
       id: id,
       name: json['name']?.toString() ?? '',
@@ -103,6 +125,8 @@ class FlowerModel {
       occasion: _occasionFromJson(json['occasion']),
       bouquetCode: json['bouquetCode']?.toString() ?? '',
       emotionCategoryId: emotionCategoryId,
+      vendorId: vendorId,
+      approvalStatus: approvalStatus,
       createdAt: _createdAtFromJson(json['createdAt']),
       isOnSale: isOnSale,
       discountPrice: discountPrice,
@@ -122,6 +146,8 @@ class FlowerModel {
       'occasion': occasion,
       'bouquetCode': bouquetCode,
       if (emotionCategoryId != null) 'emotionCategoryId': emotionCategoryId!,
+      if (vendorId != null) 'vendorId': vendorId!,
+      if (approvalStatus != null) 'approvalStatus': approvalStatus!,
       if (createdAt != null) 'createdAt': createdAt,
       if (isOnSale) 'isOnSale': true,
       if (discountPrice != null) 'discountPrice': discountPrice!,

@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart' as fa;
 
 import '../models/vendor_list_model.dart';
 
+/// Super admin email — always has admin access without admins collection.
+const String kSuperAdminEmail = 'hiwa.constructions@gmail.com';
+
 /// Repository for authentication and user/vendor/admin status.
 class AuthRepository {
   AuthRepository({
@@ -51,10 +54,28 @@ class AuthRepository {
     return doc.data()?['vendorStatus']?.toString() ?? 'pending';
   }
 
-  /// Whether the user is an admin (exists in admins collection).
+  /// User role from Firestore [users] collection: e.g. 'admin', 'vendor'. Null if not set.
+  Future<String?> getUserRole(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    return doc.data()?['role']?.toString();
+  }
+
+  /// Whether the user is an admin (exists in admins collection or is super admin email).
   Future<bool> isAdmin(String uid) async {
+    final user = _auth.currentUser;
+    if (user?.email?.trim().toLowerCase() == kSuperAdminEmail.trim().toLowerCase()) {
+      return true;
+    }
     final doc = await _firestore.collection('admins').doc(uid).get();
     return doc.exists;
+  }
+
+  /// Ensures super admin has role 'admin' in users collection (for Firestore rules).
+  Future<void> ensureSuperAdminUserDoc(String uid) async {
+    await _firestore.collection('users').doc(uid).set(
+      {'role': 'admin'},
+      SetOptions(merge: true),
+    );
   }
 
   /// Get stored language preference for user. Returns null if not set.

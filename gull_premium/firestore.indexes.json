@@ -4,8 +4,50 @@
       "collectionGroup": "bouquets",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "occasion", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {"fieldPath": "occasion", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "approvalStatus", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "approvalStatus", "order": "ASCENDING"},
+        {"fieldPath": "emotionCategoryId", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "approvalStatus", "order": "ASCENDING"},
+        {"fieldPath": "emotionCategoryId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "approvalStatus", "order": "ASCENDING"},
+        {"fieldPath": "occasion", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "approvalStatus", "order": "ASCENDING"},
+        {"fieldPath": "occasion", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
       ]
     }
   ],

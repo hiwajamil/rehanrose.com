@@ -86,7 +86,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
 
   void _orderViaWhatsApp(FlowerModel bouquet) {
     final l10n = AppLocalizations.of(context)!;
-    final productUrl = '${Uri.base.origin}/flower/${widget.flowerId}';
+    final productUrl = '${Uri.base.origin}/p/${widget.flowerId}';
     launchOrderWhatsApp(
       flowerName: bouquet.name,
       flowerPrice: formatPriceWithCurrency(bouquet.priceIqd, l10n.currencyIqd),

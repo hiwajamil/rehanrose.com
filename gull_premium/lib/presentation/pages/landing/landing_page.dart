@@ -191,18 +191,6 @@ class _HeroSectionState extends State<_HeroSection> {
                         letterSpacing: 0.2,
                         color: Colors.white,
                         height: 1.2,
-                        shadows: [
-                          Shadow(
-                            color: AppColors.ink.withValues(alpha: 0.4),
-                            blurRadius: 16,
-                            offset: const Offset(0, 2),
-                          ),
-                          Shadow(
-                            color: AppColors.ink.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
                       ),
                       children: [
                         TextSpan(text: l10n.heroTitlePart1),
@@ -214,13 +202,6 @@ class _HeroSectionState extends State<_HeroSection> {
                             letterSpacing: 0.2,
                             color: AppColors.rosePrimary,
                             height: 1.2,
-                            shadows: [
-                              Shadow(
-                                color: AppColors.ink.withValues(alpha: 0.5),
-                                blurRadius: 20,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                         ),
                       ],
@@ -239,13 +220,6 @@ class _HeroSectionState extends State<_HeroSection> {
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.94),
                       height: 1.5,
-                      shadows: [
-                        Shadow(
-                          color: AppColors.ink.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -260,13 +234,6 @@ class _HeroSectionState extends State<_HeroSection> {
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.82),
                       fontStyle: FontStyle.italic,
-                      shadows: [
-                        Shadow(
-                          color: AppColors.ink.withValues(alpha: 0.25),
-                          blurRadius: 6,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
                     ),
                   ),
                 ),

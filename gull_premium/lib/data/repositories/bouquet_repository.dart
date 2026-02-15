@@ -52,26 +52,31 @@ class BouquetRepository {
   /// One-time fetch of bouquets for the public landing page. Prefer this over
   /// [watchBouquets] on web to avoid stream never emitting (e.g. custom domain).
   /// [occasion] null or 'All' = all bouquets; if valid emotion category ID, filter by emotionCategoryId.
+  /// Only products with status == 'approved' are returned (customer-facing).
   Future<List<FlowerModel>> getBouquets({String? occasion}) async {
-    Query<Map<String, dynamic>> query = _bouquets.limit(_limit);
+    Query<Map<String, dynamic>> query = _bouquets
+        .where('approvalStatus', isEqualTo: 'approved')
+        .limit(_limit * 2);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
       if (isValidEmotionCategoryId(occasion)) {
         query = _bouquets
+            .where('approvalStatus', isEqualTo: 'approved')
             .where('emotionCategoryId', isEqualTo: occasion)
-            .limit(_limit);
+            .limit(_limit * 2);
       } else {
         final storedValues = storedValuesForFilter(occasion);
         if (storedValues.isNotEmpty) {
           query = _bouquets
+              .where('approvalStatus', isEqualTo: 'approved')
               .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
-              .limit(_limit);
+              .limit(_limit * 2);
         }
       }
     }
 
     final snap = await query.get().timeout(_queryTimeout);
-    final list = _parseBouquetDocs(snap.docs);
+    final list = _parseBouquetDocs(snap.docs).take(_limit).toList();
     list.sort((a, b) {
       final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
       final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
@@ -82,29 +87,32 @@ class BouquetRepository {
 
   /// Paginated fetch for infinite scroll. Returns [items] and [lastDoc] for the next page.
   /// Use [lastDoc] in [startAfter] for the next call. [occasion] same as [getBouquets].
-  /// Uses orderBy(createdAt, descending) for cursor stability; docs without createdAt may be excluded.
+  /// Only products with status == 'approved' are returned. Uses orderBy(createdAt, descending).
   Future<({List<FlowerModel> items, QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc})> getBouquetsPage({
     String? occasion,
     int limit = pageSize,
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
   }) async {
     Query<Map<String, dynamic>> query = _bouquets
+        .where('approvalStatus', isEqualTo: 'approved')
         .orderBy('createdAt', descending: true)
-        .limit(limit);
+        .limit(limit * 3);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
       if (isValidEmotionCategoryId(occasion)) {
         query = _bouquets
+            .where('approvalStatus', isEqualTo: 'approved')
             .where('emotionCategoryId', isEqualTo: occasion)
             .orderBy('createdAt', descending: true)
-            .limit(limit);
+            .limit(limit * 3);
       } else {
         final storedValues = storedValuesForFilter(occasion);
         if (storedValues.isNotEmpty) {
           query = _bouquets
+              .where('approvalStatus', isEqualTo: 'approved')
               .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
               .orderBy('createdAt', descending: true)
-              .limit(limit);
+              .limit(limit * 3);
         }
       }
     }
@@ -114,34 +122,54 @@ class BouquetRepository {
     }
 
     final snap = await query.get().timeout(_queryTimeout);
-    final list = _parseBouquetDocs(snap.docs);
+    final list = _parseBouquetDocs(snap.docs).take(limit).toList();
     final lastDoc = snap.docs.isEmpty ? null : snap.docs.last;
     return (items: list, lastDoc: lastDoc);
   }
 
   /// Stream of bouquets, optionally filtered by emotion value.
-  /// [occasion] null or 'All' = all bouquets; if valid emotion category ID, filter by emotionCategoryId.
-  /// Does NOT use orderBy(createdAt) so documents without createdAt (e.g. older data) are included.
-  /// Sorts in Dart by createdAt descending (null createdAt treated as oldest).
+  /// Only products with status == 'approved'. Sorts in Dart by createdAt descending.
   Stream<List<FlowerModel>> watchBouquets({String? occasion}) {
-    Query<Map<String, dynamic>> query = _bouquets.limit(_limit);
+    Query<Map<String, dynamic>> query = _bouquets
+        .where('approvalStatus', isEqualTo: 'approved')
+        .limit(_limit * 2);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
       if (isValidEmotionCategoryId(occasion)) {
         query = _bouquets
+            .where('approvalStatus', isEqualTo: 'approved')
             .where('emotionCategoryId', isEqualTo: occasion)
-            .limit(_limit);
+            .limit(_limit * 2);
       } else {
         final storedValues = storedValuesForFilter(occasion);
         if (storedValues.isNotEmpty) {
           query = _bouquets
+              .where('approvalStatus', isEqualTo: 'approved')
               .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
-              .limit(_limit);
+              .limit(_limit * 2);
         }
       }
     }
 
     return query.snapshots().timeout(_queryTimeout).map((snap) {
+      final list = _parseBouquetDocs(snap.docs).take(_limit).toList();
+      list.sort((a, b) {
+        final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
+        final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
+        return bMs.compareTo(aMs);
+      });
+      return list;
+    });
+  }
+
+  /// Stream of bouquets pending super admin approval. For admin dashboard.
+  Stream<List<FlowerModel>> watchPendingBouquets() {
+    return _bouquets
+        .where('approvalStatus', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .timeout(_queryTimeout)
+        .map((snap) {
       final list = _parseBouquetDocs(snap.docs);
       list.sort((a, b) {
         final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
@@ -150,6 +178,16 @@ class BouquetRepository {
       });
       return list;
     });
+  }
+
+  /// Set bouquet approval status to 'approved' or 'rejected'. Admin only (enforced by rules).
+  /// Uses .update() only; does NOT touch category, occasion, emotionCategoryId, or bouquetCode.
+  /// Once approved, the bouquet appears in the user app under the occasion the vendor selected.
+  Future<void> updateApprovalStatus(String bouquetId, String status) async {
+    if (status != 'approved' && status != 'rejected') {
+      throw ArgumentError('status must be approved or rejected');
+    }
+    await _bouquets.doc(bouquetId).update({'approvalStatus': status});
   }
 
   /// Stream of bouquets for a given vendor. No customer-side filters.
@@ -190,6 +228,8 @@ class BouquetRepository {
   /// [thumbnailUrls] optional; same order as [imageUrls] for listing grid.
   /// [bouquetCode] is the generated code (e.g. from controller using emotion prefix).
   /// [emotionCategoryId] must be a valid ID from [kEmotionCategoryIds].
+  /// [initialStatus] when provided (e.g. 'approved' for admin-created) is used;
+  /// otherwise defaults to 'pending' for vendor-created bouquets.
   Future<String> create({
     required String vendorId,
     required String name,
@@ -200,9 +240,14 @@ class BouquetRepository {
     required String occasion,
     required String bouquetCode,
     required String emotionCategoryId,
+    String? initialStatus,
   }) async {
     if (!isValidEmotionCategoryId(emotionCategoryId)) {
       throw ArgumentError('Invalid emotionCategoryId. Must be one of: $kEmotionCategoryIds');
+    }
+    final status = initialStatus ?? 'pending';
+    if (status != 'pending' && status != 'approved' && status != 'rejected') {
+      throw ArgumentError('initialStatus must be pending, approved, or rejected');
     }
     final data = <String, dynamic>{
       'vendorId': vendorId,
@@ -213,6 +258,7 @@ class BouquetRepository {
       'bouquetCode': bouquetCode,
       'occasion': occasion,
       'emotionCategoryId': emotionCategoryId,
+      'approvalStatus': status,
       'createdAt': FieldValue.serverTimestamp(),
     };
     if (thumbnailUrls != null && thumbnailUrls.isNotEmpty) {

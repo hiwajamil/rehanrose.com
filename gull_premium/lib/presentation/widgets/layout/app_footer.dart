@@ -626,15 +626,18 @@ class _ContactPhoneLinkState extends State<_ContactPhoneLink> {
           Uri.parse('tel:+$_kContactPhoneE164'),
           mode: LaunchMode.externalApplication,
         ),
-        child: Text(
-          widget.phoneDisplay,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: _hovered ? AppColors.footerText : AppColors.footerTextMuted,
-                fontWeight: FontWeight.w600,
-                fontSize: 22,
-                letterSpacing: 0.3,
-                height: 1.3,
-              ),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Text(
+            widget.phoneDisplay,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: _hovered ? AppColors.footerText : AppColors.footerTextMuted,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 22,
+                  letterSpacing: 0.3,
+                  height: 1.3,
+                ),
+          ),
         ),
       ),
     );

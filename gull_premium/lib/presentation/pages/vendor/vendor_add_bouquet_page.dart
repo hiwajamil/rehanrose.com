@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
@@ -6,15 +7,48 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/emotion_category.dart';
-import '../../../core/utils/emotion_category_l10n.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/section_container.dart';
 
-/// Add new bouquet: name, emotion, price (IQD), max 3 images, description, availability.
-/// Bouquet ID is auto-generated (e.g. Bi-1, We-1, Th-1) per emotion.
+/// Prefix for product code by occasion. Fallback: first 2 letters uppercase if not in map.
+const Map<String, String> _occasionPrefixes = {
+  'Birthday': 'BD',
+  'Anniversary': 'AN',
+  'Love & Romance': 'LV',
+  'New Born': 'NB',
+  'Get Well': 'GW',
+  'Wedding': 'WD',
+};
+
+/// Maps occasion (dropdown label) to [kEmotionCategoryIds] for backend.
+const Map<String, String> _occasionToEmotionCategoryId = {
+  'Birthday': 'celebration',
+  'Anniversary': 'love',
+  'Love & Romance': 'love',
+  'New Born': 'celebration',
+  'Get Well': 'wellness',
+  'Wedding': 'celebration',
+};
+
+/// Ordered list of occasions for the dropdown.
+const List<String> _occasionOptions = [
+  'Birthday',
+  'Anniversary',
+  'Love & Romance',
+  'New Born',
+  'Get Well',
+  'Wedding',
+];
+
+String _prefixForOccasion(String occasion) {
+  return _occasionPrefixes[occasion] ??
+      (occasion.length >= 2 ? occasion.substring(0, 2).toUpperCase() : 'XX');
+}
+
+/// Add new bouquet: name, occasion, price (IQD), max 3 images, description, availability.
+/// Product code is auto-generated from occasion (e.g. BD-402, AN-117).
 class VendorAddBouquetPage extends ConsumerStatefulWidget {
   const VendorAddBouquetPage({super.key});
 
@@ -27,19 +61,33 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  String? _selectedEmotionCategoryId;
-  String? _emotionError;
+  final _codeController = TextEditingController();
+  String? _selectedOccasion;
+  String? _occasionError;
   List<XFile> _images = [];
   bool _available = true;
   bool _submitting = false;
   final _imagePicker = ImagePicker();
+  static final _random = Random();
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _codeController.dispose();
     super.dispose();
+  }
+
+  void _onOccasionChanged(String? occasion) {
+    if (occasion == null || occasion.isEmpty) return;
+    setState(() {
+      _selectedOccasion = occasion;
+      _occasionError = null;
+      final prefix = _prefixForOccasion(occasion);
+      final randomNumber = _random.nextInt(900) + 100;
+      _codeController.text = '$prefix-$randomNumber';
+    });
   }
 
   void _message(String msg) {
@@ -62,16 +110,17 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
       _message('Please enter a bouquet name.');
       return;
     }
-    if (_selectedEmotionCategoryId == null || _selectedEmotionCategoryId!.isEmpty) {
-      setState(() => _emotionError = 'Please select what this bouquet says.');
-      _message('Please select what this bouquet says.');
+    if (_selectedOccasion == null || _selectedOccasion!.isEmpty) {
+      setState(() => _occasionError = 'Please select an occasion.');
+      _message('Please select an occasion.');
       return;
     }
-    if (!isValidEmotionCategoryId(_selectedEmotionCategoryId)) {
-      setState(() => _emotionError = 'Invalid selection.');
+    final emotionCategoryId = _occasionToEmotionCategoryId[_selectedOccasion];
+    if (emotionCategoryId == null || !isValidEmotionCategoryId(emotionCategoryId)) {
+      setState(() => _occasionError = 'Invalid selection.');
       return;
     }
-    setState(() => _emotionError = null);
+    setState(() => _occasionError = null);
 
     if (price == null) {
       _message('Enter the price as a number in IQD.');
@@ -90,30 +139,38 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
 
     setState(() => _submitting = true);
     try {
+      final codePrefix = _prefixForOccasion(_selectedOccasion!);
       final code = await ref.read(vendorControllerProvider.notifier).publishBouquet(
             user: user,
             name: name,
             description: description,
             priceIqd: price,
             imageFiles: _images,
-            emotionCategoryId: _selectedEmotionCategoryId!,
+            emotionCategoryId: emotionCategoryId,
+            productCodePrefix: codePrefix,
           );
       if (!mounted) return;
-      _message(code != null ? 'Bouquet published. Code: $code' : 'Bouquet published.');
+      _message(
+        code != null
+            ? 'Bouquet submitted for approval. Code: $code. It will appear on the main screen after the super admin approves it.'
+            : 'Bouquet submitted for approval. It will appear on the main screen after the super admin approves it.',
+      );
       _nameController.clear();
       _descriptionController.clear();
       _priceController.clear();
       setState(() {
         _images = [];
-        _selectedEmotionCategoryId = null;
-        _emotionError = null;
+        _selectedOccasion = null;
+        _occasionError = null;
+        _codeController.clear();
       });
     } on TimeoutException catch (_) {
       _message('Publish timed out. Please try again.');
     } on fa.FirebaseException catch (e) {
       _message(e.message ?? 'Unable to publish bouquet.');
-    } catch (_) {
-      _message('Unable to publish. Try again or check your connection.');
+    } catch (e, _) {
+      final msg = e is Exception ? e.toString().replaceFirst('Exception: ', '') : '';
+      _message(msg.isNotEmpty ? 'Unable to publish. $msg' : 'Unable to publish. Try again or check your connection.');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -133,7 +190,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Bouquet ID is auto-generated from the feeling you choose (e.g. Celebrate Them → Bi-1, Bi-2).',
+              'Product code is auto-generated from the occasion you choose (e.g. Birthday → BD-402).',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.inkMuted,
                   ),
@@ -164,15 +221,18 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                     maxLines: 3,
                   ),
                   const SizedBox(height: 20),
-                  _EmotionField(
-                    value: _selectedEmotionCategoryId,
-                    error: _emotionError,
-                    onChanged: (v) {
-                      setState(() {
-                        _selectedEmotionCategoryId = v;
-                        _emotionError = null;
-                      });
-                    },
+                  _OccasionDropdown(
+                    value: _selectedOccasion,
+                    error: _occasionError,
+                    onChanged: _onOccasionChanged,
+                  ),
+                  const SizedBox(height: 20),
+                  _Field(
+                    label: 'Product code',
+                    hint: 'Select an occasion to generate',
+                    controller: _codeController,
+                    icon: Icons.tag_outlined,
+                    readOnly: true,
                   ),
                   const SizedBox(height: 20),
                   _Field(
@@ -249,7 +309,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   const SizedBox(height: 24),
                   PrimaryButton(
                     label: _submitting ? 'Publishing...' : 'Publish bouquet',
-                    onPressed: _submitting || _selectedEmotionCategoryId == null
+                    onPressed: _submitting || _selectedOccasion == null
                         ? () {}
                         : _submit,
                   ),
@@ -270,6 +330,7 @@ class _Field extends StatelessWidget {
   final IconData icon;
   final TextInputType? keyboardType;
   final int maxLines;
+  final bool readOnly;
 
   const _Field({
     required this.label,
@@ -278,6 +339,7 @@ class _Field extends StatelessWidget {
     required this.icon,
     this.keyboardType,
     this.maxLines = 1,
+    this.readOnly = false,
   });
 
   @override
@@ -297,6 +359,7 @@ class _Field extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          readOnly: readOnly,
           autocorrect: false,
           enableSuggestions: false,
           decoration: InputDecoration(
@@ -326,12 +389,12 @@ class _Field extends StatelessWidget {
   }
 }
 
-class _EmotionField extends StatelessWidget {
+class _OccasionDropdown extends StatelessWidget {
   final String? value;
   final String? error;
   final ValueChanged<String?> onChanged;
 
-  const _EmotionField({
+  const _OccasionDropdown({
     required this.value,
     required this.error,
     required this.onChanged,
@@ -339,12 +402,11 @@ class _EmotionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          l10n.vendor_emotion_label,
+          'Occasion',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w600,
@@ -352,7 +414,7 @@ class _EmotionField extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: value,
+          value: value != null && _occasionOptions.contains(value) ? value : null,
           decoration: InputDecoration(
             errorText: error,
             filled: true,
@@ -370,37 +432,14 @@ class _EmotionField extends StatelessWidget {
               borderSide: const BorderSide(color: AppColors.rose),
             ),
           ),
-          hint: Text(l10n.chooseEmotion),
-          items: kEmotionCategories
-              .map((c) => DropdownMenuItem<String>(
-                    value: c.id,
-                    child: Row(
-                      textDirection: Directionality.of(context),
-                      children: [
-                        Icon(
-                          c.icon,
-                          size: 22,
-                          color: AppColors.rose,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            localizedEmotionCategoryTitle(l10n, c.titleKey),
-                          ),
-                        ),
-                      ],
-                    ),
+          hint: const Text('Choose occasion'),
+          items: _occasionOptions
+              .map((occasion) => DropdownMenuItem<String>(
+                    value: occasion,
+                    child: Text(occasion),
                   ))
               .toList(),
           onChanged: onChanged,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          l10n.vendor_emotion_hint,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.inkMuted,
-                fontSize: 13,
-              ),
         ),
       ],
     );

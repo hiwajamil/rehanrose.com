@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
@@ -180,9 +181,17 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
     final baseTheme = isMobile
         ? AppTheme.lightMobile(locale)
         : AppTheme.light(locale);
-    // Ensure Rudaw is used globally for headers and body text (Kurdish/Arabic support).
+    // Hybrid Font System: Rudaw (Kurdish) default; Playfair Display (headers); Montserrat (body/prices).
     final theme = baseTheme.copyWith(
-      textTheme: baseTheme.textTheme.apply(fontFamily: 'Rudaw'),
+      textTheme: baseTheme.textTheme.apply(fontFamily: 'Rudaw').copyWith(
+        // Large Titles (Flower Names) -> Playfair Display (Luxury look)
+        displayLarge: GoogleFonts.playfairDisplay(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        // Prices & Details -> Montserrat (Clean look)
+        bodyMedium: GoogleFonts.montserrat(fontSize: 14),
+      ),
     );
     final direction = textDirectionForLocale(locale);
 

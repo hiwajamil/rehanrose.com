@@ -16,8 +16,8 @@ class OrderViaWhatsAppButton extends StatelessWidget {
     this.enabled = true,
   });
 
-  /// Dark charcoal as specified (#1A1A1A).
-  static const Color _buttonColor = Color(0xFF1A1A1A);
+  /// WhatsApp brand green (#25D366).
+  static const Color _buttonColor = Color(0xFF25D366);
 
   /// Readable font on mobile; compact on desktop.
   static double _buttonFontSize(BuildContext context) {

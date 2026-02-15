@@ -13,6 +13,12 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function isVendor() {
+      return isAuthenticated()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor';
+    }
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
@@ -24,18 +30,37 @@ service cloud.firestore {
     }
 
     // ─── products ──────────────────────────────────────────────────────────
-    // Read: public. Write/Update/Delete: admins only.
+    // Read (Public): only when status == 'approved'.
+    // Read (Vendor): own products (any status) so they can see pending items.
+    // Read/Write (Admin): full access.
+    // Create: admin or vendor. Update/Delete: admin, or vendor (own product only).
     match /products/{productId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if resource.data.status == 'approved'
+          || (isVendor() && resource.data.vendorId == request.auth.uid)
+          || isAdmin();
+      allow create: if request.auth != null
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'vendor'];
+      allow update, delete: if isAdmin()
+          || (request.auth != null
+              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor'
+              && resource.data.vendorId == request.auth.uid);
+    }
+
+    // ─── counters (e.g. bouquet code sequence) ──────────────────────────────
+    // Vendors need to reserve next bouquet code when publishing; admins too.
+    match /counters/{counterId} {
+      allow read, write: if isAuthenticated();
     }
 
     // ─── bouquets (flower products) ────────────────────────────────────────
-    // Read: public. Create/Delete: admins only.
-    // Update: admins; or public for analytics-only (viewCount/orderCount increments).
+    // Read: public. Create: admin (any) or vendor (only with approvalStatus == 'pending').
+    // Update: admins (e.g. set approvalStatus to approved/rejected); or analytics-only (viewCount/orderCount).
+    // Delete: admins only. Approved bouquets appear on main screen.
     match /bouquets/{bouquetId} {
       allow read: if true;
-      allow create, delete: if isAdmin();
+      allow create: if isAdmin()
+          || (isVendor() && request.resource.data.approvalStatus == 'pending');
+      allow delete: if isAdmin();
       allow update: if isAdmin()
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderCount'])

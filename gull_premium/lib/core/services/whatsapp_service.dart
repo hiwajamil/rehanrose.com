@@ -6,6 +6,9 @@ import '../../data/models/add_on_model.dart';
 /// Hardcoded Super Admin WhatsApp number (no '00' or '+').
 const String kWhatsAppOrderNumber = '9647709818181';
 
+/// Placeholder number for WhatsApp ordering (replace with real number when ready).
+const String kWhatsAppOrderPlaceholderNumber = '9647700000000';
+
 /// Greeting lines for the pre-filled order message (Kurdish + Arabic).
 const String kWhatsAppOrderGreetingKurdish =
     'سڵاو بەڕێزم، دەمەوێت ئەم گوڵە داوا بکەم';
@@ -45,6 +48,56 @@ Future<bool> launchOrderWhatsApp({
 
   if (await canLaunchUrl(uri)) {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+  return false;
+}
+
+/// Greeting line for the WhatsApp order message.
+/// [languageCode] must be one of: 'en', 'ku', 'ar'.
+String _whatsAppOrderGreeting(String languageCode) {
+  switch (languageCode) {
+    case 'ku':
+      return 'سڵاو رێحان ڕۆز، دەمەوێت ئەم بڕگەیە داوا بکەم';
+    case 'ar':
+      return 'مرحباً ريهان روز، أود طلب هذا المنتج';
+    default:
+      return 'Hello Rehan Rose, I would like to order this item:';
+  }
+}
+
+/// Opens WhatsApp with a simple pre-filled order message (name, code, price, link).
+/// Works on Android/iOS (opens WhatsApp app) and Web (opens in new tab).
+/// [languageCode] affects the greeting sentence (en/ku/ar).
+/// [productUrl] optional link to the bouquet product page.
+Future<bool> launchWhatsAppOrder({
+  required String name,
+  required String code,
+  required String price,
+  String? imageUrl,
+  String? productUrl,
+  String languageCode = 'en',
+}) async {
+  final greeting = _whatsAppOrderGreeting(languageCode);
+  final lines = <String>[
+    greeting,
+    '',
+    '🌹 Name: $name',
+    '🆔 Code: $code',
+    '💰 Price: $price',
+    if (productUrl != null && productUrl.isNotEmpty) 'Link: $productUrl',
+  ];
+  final body = lines.join('\n');
+
+  final uri = Uri.parse(
+    'https://wa.me/$kWhatsAppOrderNumber?text=${Uri.encodeComponent(body)}',
+  );
+
+  if (await canLaunchUrl(uri)) {
+    return launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+      webOnlyWindowName: '_blank',
+    );
   }
   return false;
 }

@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
+
+import '../../../data/repositories/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -25,6 +27,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   String? _cachedAdminUserId;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -32,17 +39,36 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 
   Future<void> _signIn() async {
-    if (_emailController.text.trim().isEmpty ||
-        _passwordController.text.trim().isEmpty) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
       _showMessage('Enter your admin email and password.');
       return;
     }
     setState(() => _isSigningIn = true);
     try {
-      await ref.read(authRepositoryProvider).signInWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
+      final authRepo = ref.read(authRepositoryProvider);
+      try {
+        await authRepo.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } on fa.FirebaseAuthException catch (e) {
+        if (e.code == 'user-not-found' &&
+            email.toLowerCase() == kSuperAdminEmail.toLowerCase()) {
+          await authRepo.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
           );
+        } else {
+          rethrow;
+        }
+      }
+      final user = authRepo.currentUser;
+      if (user != null &&
+          user.email?.trim().toLowerCase() == kSuperAdminEmail.toLowerCase()) {
+        await authRepo.ensureSuperAdminUserDoc(user.uid);
+      }
     } on fa.FirebaseAuthException catch (e) {
       _showMessage(e.message ?? 'Unable to sign in.');
     } finally {
@@ -200,19 +226,26 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   Widget _buildAdminDashboard(BuildContext context, String adminId) {
     final applicationsAsync = ref.watch(pendingVendorApplicationsStreamProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Pending vendor applications',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const Spacer(),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Pending vendor applications',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const Spacer(),
             PrimaryButton(
               label: 'Analytics',
               onPressed: () => context.go('/admin/analytics'),
+              variant: PrimaryButtonVariant.outline,
+            ),
+            const SizedBox(width: 12),
+            PrimaryButton(
+              label: 'Pending Bouquets',
+              onPressed: () => context.go('/admin/approvals'),
               variant: PrimaryButtonVariant.outline,
             ),
             const SizedBox(width: 12),
@@ -360,9 +393,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             );
           },
         ),
-      ],
+        ],
+      ),
     );
   }
+
 }
 
 class _AdminField extends StatelessWidget {

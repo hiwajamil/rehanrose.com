@@ -9,6 +9,7 @@ import '../../../l10n/app_localizations.dart';
 /// notifications, profile dropdown. Responsive (mobile + desktop).
 /// [leading] is shown at the start on mobile (e.g. drawer menu icon).
 class VendorDashboardHeader extends StatefulWidget {
+  final String userEmail;
   final String vendorName;
   final int unreadNotificationCount;
   final VoidCallback? onProfile;
@@ -19,6 +20,7 @@ class VendorDashboardHeader extends StatefulWidget {
 
   const VendorDashboardHeader({
     super.key,
+    this.userEmail = '',
     this.vendorName = 'Vendor', // Overridden by shell with localized default when needed
     this.unreadNotificationCount = 0,
     this.onProfile,
@@ -34,7 +36,6 @@ class VendorDashboardHeader extends StatefulWidget {
 class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   bool _isOnline = false;
   bool _searchExpanded = false;
-  bool _showProfileMenu = false;
   bool _showNotificationsMenu = false;
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
@@ -49,7 +50,6 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   void _closeOverlays() {
     setState(() {
       _searchExpanded = false;
-      _showProfileMenu = false;
       _showNotificationsMenu = false;
     });
   }
@@ -58,7 +58,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final horizontalPadding = isMobile ? 16.0 : 32.0;
-    final showOverlay = _showProfileMenu || _showNotificationsMenu;
+    final showOverlay = _showNotificationsMenu;
     // Fixed height so overlay doesn't expand the header and jam the content area.
     final headerHeight = isMobile && _searchExpanded ? 116.0 : 56.0;
 
@@ -95,7 +95,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
                       if (isMobile) _buildMobileSearchTrigger(context),
                       if (!isMobile) _buildStatusToggle(context),
                       _buildNotificationBell(context),
-                      _buildProfileButton(context, isMobile),
+                      _buildUserMenu(context, isMobile),
                     ],
                   ),
                 ),
@@ -118,10 +118,9 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
       child: GestureDetector(
         onTap: _closeOverlays,
         behavior: HitTestBehavior.opaque,
-        child: Stack(
+          child: Stack(
           alignment: Alignment.topRight,
           children: [
-            if (_showProfileMenu) _buildProfileDropdown(context),
             if (_showNotificationsMenu) _buildNotificationsDropdown(context),
           ],
         ),
@@ -362,10 +361,7 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
       children: [
         IconButton(
           onPressed: () {
-            setState(() {
-              _showNotificationsMenu = !_showNotificationsMenu;
-              _showProfileMenu = false;
-            });
+            setState(() => _showNotificationsMenu = !_showNotificationsMenu);
           },
           icon: Icon(Icons.notifications_none, color: AppColors.inkMuted, size: 22),
           style: IconButton.styleFrom(
@@ -401,117 +397,61 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
     );
   }
 
-  Widget _buildProfileButton(BuildContext context, bool isMobile) {
+  Widget _buildUserMenu(BuildContext context, bool isMobile) {
     final l10n = AppLocalizations.of(context)!;
-    final displayName = widget.vendorName.isNotEmpty ? widget.vendorName : l10n.vendorDefaultName;
-    final initial = displayName.isNotEmpty
-        ? displayName[0].toUpperCase()
-        : 'V';
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _showProfileMenu = !_showProfileMenu;
-            _showNotificationsMenu = false;
-          });
-        },
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    final displayEmail = widget.userEmail.isNotEmpty
+        ? widget.userEmail
+        : (widget.vendorName.isNotEmpty ? widget.vendorName : l10n.vendorDefaultName);
+    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.ink,
+          fontWeight: FontWeight.w500,
+        );
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 44),
+      onSelected: (String value) {
+        if (value == 'profile') {
+          widget.onProfile?.call();
+        } else if (value == 'logout') {
+          widget.onLogout?.call();
+        }
+      },
+      itemBuilder: (BuildContext context) => [
+        PopupMenuItem<String>(
+          value: 'profile',
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: AppColors.rose.withValues(alpha: 0.2),
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    color: AppColors.rose,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              if (!isMobile) ...[
-                const SizedBox(width: 8),
-                Text(
-                  displayName,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.ink,
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.keyboard_arrow_down, size: 20, color: AppColors.inkMuted),
-              ],
+              Icon(Icons.person, size: 20, color: AppColors.ink),
+              const SizedBox(width: 12),
+              Text(l10n.profile, style: textStyle),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildProfileDropdown(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 56 + 8, right: 16),
-      child: Material(
-        elevation: 8,
-        shadowColor: AppColors.shadow,
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-        child: Container(
-          width: 200,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _dropdownItem(context, AppLocalizations.of(context)!.profile, Icons.person_outline, widget.onProfile),
-              const Divider(height: 16),
-              _dropdownItem(context, AppLocalizations.of(context)!.logOut, Icons.logout, widget.onLogout, isDestructive: true),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _dropdownItem(
-    BuildContext context,
-    String label,
-    IconData icon,
-    VoidCallback? onTap, {
-    bool isDestructive = false,
-  }) {
-    final color = isDestructive ? Colors.red : AppColors.ink;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          _closeOverlays();
-          onTap?.call();
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        PopupMenuItem<String>(
+          value: 'logout',
           child: Row(
             children: [
-              Icon(icon, size: 20, color: color),
+              Icon(Icons.logout, size: 20, color: Colors.red),
               const SizedBox(width: 12),
               Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w500,
-                    ),
+                l10n.logOut,
+                style: textStyle?.copyWith(color: Colors.red),
               ),
             ],
           ),
+        ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              displayEmail,
+              style: textStyle,
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down, size: 20, color: AppColors.inkMuted),
+          ],
         ),
       ),
     );

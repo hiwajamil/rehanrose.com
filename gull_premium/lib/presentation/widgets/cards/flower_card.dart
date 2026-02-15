@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:seo/seo.dart';
 
 import '../../../controllers/controllers.dart';
+import '../../../core/services/whatsapp_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../common/app_cached_image.dart';
 import '../common/order_via_whatsapp_button.dart';
+import '../common/product_info_column.dart';
 
 /// Bouquet card: static, no hover/transform/transition. Calm, premium experience.
 /// When [isCompact] is true (mobile), uses reduced padding, capped image height, and smaller text.
@@ -111,74 +113,13 @@ class FlowerCard extends ConsumerWidget {
                       horizontal: isCompact ? 8 : contentPadding,
                       vertical: isCompact ? 2 : 12,
                     ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Seo.text(
-                            text: name,
-                            style: TextTagStyle.h3,
-                            child: Text(
-                              name,
-                              style: isCompact
-                                  ? Theme.of(context).textTheme.titleMedium
-                                  : Theme.of(context).textTheme.titleLarge,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          SizedBox(height: isCompact ? 1 : 2),
-                          if (originalPrice != null)
-                            Seo.text(
-                              text: originalPrice!,
-                              child: Text(
-                                originalPrice!,
-                                style: (isCompact
-                                        ? Theme.of(context).textTheme.bodySmall
-                                        : Theme.of(context).textTheme.bodyMedium)
-                                    ?.copyWith(
-                                      color: AppColors.inkMuted,
-                                      decoration: TextDecoration.lineThrough,
-                                      decorationColor: AppColors.inkMuted,
-                                    ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          if (originalPrice != null) SizedBox(height: isCompact ? 0 : 2),
-                          Seo.text(
-                            text: price,
-                            child: Text(
-                              price,
-                              style: (isCompact
-                                      ? Theme.of(context).textTheme.bodyMedium
-                                      : Theme.of(context).textTheme.bodyLarge)
-                                  ?.copyWith(
-                                    color: AppColors.rosePrimary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          if (note.isNotEmpty) ...[
-                            SizedBox(height: isCompact ? 1 : 2),
-                            Seo.text(
-                              text: note,
-                              child: Text(
-                                note,
-                                style: isCompact
-                                    ? Theme.of(context).textTheme.bodySmall
-                                    : Theme.of(context).textTheme.bodyMedium,
-                                maxLines: isCompact ? 1 : null,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                    child: ProductInfoColumn(
+                      code: bouquetCode,
+                      name: name,
+                      price: price,
+                      originalPrice: originalPrice,
+                      description: note.isNotEmpty ? note : null,
+                      isDetailPage: false,
                     ),
                   ),
                   Padding(
@@ -200,7 +141,14 @@ class FlowerCard extends ConsumerWidget {
                                     itemId: id,
                                     itemName: name,
                                   );
-                              _navigateToProductDetails(context, id);
+                              launchWhatsAppOrder(
+                                name: name,
+                                code: bouquetCode ?? id,
+                                price: price,
+                                imageUrl: imageUrl.isEmpty ? null : imageUrl,
+                                productUrl: '${Uri.base.origin}/p/$id',
+                                languageCode: Localizations.localeOf(context).languageCode,
+                              );
                             },
                             enabled: orderButtonEnabled,
                           ),

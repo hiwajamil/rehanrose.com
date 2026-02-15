@@ -239,7 +239,7 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
                           if (_isSignIn) ...[
                             _AuthField(
                               label: 'Business email',
-                              hintText: 'studio@email.com',
+                              hintText: '',
                               icon: Icons.mail_outline,
                               controller: _signInEmailController,
                               textInputAction: TextInputAction.next,
@@ -247,7 +247,7 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
                             const SizedBox(height: 16),
                             _AuthField(
                               label: 'Password',
-                              hintText: 'Enter your password',
+                              hintText: '',
                               icon: Icons.lock_outline,
                               obscureText: true,
                               controller: _signInPasswordController,
@@ -271,42 +271,45 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
                           ] else ...[
                             _AuthField(
                               label: 'Studio name',
-                              hintText: 'Lune Botanica',
+                              hintText: '',
                               icon: Icons.storefront_outlined,
                               controller: _studioNameController,
                             ),
                             const SizedBox(height: 16),
                             _AuthField(
                               label: 'Owner name',
-                              hintText: 'First and last name',
+                              hintText: 'Full name',
+                              hintStyle: TextStyle(color: AppColors.inkMuted),
                               icon: Icons.person_outline,
                               controller: _ownerNameController,
                             ),
                             const SizedBox(height: 16),
                             _AuthField(
                               label: 'Business email',
-                              hintText: 'studio@email.com',
+                              hintText: '',
                               icon: Icons.mail_outline,
                               controller: _signUpEmailController,
                             ),
                             const SizedBox(height: 16),
                             _AuthField(
                               label: 'Phone number',
-                              hintText: '+1 (555) 123-4567',
+                              hintText: '',
                               icon: Icons.call_outlined,
                               controller: _phoneController,
                             ),
                             const SizedBox(height: 16),
                             _AuthField(
                               label: 'Studio location',
-                              hintText: 'City, State',
+                              hintText: 'city',
+                              hintStyle: TextStyle(color: AppColors.inkMuted),
                               icon: Icons.location_on_outlined,
                               controller: _locationController,
                             ),
                             const SizedBox(height: 16),
                             _AuthField(
                               label: 'Create a password',
-                              hintText: 'At least 8 characters',
+                              hintText: 'at least 8 characters',
+                              hintStyle: TextStyle(color: AppColors.inkMuted),
                               icon: Icons.lock_outline,
                               obscureText: true,
                               controller: _signUpPasswordController,
@@ -467,6 +470,7 @@ class _ToggleButton extends StatelessWidget {
 class _AuthField extends StatelessWidget {
   final String label;
   final String hintText;
+  final TextStyle? hintStyle;
   final IconData icon;
   final bool obscureText;
   final TextEditingController controller;
@@ -476,6 +480,7 @@ class _AuthField extends StatelessWidget {
   const _AuthField({
     required this.label,
     required this.hintText,
+    this.hintStyle,
     required this.icon,
     required this.controller,
     this.obscureText = false,
@@ -503,6 +508,7 @@ class _AuthField extends StatelessWidget {
           onSubmitted: onSubmitted != null ? (_) => onSubmitted!() : null,
           decoration: InputDecoration(
             hintText: hintText,
+            hintStyle: hintStyle,
             prefixIcon: Icon(icon, color: AppColors.inkMuted),
             filled: true,
             fillColor: AppColors.background,

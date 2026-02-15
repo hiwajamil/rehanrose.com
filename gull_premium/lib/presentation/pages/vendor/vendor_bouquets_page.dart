@@ -15,11 +15,64 @@ import '../../widgets/layout/section_container.dart';
 /// List all vendor bouquets: image, name, occasion, price (IQD), status, Edit/Delete.
 /// If [code] query param is set, show only the bouquet with that code (published);
 /// if none match, show "There is no bouquet with that code."
-class VendorBouquetsPage extends ConsumerWidget {
+/// Supports multi-select and bulk delete.
+class VendorBouquetsPage extends ConsumerStatefulWidget {
   const VendorBouquetsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VendorBouquetsPage> createState() => _VendorBouquetsPageState();
+}
+
+class _VendorBouquetsPageState extends ConsumerState<VendorBouquetsPage> {
+  final Set<String> _selectedIds = {};
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _bulkDelete(WidgetRef ref, List<String> ids) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('Delete ${ids.length} bouquet${ids.length == 1 ? '' : 's'}?'),
+        content: Text(
+          ids.length == 1
+              ? 'This bouquet will be removed from the storefront.'
+              : 'These bouquets will be removed from the storefront.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(false),
+            child: Text('Cancel', style: TextStyle(color: AppColors.inkMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _selectedIds.clear());
+    final notifier = ref.read(vendorControllerProvider.notifier);
+    for (final id in ids) {
+      await notifier.deleteBouquet(id);
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${ids.length} bouquet${ids.length == 1 ? '' : 's'} deleted.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bouquetsAsync = ref.watch(vendorBouquetsStreamProvider);
     final user = ref.watch(authStateProvider).value;
     final codeQuery =
@@ -44,7 +97,7 @@ class VendorBouquetsPage extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         codeQuery.isEmpty
-                            ? 'Manage your bouquets. Edit or delete below.'
+                            ? 'Manage your bouquets. Edit or delete below. Select multiple to delete at once.'
                             : 'Search by code: "$codeQuery"',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.inkMuted,
@@ -66,6 +119,45 @@ class VendorBouquetsPage extends ConsumerWidget {
                   ),
               ],
             ),
+            if (_selectedIds.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.sage.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      '${_selectedIds.length} selected',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.ink,
+                          ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => setState(() => _selectedIds.clear()),
+                      child: Text('Clear', style: TextStyle(color: AppColors.inkMuted)),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: user == null
+                          ? null
+                          : () => _bulkDelete(ref, _selectedIds.toList()),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text('Delete selected'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             bouquetsAsync.when(
               loading: () => const Center(
@@ -102,6 +194,8 @@ class VendorBouquetsPage extends ConsumerWidget {
                             bouquet: b,
                             user: user!,
                             ref: ref,
+                            isSelected: _selectedIds.contains(b.id),
+                            onToggleSelect: () => _toggleSelection(b.id),
                             onEdit: () => _showEditSheet(context, ref, user, b),
                           ))
                       .toList(),
@@ -170,7 +264,7 @@ class VendorBouquetsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             PrimaryButton(
-              label: 'Save price',
+              label: 'Change Price',
               onPressed: () async {
                 final price = int.tryParse(priceController.text.trim());
                 if (price == null) return;
@@ -186,7 +280,7 @@ class VendorBouquetsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             PrimaryButton(
-              label: 'Replace photos',
+              label: 'Replace photo',
               onPressed: () async {
                 Navigator.of(ctx).pop();
                 final images = await ImagePicker().pickMultiImage();
@@ -239,7 +333,7 @@ class VendorBouquetsPage extends ConsumerWidget {
                 }
               },
               icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-              label: const Text('Delete bouquet',
+              label: const Text('Delete',
                   style: TextStyle(
                       color: Colors.red, fontWeight: FontWeight.w600)),
             ),
@@ -255,14 +349,43 @@ class _BouquetCard extends StatelessWidget {
   final FlowerModel bouquet;
   final fa.User user;
   final WidgetRef ref;
+  final bool isSelected;
+  final VoidCallback onToggleSelect;
   final VoidCallback onEdit;
 
   const _BouquetCard({
     required this.bouquet,
     required this.user,
     required this.ref,
+    required this.isSelected,
+    required this.onToggleSelect,
     required this.onEdit,
   });
+
+  Widget _selectionCheckbox(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onToggleSelect,
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: Checkbox(
+              value: isSelected,
+              onChanged: (_) => onToggleSelect(),
+              activeColor: AppColors.sage,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -275,9 +398,12 @@ class _BouquetCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isSelected ? AppColors.sage.withValues(alpha: 0.08) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: isSelected ? AppColors.sage : AppColors.border,
+          width: isSelected ? 2 : 1,
+        ),
       ),
       child: isNarrow
           ? Column(
@@ -285,6 +411,7 @@ class _BouquetCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
+                    _selectionCheckbox(context),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: SizedBox(
@@ -337,20 +464,7 @@ class _BouquetCard extends StatelessWidget {
                               color: AppColors.inkMuted,
                             ),
                       ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.sage.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'Active',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.ink,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
+                    _StatusBadge(status: bouquet.status),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -363,6 +477,7 @@ class _BouquetCard extends StatelessWidget {
             )
           : Row(
               children: [
+                _selectionCheckbox(context),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: SizedBox(
@@ -413,20 +528,7 @@ class _BouquetCard extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.sage.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Active',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.ink,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
+                _StatusBadge(status: bouquet.status),
                 const SizedBox(width: 12),
                 PrimaryButton(
                   label: 'Edit',
@@ -435,6 +537,53 @@ class _BouquetCard extends StatelessWidget {
                 ),
               ],
             ),
+    );
+  }
+}
+
+/// Badge for product approval status: Yellow = Pending Review, Green = Live, Red = Rejected.
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (String label, Color bgColor, Color textColor) = switch (status) {
+      'pending' => (
+          'Pending Review',
+          Colors.amber.shade100,
+          Colors.amber.shade900,
+        ),
+      'approved' => (
+          'Live',
+          AppColors.sage.withValues(alpha: 0.3),
+          AppColors.ink,
+        ),
+      'rejected' => (
+          'Rejected',
+          Colors.red.shade100,
+          Colors.red.shade900,
+        ),
+      _ => (
+          status,
+          AppColors.sage.withValues(alpha: 0.3),
+          AppColors.ink,
+        ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
+      ),
     );
   }
 }

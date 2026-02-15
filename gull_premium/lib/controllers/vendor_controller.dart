@@ -110,6 +110,7 @@ class VendorController extends AsyncNotifier<void> {
 
   /// Upload images and create bouquet. Returns generated code on success.
   /// [emotionCategoryId] must be one of [kEmotionCategoryIds] (love, apology, gratitude, etc.).
+  /// [productCodePrefix] when provided is used for the bouquet code (e.g. BD, AN); otherwise prefix is derived from [emotionCategoryId].
   Future<String?> publishBouquet({
     required fa.User user,
     required String name,
@@ -117,6 +118,7 @@ class VendorController extends AsyncNotifier<void> {
     required int priceIqd,
     required List<XFile> imageFiles,
     required String emotionCategoryId,
+    String? productCodePrefix,
   }) async {
     if (!isValidEmotionCategoryId(emotionCategoryId)) {
       throw ArgumentError('Invalid emotionCategoryId. Must be one of: $kEmotionCategoryIds');
@@ -143,7 +145,9 @@ class VendorController extends AsyncNotifier<void> {
         imageUrls.add(result.fullUrl);
         if (result.thumbUrl != null) thumbnailUrls.add(result.thumbUrl!);
       }
-      final prefix = codePrefixForEmotionCategoryId(emotionCategoryId);
+      final prefix = (productCodePrefix != null && productCodePrefix.isNotEmpty)
+          ? productCodePrefix
+          : codePrefixForEmotionCategoryId(emotionCategoryId);
       if (prefix.isEmpty) throw ArgumentError('Invalid emotion. Cannot generate bouquet code.');
       final bouquetCode = await _bouquetRepo.reserveNextBouquetCode(prefix);
       await _bouquetRepo.create(

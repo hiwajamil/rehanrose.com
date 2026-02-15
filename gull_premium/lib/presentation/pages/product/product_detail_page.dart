@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:seo/seo.dart';
 
 import '../../../controllers/controllers.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/services/whatsapp_service.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../core/utils/seo_meta_helper.dart';
 import '../../../l10n/app_localizations.dart';
@@ -12,6 +12,7 @@ import '../../../data/models/add_on_model.dart';
 import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/make_it_perfect_section.dart';
 import '../../widgets/common/order_via_whatsapp_button.dart';
+import '../../widgets/common/product_info_column.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
 
@@ -104,11 +105,6 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               ),
             );
           }
-          updatePageMeta(
-            title: '${bouquet.name} - $kAppName',
-            description: bouquet.description,
-            keywords: 'flowers, bouquet, ${bouquet.name}, Rehan Rose',
-          );
           final imageUrl = bouquet.imageUrls.isNotEmpty
               ? bouquet.imageUrls.first
               : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
@@ -116,6 +112,16 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           final bouquetCode = bouquet.bouquetCode.isNotEmpty
               ? bouquet.bouquetCode
               : null;
+          final metaDescription = bouquet.description.isNotEmpty
+              ? bouquet.description
+              : 'Code: ${bouquetCode ?? bouquet.id} • Price: $price';
+          updatePageMeta(
+            title: '${bouquet.name} - $kAppName',
+            description: metaDescription,
+            keywords: 'flowers, bouquet, ${bouquet.name}, Rehan Rose',
+            ogImage: imageUrl,
+            ogUrl: '${Uri.base.origin}/p/${bouquet.id}',
+          );
           final addOns = addOnsAsync.maybeWhen(
               data: (list) => list, orElse: () => <AddOnModel>[]);
           Widget makeItPerfectSection() {
@@ -137,7 +143,14 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   itemName: bouquet.name,
                 );
             ref.read(bouquetRepositoryProvider).incrementOrderCount(bouquet.id);
-            context.push('/flower/${widget.flowerId}/order');
+            launchWhatsAppOrder(
+              name: bouquet.name,
+              code: bouquetCode ?? bouquet.id,
+              price: price,
+              imageUrl: imageUrl,
+              productUrl: '${Uri.base.origin}/p/${bouquet.id}',
+              languageCode: Localizations.localeOf(context).languageCode,
+            );
           }
 
           return SectionContainer(
@@ -230,52 +243,12 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     String price,
     String? bouquetCode,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Seo.text(
-          text: name,
-          style: TextTagStyle.h2,
-          child: Text(
-            name,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-        ),
-        if (bouquetCode != null && bouquetCode.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Seo.text(
-            text: bouquetCode,
-            child: Text(
-              bouquetCode,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.inkMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        Seo.text(
-          text: description,
-          child: Text(
-            description,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.inkMuted,
-                ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Seo.text(
-          text: price,
-          child: Text(
-            price,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.ink,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-        ),
-      ],
+    return ProductInfoColumn(
+      code: bouquetCode,
+      name: name,
+      price: price,
+      description: description.isNotEmpty ? description : null,
+      isDetailPage: true,
     );
   }
 }
