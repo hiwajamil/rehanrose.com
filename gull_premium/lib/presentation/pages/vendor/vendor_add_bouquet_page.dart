@@ -12,41 +12,6 @@ import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/section_container.dart';
 
-/// Prefix for product code by occasion. Fallback: first 2 letters uppercase if not in map.
-const Map<String, String> _occasionPrefixes = {
-  'Birthday': 'BD',
-  'Anniversary': 'AN',
-  'Love & Romance': 'LV',
-  'New Born': 'NB',
-  'Get Well': 'GW',
-  'Wedding': 'WD',
-};
-
-/// Maps occasion (dropdown label) to [kEmotionCategoryIds] for backend.
-const Map<String, String> _occasionToEmotionCategoryId = {
-  'Birthday': 'celebration',
-  'Anniversary': 'love',
-  'Love & Romance': 'love',
-  'New Born': 'celebration',
-  'Get Well': 'wellness',
-  'Wedding': 'celebration',
-};
-
-/// Ordered list of occasions for the dropdown.
-const List<String> _occasionOptions = [
-  'Birthday',
-  'Anniversary',
-  'Love & Romance',
-  'New Born',
-  'Get Well',
-  'Wedding',
-];
-
-String _prefixForOccasion(String occasion) {
-  return _occasionPrefixes[occasion] ??
-      (occasion.length >= 2 ? occasion.substring(0, 2).toUpperCase() : 'XX');
-}
-
 /// Add new bouquet: name, occasion, price (IQD), max 3 images, description, availability.
 /// Product code is auto-generated from occasion (e.g. BD-402, AN-117).
 class VendorAddBouquetPage extends ConsumerStatefulWidget {
@@ -62,7 +27,8 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _codeController = TextEditingController();
-  String? _selectedOccasion;
+  /// Selected emotion category id (same ids as main page dropdown). Links to main page occasion after approval.
+  String? _selectedEmotionCategoryId;
   String? _occasionError;
   List<XFile> _images = [];
   bool _available = true;
@@ -79,12 +45,12 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
     super.dispose();
   }
 
-  void _onOccasionChanged(String? occasion) {
-    if (occasion == null || occasion.isEmpty) return;
+  void _onOccasionChanged(String? emotionCategoryId) {
+    if (emotionCategoryId == null || emotionCategoryId.isEmpty) return;
     setState(() {
-      _selectedOccasion = occasion;
+      _selectedEmotionCategoryId = emotionCategoryId;
       _occasionError = null;
-      final prefix = _prefixForOccasion(occasion);
+      final prefix = codePrefixForEmotionCategoryId(emotionCategoryId);
       final randomNumber = _random.nextInt(900) + 100;
       _codeController.text = '$prefix-$randomNumber';
     });
@@ -110,13 +76,18 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
       _message('Please enter a bouquet name.');
       return;
     }
-    if (_selectedOccasion == null || _selectedOccasion!.isEmpty) {
+    if (_selectedEmotionCategoryId == null || _selectedEmotionCategoryId!.isEmpty) {
       setState(() => _occasionError = 'Please select an occasion.');
       _message('Please select an occasion.');
       return;
     }
-    final emotionCategoryId = _occasionToEmotionCategoryId[_selectedOccasion];
-    if (emotionCategoryId == null || !isValidEmotionCategoryId(emotionCategoryId)) {
+    final emotionCategoryId = _selectedEmotionCategoryId!;
+    if (!isValidEmotionCategoryId(emotionCategoryId)) {
+      setState(() => _occasionError = 'Invalid selection.');
+      return;
+    }
+    final occasionLabel = kOccasionLabelByEmotionCategoryId[emotionCategoryId];
+    if (occasionLabel == null || occasionLabel.isEmpty) {
       setState(() => _occasionError = 'Invalid selection.');
       return;
     }
@@ -139,28 +110,29 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
 
     setState(() => _submitting = true);
     try {
-      final codePrefix = _prefixForOccasion(_selectedOccasion!);
+      final codePrefix = codePrefixForEmotionCategoryId(emotionCategoryId);
       final code = await ref.read(vendorControllerProvider.notifier).publishBouquet(
             user: user,
             name: name,
             description: description,
             priceIqd: price,
             imageFiles: _images,
+            occasion: occasionLabel,
             emotionCategoryId: emotionCategoryId,
             productCodePrefix: codePrefix,
           );
       if (!mounted) return;
       _message(
         code != null
-            ? 'Bouquet submitted for approval. Code: $code. It will appear on the main screen after the super admin approves it.'
-            : 'Bouquet submitted for approval. It will appear on the main screen after the super admin approves it.',
+            ? 'Bouquet submitted for approval. Code: $code. It will appear under "$occasionLabel" on the main page after the super admin approves it.'
+            : 'Bouquet submitted for approval. It will appear under "$occasionLabel" on the main page after the super admin approves it.',
       );
       _nameController.clear();
       _descriptionController.clear();
       _priceController.clear();
       setState(() {
         _images = [];
-        _selectedOccasion = null;
+        _selectedEmotionCategoryId = null;
         _occasionError = null;
         _codeController.clear();
       });
@@ -222,7 +194,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   ),
                   const SizedBox(height: 20),
                   _OccasionDropdown(
-                    value: _selectedOccasion,
+                    value: _selectedEmotionCategoryId,
                     error: _occasionError,
                     onChanged: _onOccasionChanged,
                   ),
@@ -309,7 +281,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   const SizedBox(height: 24),
                   PrimaryButton(
                     label: _submitting ? 'Publishing...' : 'Publish bouquet',
-                    onPressed: _submitting || _selectedOccasion == null
+                    onPressed: _submitting || _selectedEmotionCategoryId == null
                         ? () {}
                         : _submit,
                   ),
@@ -414,7 +386,7 @@ class _OccasionDropdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value != null && _occasionOptions.contains(value) ? value : null,
+          value: value != null && isValidEmotionCategoryId(value) ? value : null,
           decoration: InputDecoration(
             errorText: error,
             filled: true,
@@ -432,11 +404,22 @@ class _OccasionDropdown extends StatelessWidget {
               borderSide: const BorderSide(color: AppColors.rose),
             ),
           ),
-          hint: const Text('Choose occasion'),
-          items: _occasionOptions
-              .map((occasion) => DropdownMenuItem<String>(
-                    value: occasion,
-                    child: Text(occasion),
+          hint: const Text('Choose occasion (same as main page)'),
+          items: kEmotionCategories
+              .map((c) => DropdownMenuItem<String>(
+                    value: c.id,
+                    child: Row(
+                      children: [
+                        Icon(c.icon, size: 22, color: AppColors.rose),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            kOccasionLabelByEmotionCategoryId[c.id] ?? c.id,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ))
               .toList(),
           onChanged: onChanged,

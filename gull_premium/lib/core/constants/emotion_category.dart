@@ -26,9 +26,13 @@ const List<String> kEmotionCategoryIds = [
   'sympathy',
   'wellness',
   'celebration',
+  'birthday',
+  'anniversary',
+  'newborn',
+  'wedding',
 ];
 
-/// Static list of emotion categories.
+/// Static list of emotion categories (main page dropdown occasions).
 const List<EmotionCategory> kEmotionCategories = [
   EmotionCategory(
     id: 'love',
@@ -66,6 +70,30 @@ const List<EmotionCategory> kEmotionCategories = [
     icon: Icons.celebration_outlined,
     color: Color(0xFFFFECB3), // soft gold
   ),
+  EmotionCategory(
+    id: 'birthday',
+    titleKey: 'cat_birthday',
+    icon: Icons.cake_outlined,
+    color: Color(0xFFFFE0E9), // birthday pink
+  ),
+  EmotionCategory(
+    id: 'anniversary',
+    titleKey: 'cat_anniversary',
+    icon: Icons.favorite_rounded,
+    color: Color(0xFFFCE4EC), // soft rose
+  ),
+  EmotionCategory(
+    id: 'newborn',
+    titleKey: 'cat_newborn',
+    icon: Icons.child_care_outlined,
+    color: Color(0xFFE1F5FE), // soft baby blue
+  ),
+  EmotionCategory(
+    id: 'wedding',
+    titleKey: 'cat_wedding',
+    icon: Icons.diamond_outlined,
+    color: Color(0xFFF3E5F5), // soft lavender
+  ),
 ];
 
 /// Returns true if [id] is a valid emotion category ID.
@@ -92,6 +120,34 @@ String codePrefixForEmotionCategoryId(String emotionCategoryId) {
     'sympathy': 'Sy',
     'wellness': 'We',
     'celebration': 'Ce',
+    'birthday': 'BD',
+    'anniversary': 'AN',
+    'newborn': 'NB',
+    'wedding': 'WD',
   };
   return prefixes[emotionCategoryId] ?? '';
+}
+
+/// Canonical occasion label (English) for Firestore and vendor dropdown.
+/// Single source of truth so vendor-selected occasion appears under the same occasion on the main page.
+const Map<String, String> kOccasionLabelByEmotionCategoryId = {
+  'love': 'Love',
+  'apology': "I'm Sorry",
+  'gratitude': 'Thank You',
+  'sympathy': 'Sympathy',
+  'wellness': 'Get Well',
+  'celebration': 'Celebration',
+  'birthday': 'Birthday',
+  'anniversary': 'Anniversary',
+  'newborn': 'New Born',
+  'wedding': 'Wedding',
+};
+
+/// Display label for a bouquet's occasion (vendor list, detail). Prefers [emotionCategoryId], falls back to [occasion] string.
+String occasionDisplayLabel({String? occasion, String? emotionCategoryId}) {
+  if (emotionCategoryId != null && emotionCategoryId.isNotEmpty) {
+    final label = kOccasionLabelByEmotionCategoryId[emotionCategoryId];
+    if (label != null) return label;
+  }
+  return occasion?.trim().isNotEmpty == true ? occasion!.trim() : '';
 }

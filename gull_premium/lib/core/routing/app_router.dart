@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +26,7 @@ import '../../presentation/pages/vendor/vendor_notifications_page.dart';
 import '../../presentation/pages/vendor/vendor_shop_settings_page.dart';
 import '../../presentation/pages/vendor/vendor_support_page.dart';
 import '../../presentation/widgets/layout/vendor_shell_layout.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../features/dashboard/dashboard_resolver_page.dart';
 
 class AppRouter {
@@ -32,6 +34,19 @@ class AppRouter {
     observers: isFirebaseInitialized
         ? [FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)]
         : [],
+    redirect: (context, state) async {
+      final location = state.matchedLocation;
+      if (location.startsWith('/vendor')) {
+        final user = fa.FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final authRepo = AuthRepository();
+          if (await authRepo.isAdmin(user.uid)) {
+            return '/admin';
+          }
+        }
+      }
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/',

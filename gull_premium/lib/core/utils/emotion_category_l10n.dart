@@ -15,6 +15,14 @@ String localizedEmotionCategoryTitle(AppLocalizations l10n, String titleKey) {
       return l10n.cat_wellness;
     case 'cat_celebration':
       return l10n.cat_celebration;
+    case 'cat_birthday':
+      return l10n.cat_birthday;
+    case 'cat_anniversary':
+      return l10n.cat_anniversary;
+    case 'cat_newborn':
+      return l10n.cat_newborn;
+    case 'cat_wedding':
+      return l10n.cat_wedding;
     default:
       return titleKey;
   }

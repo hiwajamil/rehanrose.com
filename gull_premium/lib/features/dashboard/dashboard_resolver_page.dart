@@ -49,10 +49,12 @@ class _RoleResolverState extends ConsumerState<_RoleResolver> {
 
   Future<String?> _resolveRole() async {
     final authRepo = ref.read(authRepositoryProvider);
+    // Super admin / admin must go to admin dashboard; check isAdmin first.
+    final isAdmin = await authRepo.isAdmin(widget.uid);
+    if (isAdmin) return 'admin';
     final role = await authRepo.getUserRole(widget.uid);
     if (role != null && role.isNotEmpty) return role;
-    final isAdmin = await authRepo.isAdmin(widget.uid);
-    return isAdmin ? 'admin' : null;
+    return null;
   }
 
   @override

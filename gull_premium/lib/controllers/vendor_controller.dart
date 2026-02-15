@@ -109,14 +109,16 @@ class VendorController extends AsyncNotifier<void> {
   }
 
   /// Upload images and create bouquet. Returns generated code on success.
+  /// [occasion] is saved to Firestore exactly as provided (e.g. "I'm Sorry") for User App queries.
   /// [emotionCategoryId] must be one of [kEmotionCategoryIds] (love, apology, gratitude, etc.).
-  /// [productCodePrefix] when provided is used for the bouquet code (e.g. BD, AN); otherwise prefix is derived from [emotionCategoryId].
+  /// [productCodePrefix] when provided is used for the bouquet code (e.g. IS, BD); otherwise prefix is derived from [emotionCategoryId].
   Future<String?> publishBouquet({
     required fa.User user,
     required String name,
     required String description,
     required int priceIqd,
     required List<XFile> imageFiles,
+    required String occasion,
     required String emotionCategoryId,
     String? productCodePrefix,
   }) async {
@@ -158,7 +160,7 @@ class VendorController extends AsyncNotifier<void> {
         imageUrls: imageUrls,
         thumbnailUrls:
             thumbnailUrls.isEmpty ? null : thumbnailUrls,
-        occasion: emotionCategoryId,
+        occasion: occasion,
         bouquetCode: bouquetCode,
         emotionCategoryId: emotionCategoryId,
       );

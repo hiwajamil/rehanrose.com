@@ -243,6 +243,18 @@ class AppLocalizationsKu extends AppLocalizations {
   String get cat_celebration => 'بۆنە و ئاهەنگ';
 
   @override
+  String get cat_birthday => 'ڕۆژی لەدایکبوون';
+
+  @override
+  String get cat_anniversary => 'ساڵیادی';
+
+  @override
+  String get cat_newborn => 'منداڵی نوێ';
+
+  @override
+  String get cat_wedding => 'ئاهەنگی هاوسەرگیری';
+
+  @override
   String get vendor_emotion_label => 'هەستی سەرەکی';
 
   @override

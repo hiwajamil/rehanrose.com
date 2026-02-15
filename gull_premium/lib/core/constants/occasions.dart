@@ -2,12 +2,14 @@
 /// Used by: vendor dropdown, Firestore save, home page filter.
 /// Do not modify values (no lowercase, trim, or formatting).
 const List<String> kOccasions = [
-  'Birthday',
-  'Wedding',
-  'Sympathy',
+  'Love',
+  "I'm Sorry",
   'Thank You',
-  'Friendship',
-  'Congratulations',
+  'Sympathy',
+  'Get Well',
+  'Celebration',
+  'Birthday',
   'Anniversary',
-  'Miss You',
+  'New Born',
+  'Wedding',
 ];

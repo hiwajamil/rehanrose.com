@@ -550,6 +550,30 @@ abstract class AppLocalizations {
   /// **'Celebration'**
   String get cat_celebration;
 
+  /// No description provided for @cat_birthday.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday'**
+  String get cat_birthday;
+
+  /// No description provided for @cat_anniversary.
+  ///
+  /// In en, this message translates to:
+  /// **'Anniversary'**
+  String get cat_anniversary;
+
+  /// No description provided for @cat_newborn.
+  ///
+  /// In en, this message translates to:
+  /// **'New Born'**
+  String get cat_newborn;
+
+  /// No description provided for @cat_wedding.
+  ///
+  /// In en, this message translates to:
+  /// **'Wedding'**
+  String get cat_wedding;
+
   /// No description provided for @vendor_emotion_label.
   ///
   /// In en, this message translates to:

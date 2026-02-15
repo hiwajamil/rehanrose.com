@@ -76,7 +76,10 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
             password: _signUpPasswordController.text.trim(),
           );
       if (!mounted) return;
-      _showMessage('Application submitted. You will be notified after review.');
+      _showMessage(
+        'Application submitted. It has been sent to the super admin for approval. '
+        'You can sign in once your application is approved.',
+      );
       setState(() => _isSignIn = true);
     } on fa.FirebaseAuthException catch (e) {
       _showMessage(e.message ?? 'Unable to submit application.');

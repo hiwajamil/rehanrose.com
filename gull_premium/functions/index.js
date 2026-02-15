@@ -35,12 +35,23 @@ function escapeHtml(s) {
 exports.getFlowerPreview = onRequest(
   { region: 'europe-west1' },
   async (req, res) => {
-    const path = req.path || req.url || '';
-    const match = path.match(/^\/p\/([^/?#]+)/);
+    // Path can appear in different props; some proxies send original path in a header
+    const pathRaw =
+      req.get('x-original-url') ||
+      req.get('x-forwarded-path') ||
+      req.originalUrl ||
+      req.url ||
+      req.path ||
+      '';
+    const path = pathRaw.split('?')[0].split('#')[0].trim() || '';
+    const match = path.match(/\/p\/([^/]+)/);
     const id = match ? match[1].trim() : null;
 
     if (!id) {
-      res.status(400).send('Bad request: missing bouquet id');
+      const origin = `${req.protocol || 'https'}://${req.get('host') || 'rehanrose.com'}`;
+      res.status(400).type('html').send(
+        `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="3;url=${origin}"><title>Invalid link</title></head><body><p>Invalid or incomplete link. Redirecting to <a href="${origin}">Rehan Rose</a>…</p></body></html>`
+      );
       return;
     }
 

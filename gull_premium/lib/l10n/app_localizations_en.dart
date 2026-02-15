@@ -242,6 +242,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cat_celebration => 'Celebration';
 
   @override
+  String get cat_birthday => 'Birthday';
+
+  @override
+  String get cat_anniversary => 'Anniversary';
+
+  @override
+  String get cat_newborn => 'New Born';
+
+  @override
+  String get cat_wedding => 'Wedding';
+
+  @override
   String get vendor_emotion_label => 'Primary Emotion';
 
   @override

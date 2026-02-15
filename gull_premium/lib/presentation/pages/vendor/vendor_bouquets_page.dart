@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/emotion_categories.dart';
+import '../../../core/constants/emotion_category.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/flower_model.dart';
@@ -451,7 +451,7 @@ class _BouquetCard extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     Text(
-                      labelForEmotionValue(bouquet.occasion),
+                      occasionDisplayLabel(occasion: bouquet.occasion, emotionCategoryId: bouquet.emotionCategoryId),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppColors.inkMuted,
                             fontWeight: FontWeight.w600,
@@ -502,7 +502,7 @@ class _BouquetCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
                       Text(
-                        labelForEmotionValue(bouquet.occasion),
+                        occasionDisplayLabel(occasion: bouquet.occasion, emotionCategoryId: bouquet.emotionCategoryId),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppColors.inkMuted,
                               fontWeight: FontWeight.w600,

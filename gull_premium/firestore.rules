@@ -8,15 +8,19 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      let userPath = (/databases/$(database)/documents/users/$(uid)).bind({'database': database, 'uid': request.auth.uid});
+      let adminPath = (/databases/$(database)/documents/admins/$(uid)).bind({'database': database, 'uid': request.auth.uid});
       return isAuthenticated()
-          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+          && (
+            (exists(userPath) && get(userPath).data.role == 'admin')
+          || exists(adminPath));
     }
 
     function isVendor() {
+      let userPath = (/databases/$(database)/documents/users/$(uid)).bind({'database': database, 'uid': request.auth.uid});
       return isAuthenticated()
-          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor';
+          && exists(userPath)
+          && get(userPath).data.role == 'vendor';
     }
 
     function isOwner(userId) {
@@ -39,10 +43,10 @@ service cloud.firestore {
           || (isVendor() && resource.data.vendorId == request.auth.uid)
           || isAdmin();
       allow create: if request.auth != null
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'vendor'];
+          && get((/databases/$(database)/documents/users/$(uid)).bind({'database': database, 'uid': request.auth.uid})).data.role in ['admin', 'vendor'];
       allow update, delete: if isAdmin()
           || (request.auth != null
-              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor'
+              && get((/databases/$(database)/documents/users/$(uid)).bind({'database': database, 'uid': request.auth.uid})).data.role == 'vendor'
               && resource.data.vendorId == request.auth.uid);
     }
 
@@ -86,6 +90,22 @@ service cloud.firestore {
     match /vendors/{vendorId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+    }
+
+    // ─── admins ───────────────────────────────────────────────────────────
+    // Used to grant admin access. Read: authenticated (to check isAdmin). Write: console only.
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // ─── vendor_applications ──────────────────────────────────────────────
+    // Create: new vendor applicant (doc id = their uid). Read/update: admin only (list pending, approve/reject).
+    match /vendor_applications/{applicationId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.id == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Default: deny all other paths

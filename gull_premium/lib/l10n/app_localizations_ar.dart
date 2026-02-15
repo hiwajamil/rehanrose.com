@@ -239,6 +239,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cat_celebration => 'الاحتفالات';
 
   @override
+  String get cat_birthday => 'عيد الميلاد';
+
+  @override
+  String get cat_anniversary => 'ذكرى';
+
+  @override
+  String get cat_newborn => 'مولود جديد';
+
+  @override
+  String get cat_wedding => 'زفاف';
+
+  @override
   String get vendor_emotion_label => 'الشعور الأساسي';
 
   @override
