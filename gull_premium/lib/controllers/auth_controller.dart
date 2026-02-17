@@ -16,8 +16,10 @@ final authStateProvider = StreamProvider<fa.User?>((ref) {
 });
 
 /// Stream of pending vendor applications (for admin dashboard).
-final pendingVendorApplicationsStreamProvider = StreamProvider.autoDispose<
-    QuerySnapshot<Map<String, dynamic>>>((ref) {
+/// Not autoDispose so the stream is not restarted on rebuilds, avoiding
+/// the approval cards flickering (appear/disappear) on the admin dashboard.
+final pendingVendorApplicationsStreamProvider =
+    StreamProvider<QuerySnapshot<Map<String, dynamic>>>((ref) {
   return ref.watch(authRepositoryProvider).watchVendorApplications();
 });
 
@@ -30,4 +32,11 @@ final vendorsListProvider = FutureProvider.autoDispose<List<VendorListModel>>((r
 final vendorByIdProvider =
     FutureProvider.autoDispose.family<VendorListModel?, String>((ref, vendorId) {
   return ref.read(authRepositoryProvider).getVendorById(vendorId);
+});
+
+/// Vendor status for the given uid. Used on vendor dashboard to avoid showing
+/// dashboard briefly before sign-out when the user just submitted an application.
+final vendorStatusForUidProvider =
+    FutureProvider.autoDispose.family<String, String>((ref, uid) {
+  return ref.read(authRepositoryProvider).getVendorStatus(uid);
 });

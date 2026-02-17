@@ -289,6 +289,31 @@ class AppLocalizationsKu extends AppLocalizations {
   String get orderViaWhatsApp => 'داواکردن بە واتساپ';
 
   @override
+  String get includesFreeVoiceMessageQRCode =>
+      'کۆدی QRی نامەی دەنگی بەخۆڕایی لەخۆدەگرێت';
+
+  @override
+  String get addOnPersonalizationTitle => 'زیادە و تایبەتمەندی';
+
+  @override
+  String get step1AddOns => 'هەنگاو ١: زیادەکان';
+
+  @override
+  String get step2VoiceMessage => 'هەنگاو ٢: نامەی دەنگی';
+
+  @override
+  String get step3Order => 'هەنگاو ٣: داواکاری';
+
+  @override
+  String get couldNotLoadProduct => 'بارکردنی بەرهەم سەرکەوتوو نەبوو.';
+
+  @override
+  String get productNotFound => 'بەرهەم نەدۆزرایەوە.';
+
+  @override
+  String get voiceMessageAdded => 'نامەی دەنگی زیادکرا';
+
+  @override
   String get payWithFIB => 'پارە بدە بە FIB';
 
   @override

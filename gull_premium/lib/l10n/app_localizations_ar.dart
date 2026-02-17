@@ -284,6 +284,31 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orderViaWhatsApp => 'طلب عبر واتساب';
 
   @override
+  String get includesFreeVoiceMessageQRCode =>
+      'يتضمن رمز QR مجاني للرسالة الصوتية';
+
+  @override
+  String get addOnPersonalizationTitle => 'الإضافات والتخصيص';
+
+  @override
+  String get step1AddOns => 'الخطوة 1: الإضافات';
+
+  @override
+  String get step2VoiceMessage => 'الخطوة 2: الرسالة الصوتية';
+
+  @override
+  String get step3Order => 'الخطوة 3: الطلب';
+
+  @override
+  String get couldNotLoadProduct => 'تعذر تحميل المنتج.';
+
+  @override
+  String get productNotFound => 'المنتج غير موجود.';
+
+  @override
+  String get voiceMessageAdded => 'تمت إضافة الرسالة الصوتية';
+
+  @override
   String get payWithFIB => 'الدفع بـ FIB';
 
   @override

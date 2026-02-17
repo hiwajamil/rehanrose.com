@@ -8,3 +8,4 @@ export 'bouquets_controller.dart';
 export 'connectivity_controller.dart';
 export 'order_controller.dart';
 export 'vendor_controller.dart';
+export 'voice_message_controller.dart';

@@ -14,5 +14,10 @@ service firebase.storage {
       allow read: if true;
       allow write: if isSignedIn();
     }
+
+    match /voice_messages/{fileName} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

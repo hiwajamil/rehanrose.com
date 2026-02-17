@@ -127,8 +127,60 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
       error: (_, __) => AppScaffold(child: _buildMarketing(context)),
       data: (user) {
         if (user == null) return AppScaffold(child: _buildMarketing(context));
-        return const VendorDashboardHomePage();
+        // Resolve vendor status so we never show the dashboard for a pending
+        // user (e.g. right after submit, before signOut() completes).
+        final statusAsync = ref.watch(vendorStatusForUidProvider(user.uid));
+        return statusAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => AppScaffold(child: _buildMarketing(context)),
+          data: (status) {
+            if (status == 'approved') {
+              return const VendorDashboardHomePage();
+            }
+            // Not approved: show wait-for-approval screen. Do NOT auto sign-out
+            // here — it would race with submitApplication() which still needs
+            // the user to be signed in to write users/ and vendor_applications/.
+            // User can tap "Back to sign in" to sign out.
+            return AppScaffold(
+              child: _buildWaitForApproval(context, status == 'rejected'),
+            );
+          },
+        );
       },
+    );
+  }
+
+  Widget _buildWaitForApproval(BuildContext context, bool rejected) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              rejected ? Icons.cancel_outlined : Icons.schedule_outlined,
+              size: 64,
+              color: AppColors.inkMuted,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              rejected
+                  ? 'Your application was rejected. Contact support for details.'
+                  : 'Your application has been sent to the super admin for approval. '
+                      'You can sign in once your application is approved.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.inkMuted,
+                  ),
+            ),
+            const SizedBox(height: 24),
+            TextButton(
+              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+              child: const Text('Back to sign in'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

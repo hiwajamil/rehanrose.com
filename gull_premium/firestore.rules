@@ -59,12 +59,13 @@ service cloud.firestore {
     // ─── bouquets (flower products) ────────────────────────────────────────
     // Read: public. Create: admin (any) or vendor (only with approvalStatus == 'pending').
     // Update: admins (e.g. set approvalStatus to approved/rejected); or analytics-only (viewCount/orderCount).
-    // Delete: admins only. Approved bouquets appear on main screen.
+    // Delete: admins; or vendor for their own bouquets only (dashboard).
     match /bouquets/{bouquetId} {
       allow read: if true;
       allow create: if isAdmin()
           || (isVendor() && request.resource.data.approvalStatus == 'pending');
-      allow delete: if isAdmin();
+      allow delete: if isAdmin()
+          || (isVendor() && resource.data.vendorId == request.auth.uid);
       allow update: if isAdmin()
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderCount'])
@@ -103,7 +104,7 @@ service cloud.firestore {
     // Create: new vendor applicant (doc id = their uid). Read/update: admin only (list pending, approve/reject).
     match /vendor_applications/{applicationId} {
       allow read: if isAdmin();
-      allow create: if isAuthenticated() && request.resource.id == request.auth.uid;
+      allow create: if isAuthenticated() && applicationId == request.auth.uid;
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }

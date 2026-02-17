@@ -310,14 +310,14 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                         ],
                       ),
                       const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OrderViaWhatsAppButton(
-                          label: l10n.orderViaWhatsApp,
-                          onPressed: () {
-                            ref.read(analyticsServiceProvider).logClickWhatsApp(
-                                  itemId: bouquet.id,
-                                  itemName: bouquet.name,
+SizedBox(
+                          width: double.infinity,
+                          child: OrderViaWhatsAppButton(
+                            label: l10n.orderViaWhatsApp,
+                            onPressed: () {
+                              ref.read(analyticsServiceProvider).logClickWhatsApp(
+                                    itemId: bouquet.id,
+                                    itemName: bouquet.name,
                                 );
                             _orderViaWhatsApp(bouquet);
                           },

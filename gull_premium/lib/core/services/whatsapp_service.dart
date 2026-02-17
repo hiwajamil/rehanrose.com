@@ -19,6 +19,7 @@ const String kWhatsAppOrderGreetingArabic =
 /// [selectedAddOns] appear as "Add-on: [Name] - [Price]".
 /// [totalPriceIqd] is flower + add-ons when provided.
 /// [productUrl] optional link to product page (e.g. https://rehanrose.com/flower/123).
+/// [voiceMessageUrl] optional URL of the recorded voice message (for vendor to print QR).
 Future<bool> launchOrderWhatsApp({
   required String flowerName,
   required String flowerPrice,
@@ -28,15 +29,19 @@ Future<bool> launchOrderWhatsApp({
   List<AddOnModel>? selectedAddOns,
   int? totalPriceIqd,
   String? productUrl,
+  String? voiceMessageUrl,
 }) async {
   final lines = <String>[
     'Hello, I would like to order:',
     '',
     'Flower: $flowerName - $flowerPrice',
+    if (bouquetCode != null && bouquetCode.isNotEmpty) 'Bouquet Code: $bouquetCode',
     if (selectedAddOns != null && selectedAddOns.isNotEmpty) ...[
       for (final a in selectedAddOns) 'Add-on: ${a.nameEn} - ${iqdPriceString(a.priceIqd)}',
     ],
     if (totalPriceIqd != null) 'Total Price: ${iqdPriceString(totalPriceIqd)}',
+    if (voiceMessageUrl != null && voiceMessageUrl.isNotEmpty)
+      'Voice Message (QR): $voiceMessageUrl',
     if (productUrl != null && productUrl.isNotEmpty) 'Link: $productUrl',
   ];
   final body = lines.join('\n');

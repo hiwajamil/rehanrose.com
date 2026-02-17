@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:seo/seo.dart';
 
 import '../../../controllers/controllers.dart';
-import '../../../core/services/whatsapp_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../common/app_cached_image.dart';
 import '../common/order_via_whatsapp_button.dart';
 import '../common/product_info_column.dart';
+import '../add_on_personalization_modal.dart';
 
 /// Bouquet card: static, no hover/transform/transition. Calm, premium experience.
 /// When [isCompact] is true (mobile), uses reduced padding, capped image height, and smaller text.
-/// Tapping anywhere on the card (image, title, price, or button) navigates to Product Details & Customization (/flower/:id/order).
+/// Tapping anywhere on the card (image, title, price, or button) opens the Add-on & Personalization modal.
 class FlowerCard extends ConsumerWidget {
   final String id;
   final String name;
@@ -55,9 +54,9 @@ class FlowerCard extends ConsumerWidget {
   /// Image aspect: taller portrait for bouquet photos (smaller ratio = taller image).
   static const double _imageAspectRatio = 0.65;
 
-  /// Single navigation target: Product Details & Customization (Vases, Chocolates, etc.).
-  static void _navigateToProductDetails(BuildContext context, String flowerId) {
-    context.push('/flower/$flowerId/order');
+  /// Opens the Add-on & Personalization modal (same as Order via WhatsApp).
+  static void _openAddOnModal(BuildContext context, String flowerId) {
+    showAddOnPersonalizationModal(context, flowerId);
   }
 
   @override
@@ -80,7 +79,7 @@ class FlowerCard extends ConsumerWidget {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => _navigateToProductDetails(context, id),
+              onTap: () => _openAddOnModal(context, id),
               borderRadius: BorderRadius.circular(borderRadius),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,20 +91,20 @@ class FlowerCard extends ConsumerWidget {
                         ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
                         : imageUrl,
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(8),
-                      ),
-                      child: AspectRatio(
-                        aspectRatio: _imageAspectRatio,
-                        child: AppCachedImage(
-                          imageUrl: imageUrl.isEmpty
-                              ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
-                              : imageUrl,
-                          fit: BoxFit.cover,
-                          memCacheWidth: cacheW,
-                          memCacheHeight: cacheH,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(8),
                         ),
-                      ),
+                        child: AspectRatio(
+                          aspectRatio: _imageAspectRatio,
+                          child: AppCachedImage(
+                            imageUrl: imageUrl.isEmpty
+                                ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
+                                : imageUrl,
+                            fit: BoxFit.cover,
+                            memCacheWidth: cacheW,
+                            memCacheHeight: cacheH,
+                          ),
+                        ),
                     ),
                   ),
                   Padding(
@@ -141,14 +140,7 @@ class FlowerCard extends ConsumerWidget {
                                     itemId: id,
                                     itemName: name,
                                   );
-                              launchWhatsAppOrder(
-                                name: name,
-                                code: bouquetCode ?? id,
-                                price: price,
-                                imageUrl: imageUrl.isEmpty ? null : imageUrl,
-                                productUrl: '${Uri.base.origin}/p/$id',
-                                languageCode: Localizations.localeOf(context).languageCode,
-                              );
+                              showAddOnPersonalizationModal(context, id);
                             },
                             enabled: orderButtonEnabled,
                           ),

@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:seo/seo.dart';
 
 import '../../../controllers/controllers.dart';
-import '../../../core/services/whatsapp_service.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../core/utils/seo_meta_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../data/models/add_on_model.dart';
+import '../../widgets/add_on_personalization_modal.dart';
 import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/make_it_perfect_section.dart';
 import '../../widgets/common/order_via_whatsapp_button.dart';
@@ -142,15 +142,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   itemId: bouquet.id,
                   itemName: bouquet.name,
                 );
-            ref.read(bouquetRepositoryProvider).incrementOrderCount(bouquet.id);
-            launchWhatsAppOrder(
-              name: bouquet.name,
-              code: bouquetCode ?? bouquet.id,
-              price: price,
-              imageUrl: imageUrl,
-              productUrl: '${Uri.base.origin}/p/${bouquet.id}',
-              languageCode: Localizations.localeOf(context).languageCode,
-            );
+            showAddOnPersonalizationModal(context, bouquet.id);
           }
 
           return SectionContainer(

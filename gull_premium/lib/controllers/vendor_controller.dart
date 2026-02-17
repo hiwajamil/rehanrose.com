@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -74,6 +75,14 @@ class VendorController extends AsyncNotifier<void> {
       state = const AsyncValue.data(null);
     } on fa.FirebaseAuthException catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    } on FirebaseException catch (e, st) {
+      state = AsyncValue.error(e, st);
+      throw Exception(
+        e.message ?? 'Could not save application. Please check your connection and try again.',
+      );
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
       rethrow;
     }
   }

@@ -288,6 +288,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderViaWhatsApp => 'Order via WhatsApp';
 
   @override
+  String get includesFreeVoiceMessageQRCode =>
+      'Includes Free Voice Message QR Code';
+
+  @override
+  String get addOnPersonalizationTitle => 'Add-on & Personalization';
+
+  @override
+  String get step1AddOns => 'Step 1: Add-ons';
+
+  @override
+  String get step2VoiceMessage => 'Step 2: Voice Message';
+
+  @override
+  String get step3Order => 'Step 3: Order';
+
+  @override
+  String get couldNotLoadProduct => 'Could not load product.';
+
+  @override
+  String get productNotFound => 'Product not found.';
+
+  @override
+  String get voiceMessageAdded => 'Voice message added';
+
+  @override
   String get payWithFIB => 'Pay with FIB';
 
   @override

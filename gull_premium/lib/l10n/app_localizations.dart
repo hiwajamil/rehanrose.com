@@ -640,6 +640,54 @@ abstract class AppLocalizations {
   /// **'Order via WhatsApp'**
   String get orderViaWhatsApp;
 
+  /// No description provided for @includesFreeVoiceMessageQRCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes Free Voice Message QR Code'**
+  String get includesFreeVoiceMessageQRCode;
+
+  /// No description provided for @addOnPersonalizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add-on & Personalization'**
+  String get addOnPersonalizationTitle;
+
+  /// No description provided for @step1AddOns.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 1: Add-ons'**
+  String get step1AddOns;
+
+  /// No description provided for @step2VoiceMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 2: Voice Message'**
+  String get step2VoiceMessage;
+
+  /// No description provided for @step3Order.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 3: Order'**
+  String get step3Order;
+
+  /// No description provided for @couldNotLoadProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load product.'**
+  String get couldNotLoadProduct;
+
+  /// No description provided for @productNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Product not found.'**
+  String get productNotFound;
+
+  /// No description provided for @voiceMessageAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message added'**
+  String get voiceMessageAdded;
+
   /// No description provided for @payWithFIB.
   ///
   /// In en, this message translates to:
