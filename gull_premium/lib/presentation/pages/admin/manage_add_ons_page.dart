@@ -23,30 +23,11 @@ class ManageAddOnsPage extends ConsumerStatefulWidget {
   ConsumerState<ManageAddOnsPage> createState() => _ManageAddOnsPageState();
 }
 
-class _ManageAddOnsPageState extends ConsumerState<ManageAddOnsPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _ManageAddOnsPageState extends ConsumerState<ManageAddOnsPage> {
   final _imagePicker = ImagePicker();
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  AddOnType get _currentType {
-    switch (_tabController.index) {
+  static AddOnType _typeAtIndex(int index) {
+    switch (index) {
       case 0:
         return AddOnType.vase;
       case 1:
@@ -55,6 +36,25 @@ class _ManageAddOnsPageState extends ConsumerState<ManageAddOnsPage>
         return AddOnType.card;
     }
   }
+
+  static String _categoryLabel(AddOnType type) {
+    switch (type) {
+      case AddOnType.vase:
+        return 'Vase';
+      case AddOnType.chocolate:
+        return 'Chocolate';
+      case AddOnType.card:
+        return 'Card';
+      default:
+        return 'Item';
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -102,53 +102,100 @@ class _ManageAddOnsPageState extends ConsumerState<ManageAddOnsPage>
   }
 
   Widget _buildContent(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/admin'),
-              tooltip: 'Back to dashboard',
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Manage Add-ons',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const Spacer(),
-            PrimaryButton(
-              label: 'Add New Item',
-              onPressed: () => _openAddEditDialog(context, type: _currentType),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        TabBar(
-          controller: _tabController,
-          labelColor: AppColors.rose,
-          unselectedLabelColor: AppColors.inkMuted,
-          indicatorColor: AppColors.rose,
-          tabs: const [
-            Tab(text: 'Vases'),
-            Tab(text: 'Chocolates'),
-            Tab(text: 'Cards'),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
+    return DefaultTabController(
+      length: 3,
+      child: Builder(
+        builder: (ctx) {
+          // ignore: unnecessary_non_null_assertion - of(ctx) is non-null when child of DefaultTabController
+          final tc = DefaultTabController.of(ctx)!;
+          return Stack(
             children: [
-              _AddOnList(type: AddOnType.vase, onAdd: () => _openAddEditDialog(context, type: AddOnType.vase), onEdit: _openEditDialog, onDelete: _confirmDelete, showMessage: _showMessage),
-              _AddOnList(type: AddOnType.chocolate, onAdd: () => _openAddEditDialog(context, type: AddOnType.chocolate), onEdit: _openEditDialog, onDelete: _confirmDelete, showMessage: _showMessage),
-              _AddOnList(type: AddOnType.card, onAdd: () => _openAddEditDialog(context, type: AddOnType.card), onEdit: _openEditDialog, onDelete: _confirmDelete, showMessage: _showMessage),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () => context.go('/admin'),
+                        tooltip: 'Back to dashboard',
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Manage Add-ons',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TabBar(
+                    controller: tc,
+                    labelColor: AppColors.rose,
+                    unselectedLabelColor: AppColors.inkMuted,
+                    indicatorColor: AppColors.rose,
+                    tabs: const [
+                      Tab(text: 'Vases'),
+                      Tab(text: 'Chocolates'),
+                      Tab(text: 'Cards'),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: TabBarView(
+                      controller: tc,
+                      children: [
+                        _AddOnList(type: AddOnType.vase, onAdd: () => _openAddEditDialog(context, type: AddOnType.vase), onEdit: _openEditDialog, onDelete: _confirmDelete, onToggleActive: _toggleActive, showMessage: _showMessage),
+                        _AddOnList(type: AddOnType.chocolate, onAdd: () => _openAddEditDialog(context, type: AddOnType.chocolate), onEdit: _openEditDialog, onDelete: _confirmDelete, onToggleActive: _toggleActive, showMessage: _showMessage),
+                        _AddOnList(type: AddOnType.card, onAdd: () => _openAddEditDialog(context, type: AddOnType.card), onEdit: _openEditDialog, onDelete: _confirmDelete, onToggleActive: _toggleActive, showMessage: _showMessage),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                right: 24,
+                bottom: 24,
+                child: AnimatedBuilder(
+                  animation: tc,
+                  builder: (_, __) {
+                    final type = _typeAtIndex(tc.index);
+                    return FloatingActionButton.extended(
+                      onPressed: () => _openAddEditDialog(context, type: type),
+                      icon: const Icon(Icons.add),
+                      label: Text('Add New ${_categoryLabel(type)}'),
+                      backgroundColor: AppColors.rose,
+                      foregroundColor: Colors.white,
+                    );
+                  },
+                ),
+              ),
             ],
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
+  }
+
+  Future<void> _toggleActive(AddOnModel addOn) async {
+    try {
+      final updated = AddOnModel(
+        id: addOn.id,
+        nameEn: addOn.nameEn,
+        nameKu: addOn.nameKu,
+        nameAr: addOn.nameAr,
+        priceIqd: addOn.priceIqd,
+        imageUrl: addOn.imageUrl,
+        type: addOn.type,
+        isGlobal: addOn.isGlobal,
+        isActive: !addOn.isActive,
+      );
+      await ref.read(addOnRepositoryProvider).update(updated);
+      if (mounted) _showMessage(addOn.isActive ? 'Add-on disabled.' : 'Add-on enabled.');
+    } on fa.FirebaseException catch (e) {
+      _showMessage(e.message ?? 'Failed to update.');
+    } catch (_) {
+      _showMessage('Failed to update add-on.');
+    }
   }
 
   Future<void> _openAddEditDialog(BuildContext context, {AddOnType? type, AddOnModel? existing}) async {
@@ -210,6 +257,7 @@ class _AddOnList extends ConsumerWidget {
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
+    required this.onToggleActive,
     required this.showMessage,
   });
 
@@ -217,6 +265,7 @@ class _AddOnList extends ConsumerWidget {
   final VoidCallback onAdd;
   final void Function(AddOnModel) onEdit;
   final void Function(AddOnModel) onDelete;
+  final void Function(AddOnModel) onToggleActive;
   final void Function(String) showMessage;
 
   @override
@@ -251,6 +300,7 @@ class _AddOnList extends ConsumerWidget {
               addOn: item,
               onEdit: () => onEdit(item),
               onDelete: () => onDelete(item),
+              onToggleActive: () => onToggleActive(item),
             );
           },
         );
@@ -271,23 +321,27 @@ class _AddOnListTile extends StatelessWidget {
     required this.addOn,
     required this.onEdit,
     required this.onDelete,
+    required this.onToggleActive,
   });
 
   final AddOnModel addOn;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onToggleActive;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
+    return Opacity(
+      opacity: addOn.isActive ? 1 : 0.65,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -335,6 +389,12 @@ class _AddOnListTile extends StatelessWidget {
               ],
             ),
           ),
+          Switch(
+            value: addOn.isActive,
+            onChanged: (_) => onToggleActive(),
+            activeTrackColor: AppColors.rose.withValues(alpha: 0.5),
+            activeThumbColor: AppColors.rose,
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: onEdit,
@@ -348,7 +408,8 @@ class _AddOnListTile extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 

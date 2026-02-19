@@ -69,14 +69,18 @@ class FlowerModel {
   /// True when bouquet is waiting for super admin approval.
   bool get isPendingApproval => approvalStatus == 'pending';
 
-  /// Best URL for listing/card: thumbnail if available, else first full image.
+  /// Best URL for listing/card: full-size image for premium look (no tiny thumb).
+  /// Prefer [imageUrls]; fall back to [thumbnailUrls] only when full-size is missing.
   String get listingImageUrl {
+    if (imageUrls.isNotEmpty && imageUrls.first.isNotEmpty) {
+      return imageUrls.first;
+    }
     if (thumbnailUrls != null &&
         thumbnailUrls!.isNotEmpty &&
         thumbnailUrls!.first.isNotEmpty) {
       return thumbnailUrls!.first;
     }
-    return imageUrls.isNotEmpty ? imageUrls.first : '';
+    return '';
   }
 
   /// Backward compatibility: null or empty occasion → "All" so older docs still render.

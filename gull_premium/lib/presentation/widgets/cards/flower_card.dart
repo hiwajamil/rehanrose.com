@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:seo/seo.dart';
 
 import '../../../controllers/controllers.dart';
@@ -10,10 +11,10 @@ import '../common/order_via_whatsapp_button.dart';
 import '../common/product_info_column.dart';
 import '../add_on_personalization_modal.dart';
 
-/// Bouquet card: static, no hover/transform/transition. Calm, premium experience.
+/// Bouquet card with premium hover: lift, image zoom, deeper shadow, smooth transitions.
 /// When [isCompact] is true (mobile), uses reduced padding, capped image height, and smaller text.
-/// Tapping anywhere on the card (image, title, price, or button) opens the Add-on & Personalization modal.
-class FlowerCard extends ConsumerWidget {
+/// Tapping anywhere on the card opens the Add-on & Personalization modal.
+class FlowerCard extends ConsumerStatefulWidget {
   final String id;
   final String name;
   final String imageUrl;
@@ -41,6 +42,13 @@ class FlowerCard extends ConsumerWidget {
     this.orderButtonEnabled = true,
   });
 
+  @override
+  ConsumerState<FlowerCard> createState() => _FlowerCardState();
+}
+
+class _FlowerCardState extends ConsumerState<FlowerCard> {
+  bool _hovered = false;
+
   /// Subtle shadow so the card pops slightly (compact design).
   static final List<BoxShadow> _cardShadow = [
     const BoxShadow(
@@ -50,7 +58,21 @@ class FlowerCard extends ConsumerWidget {
     ),
   ];
 
+  /// Deeper shadow on hover to enhance lift feel.
+  static final List<BoxShadow> _cardShadowHover = [
+    const BoxShadow(
+      color: Color(0x22000000),
+      blurRadius: 14,
+      offset: Offset(0, 6),
+      spreadRadius: 0,
+    ),
+  ];
+
   static const double _compactPadding = 10.0;
+  static const double _hoverLiftPx = 8.0;
+  static const double _hoverImageScale = 1.08;
+  static const Duration _hoverDuration = Duration(milliseconds: 250);
+
   /// Image aspect: taller portrait for bouquet photos (smaller ratio = taller image).
   static const double _imageAspectRatio = 0.65;
 
@@ -60,106 +82,126 @@ class FlowerCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final borderRadius = isCompact ? 14.0 : 24.0;
-    final contentPadding = isCompact ? _compactPadding : 20.0;
-    final cacheW = isCompact ? 360 : 400;
+    final borderRadius = widget.isCompact ? 14.0 : 24.0;
+    final contentPadding = widget.isCompact ? _compactPadding : 20.0;
+    final cacheW = widget.isCompact ? 360 : 400;
     final cacheH = (cacheW / _imageAspectRatio).round();
+    final montserrat = GoogleFonts.montserrat();
+
     return RepaintBoundary(
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(color: AppColors.border),
-          boxShadow: _cardShadow,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _openAddOnModal(context, id),
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Seo.image(
-                    alt: name,
-                    src: imageUrl.isEmpty
-                        ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
-                        : imageUrl,
-                    child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(8),
-                        ),
-                        child: AspectRatio(
-                          aspectRatio: _imageAspectRatio,
-                          child: AppCachedImage(
-                            imageUrl: imageUrl.isEmpty
-                                ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
-                                : imageUrl,
-                            fit: BoxFit.cover,
-                            memCacheWidth: cacheW,
-                            memCacheHeight: cacheH,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: _hoverDuration,
+          curve: Curves.easeInOut,
+          transform: Matrix4.translationValues(0, _hovered ? -_hoverLiftPx : 0, 0),
+          transformAlignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(color: AppColors.border),
+            boxShadow: _hovered ? _cardShadowHover : _cardShadow,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _openAddOnModal(context, widget.id),
+                borderRadius: BorderRadius.circular(borderRadius),
+                child: DefaultTextStyle(
+                  style: montserrat,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Seo.image(
+                        alt: widget.name,
+                        src: widget.imageUrl.isEmpty
+                            ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
+                            : widget.imageUrl,
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(8),
+                          ),
+                          child: AspectRatio(
+                            aspectRatio: _imageAspectRatio,
+                            child: AnimatedScale(
+                              scale: _hovered ? _hoverImageScale : 1.0,
+                              duration: _hoverDuration,
+                              curve: Curves.easeInOut,
+                              alignment: Alignment.center,
+                              child: AppCachedImage(
+                                imageUrl: widget.imageUrl.isEmpty
+                                    ? 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80'
+                                    : widget.imageUrl,
+                                fit: BoxFit.cover,
+                                memCacheWidth: cacheW,
+                                memCacheHeight: cacheH,
+                              ),
+                            ),
                           ),
                         ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isCompact ? 8 : contentPadding,
-                      vertical: isCompact ? 2 : 12,
-                    ),
-                    child: ProductInfoColumn(
-                      code: bouquetCode,
-                      name: name,
-                      price: price,
-                      originalPrice: originalPrice,
-                      description: note.isNotEmpty ? note : null,
-                      isDetailPage: false,
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isCompact ? 8 : contentPadding,
-                      vertical: 0,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: isCompact ? 4 : 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OrderViaWhatsAppButton(
-                            label: l10n.orderViaWhatsApp,
-                            onPressed: () {
-                              ref.read(analyticsServiceProvider).logClickWhatsApp(
-                                    itemId: id,
-                                    itemName: name,
-                                  );
-                              showAddOnPersonalizationModal(context, id);
-                            },
-                            enabled: orderButtonEnabled,
-                          ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.isCompact ? 8 : contentPadding,
+                          vertical: widget.isCompact ? 2 : 12,
                         ),
-                        SizedBox(height: isCompact ? 4 : 10),
-                        Center(
-                          child: Text(
-                            l10n.payWithFIB,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppColors.ink,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
+                        child: ProductInfoColumn(
+                          code: widget.bouquetCode,
+                          name: widget.name,
+                          price: widget.price,
+                          originalPrice: widget.originalPrice,
+                          description: widget.note.isNotEmpty ? widget.note : null,
+                          isDetailPage: false,
                         ),
-                        SizedBox(height: isCompact ? 10 : 20),
-                      ],
-                    ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.isCompact ? 8 : contentPadding,
+                          vertical: 0,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: widget.isCompact ? 4 : 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OrderViaWhatsAppButton(
+                                label: l10n.orderViaWhatsApp,
+                                onPressed: () {
+                                  ref.read(analyticsServiceProvider).logClickWhatsApp(
+                                        itemId: widget.id,
+                                        itemName: widget.name,
+                                      );
+                                  showAddOnPersonalizationModal(context, widget.id);
+                                },
+                                enabled: widget.orderButtonEnabled,
+                              ),
+                            ),
+                            SizedBox(height: widget.isCompact ? 4 : 10),
+                            Center(
+                              child: Text(
+                                l10n.payWithFIB,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.ink,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                            SizedBox(height: widget.isCompact ? 10 : 20),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

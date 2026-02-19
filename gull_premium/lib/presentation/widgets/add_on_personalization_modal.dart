@@ -9,7 +9,7 @@ import '../../core/utils/price_format_utils.dart';
 import '../../data/models/add_on_model.dart';
 import '../../data/models/flower_model.dart';
 import '../../l10n/app_localizations.dart';
-import '../pages/product/add_on_selection_sheet.dart';
+import 'common/app_cached_image.dart';
 import 'common/order_via_whatsapp_button.dart';
 import 'voice_message_dialog.dart';
 
@@ -62,26 +62,32 @@ class _AddOnPersonalizationSheetState
   bool _isSelected(AddOnModel addOn) =>
       _selectedAddOns.any((a) => a.id == addOn.id);
 
-  /// Opens a window listing all add-ons of this type (e.g. Vase) with price and Add button.
-  void _openAddOnDetail(AddOnModel addOn, List<AddOnModel> allAddOns) {
-    final ofType =
-        allAddOns.where((a) => a.type == addOn.type && a.isActive).toList();
-    if (ofType.isEmpty) return;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => AddOnSelectionSheet(
-        addOns: ofType,
-        onSelect: (selected) {
-          Navigator.of(ctx).pop();
-          setState(() {
-            _selectedAddOns.removeWhere((a) => a.type == selected.type);
-            _selectedAddOns.add(selected);
-          });
-        },
-      ),
-    );
+  void _toggleAddOn(AddOnModel addOn) {
+    setState(() {
+      _selectedAddOns.removeWhere((a) => a.type == addOn.type);
+      if (!_isSelected(addOn)) {
+        _selectedAddOns.add(addOn);
+      }
+    });
+  }
+
+  static const List<AddOnType> _addOnCategoryOrder = [
+    AddOnType.vase,
+    AddOnType.chocolate,
+    AddOnType.card,
+  ];
+
+  static String _categoryTitle(AddOnType type) {
+    switch (type) {
+      case AddOnType.vase:
+        return 'Vases';
+      case AddOnType.chocolate:
+        return 'Chocolates';
+      case AddOnType.card:
+        return 'Cards';
+      default:
+        return 'Add-ons';
+    }
   }
 
   int _totalPriceIqd(FlowerModel bouquet) {
@@ -188,31 +194,51 @@ class _AddOnPersonalizationSheetState
                       l10n.step1AddOns,
                       style: playfair.copyWith(fontSize: 16),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 112,
-                      child: Scrollbar(
-                        thumbVisibility: true,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 24),
-                          itemCount: addOns.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                          final addOn = addOns[index];
-                          final selected = _isSelected(addOn);
-                          final name = addOn.nameForLocale(locale);
-                          return _AddOnChip(
-                            name: name,
-                            priceIqd: addOn.priceIqd,
-                            selected: selected,
-                            onTap: () => _openAddOnDetail(addOn, addOns),
-                          );
-                        },
+                    const SizedBox(height: 16),
+                    ..._addOnCategoryOrder.map((categoryType) {
+                      final ofType = addOns
+                          .where((a) => a.type == categoryType)
+                          .toList();
+                      if (ofType.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _categoryTitle(categoryType),
+                              style: playfair.copyWith(
+                                fontSize: 14,
+                                color: AppColors.inkMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 132,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.only(right: 24),
+                                itemCount: ofType.length,
+                                itemBuilder: (context, index) {
+                                  final addOn = ofType[index];
+                                  final selected = _isSelected(addOn);
+                                  final name = addOn.nameForLocale(locale);
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: _AddOnModalCard(
+                                      addOn: addOn,
+                                      name: name,
+                                      selected: selected,
+                                      onTap: () => _toggleAddOn(addOn),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
+                      );
+                    }),
                     const SizedBox(height: 28),
                     Text(
                       l10n.step2VoiceMessage,
@@ -344,21 +370,22 @@ class _AddOnPersonalizationSheetState
   }
 }
 
-class _AddOnChip extends StatelessWidget {
+class _AddOnModalCard extends StatelessWidget {
+  final AddOnModel addOn;
   final String name;
-  final int priceIqd;
   final bool selected;
   final VoidCallback onTap;
 
-  const _AddOnChip({
+  const _AddOnModalCard({
+    required this.addOn,
     required this.name,
-    required this.priceIqd,
     required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(12),
@@ -366,8 +393,8 @@ class _AddOnChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          width: 140,
-          padding: const EdgeInsets.all(12),
+          width: 120,
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -376,36 +403,57 @@ class _AddOnChip extends StatelessWidget {
             ),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    selected ? Icons.check_circle : Icons.add_circle_outline,
-                    size: 20,
-                    color: selected ? AppColors.rosePrimary : AppColors.inkMuted,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.ink,
-                          ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: addOn.imageUrl.isEmpty
+                    ? Container(
+                        height: 56,
+                        color: AppColors.background,
+                        child: Icon(
+                          Icons.card_giftcard,
+                          color: AppColors.inkMuted,
+                          size: 28,
+                        ),
+                      )
+                    : SizedBox(
+                        height: 56,
+                        width: double.infinity,
+                        child: AppCachedImage(
+                          imageUrl: addOn.imageUrl,
+                          fit: BoxFit.cover,
+                          errorIcon: Icons.card_giftcard,
+                          errorIconSize: 28,
+                        ),
+                      ),
               ),
               const SizedBox(height: 6),
               Text(
-                '${AppLocalizations.of(context)!.currencyIqd} ${formatPriceIqd(priceIqd)}',
+                name,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                '${l10n.currencyIqd} ${formatPriceIqd(addOn.priceIqd)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.inkMuted,
                     ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 24,
+                child: Checkbox(
+                  value: selected,
+                  onChanged: (_) => onTap(),
+                  activeColor: AppColors.rosePrimary,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
             ],
           ),

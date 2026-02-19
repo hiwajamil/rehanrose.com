@@ -148,13 +148,13 @@ class AddOnRepository {
     await _addOns.doc(id).delete();
   }
 
-  /// Uploads image for an add-on; compresses to WebP (max 1080px, 80% quality) then returns download URL.
+  /// Uploads image for an add-on; compresses to WebP (quality 85%, max 500 KB) then returns download URL.
   /// Use before or after creating the doc.
   Future<String> uploadImage({
     required String addOnId,
     required Uint8List bytes,
   }) async {
-    final compressed = await ImageCompressionService.compressToWebP(bytes);
+    final compressed = await ImageCompressionService.compressToWebPForAddOn(bytes);
     final ref = _storage.ref('$_storagePath/$addOnId.webp');
     await ref
         .putData(

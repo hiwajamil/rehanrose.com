@@ -40,8 +40,8 @@ If you see **"HTTP request failed, statusCode: 0"** when publishing bouquets or 
 All vendor uploads (bouquets and add-on images) are compressed **on the client** before upload:
 
 - **Format:** JPG/PNG/HEIC → **WebP** (fallback to JPEG if WebP is unsupported on the platform).
-- **Full-size:** Max width **1080px**, aspect ratio preserved, **80%** quality.
-- **Thumbnails:** Bouquet images get a **300×300** (fit) thumbnail for listing grids; product detail uses the full-size URL.
+- **Full-size:** Max 1080px, min 800px on shorter side, **85%** quality (target ~100–150 KB). Used for product detail and **Product Cards**.
+- **Thumbnails:** Optional 600×600 (fit) for grids; cards and detail use the full-size URL for a premium look.
 
 This is implemented in `lib/core/utils/image_compression_service.dart` using `flutter_image_compress` and the `image` package for dimension-based resizing.
 
