@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/breakpoints.dart';
 import '../../../data/repositories/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,8 +24,6 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   final TextEditingController _passwordController = TextEditingController();
   final Set<String> _processingApplications = {};
   bool _isSigningIn = false;
-  bool? _cachedIsAdmin;
-  String? _cachedAdminUserId;
 
   @override
   void initState() {
@@ -87,29 +86,20 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     final authAsync = ref.watch(authStateProvider);
     return AppScaffold(
       child: SectionContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.sizeOf(context).width <= kMobileBreakpoint ? 16 : 48,
+          vertical: MediaQuery.sizeOf(context).width <= kMobileBreakpoint ? 24 : 56,
+        ),
         child: authAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => _buildAdminSignIn(context),
           data: (user) {
             if (user == null) return _buildAdminSignIn(context);
-            if (_cachedAdminUserId == user.uid && _cachedIsAdmin != null) {
-              if (_cachedIsAdmin!) {
-                return _buildAdminDashboard(context, user.uid);
-              }
-              return _buildNotAuthorized(context, user);
-            }
-            return FutureBuilder<bool>(
-              future: ref.read(authRepositoryProvider).isAdmin(user.uid),
-              builder: (context, adminSnapshot) {
-                if (adminSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final isAdmin = adminSnapshot.data ?? false;
-                if (adminSnapshot.hasData) {
-                  _cachedIsAdmin = isAdmin;
-                  _cachedAdminUserId = user.uid;
-                }
+            final isAdminAsync = ref.watch(isAdminForUidProvider(user.uid));
+            return isAdminAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => _buildAdminSignIn(context),
+              data: (isAdmin) {
                 if (!isAdmin) return _buildNotAuthorized(context, user);
                 return _buildAdminDashboard(context, user.uid);
               },
@@ -121,8 +111,9 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 
   Widget _buildAdminSignIn(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.all(isMobile ? 20 : 28),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -177,8 +168,9 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 
   Widget _buildNotAuthorized(BuildContext context, fa.User user) {
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.all(isMobile ? 20 : 28),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -225,46 +217,103 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
 
   Widget _buildAdminDashboard(BuildContext context, String adminId) {
     final applicationsAsync = ref.watch(pendingVendorApplicationsStreamProvider);
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                'Pending vendor applications',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const Spacer(),
-            PrimaryButton(
-              label: 'Analytics',
-              onPressed: () => context.go('/admin/analytics'),
-              variant: PrimaryButtonVariant.outline,
+          if (isMobile) ...[
+            Text(
+              'Pending vendor applications',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(width: 12),
-            PrimaryButton(
-              label: 'Pending Bouquets',
-              onPressed: () => context.go('/admin/approvals'),
-              variant: PrimaryButtonVariant.outline,
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                PrimaryButton(
+                  label: 'Analytics',
+                  onPressed: () => context.go('/admin/analytics'),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+                PrimaryButton(
+                  label: 'Bouquet Approval',
+                  onPressed: () => context.go('/admin/approvals'),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+                PrimaryButton(
+                  label: 'Manage Add-ons',
+                  onPressed: () => context.go('/admin/add-ons'),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+                PrimaryButton(
+                  label: 'Sign out',
+                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            PrimaryButton(
-              label: 'Manage Add-ons',
-              onPressed: () => context.go('/admin/add-ons'),
-              variant: PrimaryButtonVariant.outline,
+          ] else
+            Row(
+              children: [
+                Text(
+                  'Pending vendor applications',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const Spacer(),
+                PrimaryButton(
+                  label: 'Analytics',
+                  onPressed: () => context.go('/admin/analytics'),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+                const SizedBox(width: 12),
+                PrimaryButton(
+                  label: 'Bouquet Approval',
+                  onPressed: () => context.go('/admin/approvals'),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+                const SizedBox(width: 12),
+                PrimaryButton(
+                  label: 'Manage Add-ons',
+                  onPressed: () => context.go('/admin/add-ons'),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+                const SizedBox(width: 12),
+                PrimaryButton(
+                  label: 'Sign out',
+                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            PrimaryButton(
-              label: 'Sign out',
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
-              variant: PrimaryButtonVariant.outline,
+          const SizedBox(height: 20),
+          applicationsAsync.when(
+          loading: () => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.inkMuted,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Loading applications…',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.inkMuted),
+                ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        applicationsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          ),
           error: (_, __) => Text(
             'Unable to load applications.',
             style: Theme.of(context)
@@ -275,21 +324,25 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           data: (snapshot) {
             final docs = snapshot.docs;
             if (docs.isEmpty) {
-              return Text(
-                'No pending applications.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.inkMuted),
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'No pending applications.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.inkMuted),
+                ),
               );
             }
             return Column(
               children: docs.map((doc) {
                 final data = doc.data();
                 final isProcessing = _processingApplications.contains(doc.id);
+                final isMobileCard = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(isMobileCard ? 16 : 20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -397,7 +450,6 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       ),
     );
   }
-
 }
 
 class _AdminField extends StatelessWidget {

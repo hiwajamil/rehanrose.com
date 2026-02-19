@@ -15,6 +15,13 @@ final authStateProvider = StreamProvider<fa.User?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
+/// Cached admin check for a user (by uid). Used by admin dashboard to avoid
+/// refetching and showing spinner on every rebuild.
+final isAdminForUidProvider =
+    FutureProvider.autoDispose.family<bool, String>((ref, uid) async {
+  return ref.read(authRepositoryProvider).isAdmin(uid);
+});
+
 /// Stream of pending vendor applications (for admin dashboard).
 /// Not autoDispose so the stream is not restarted on rebuilds, avoiding
 /// the approval cards flickering (appear/disappear) on the admin dashboard.

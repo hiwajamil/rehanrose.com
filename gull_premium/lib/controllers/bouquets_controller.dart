@@ -188,3 +188,13 @@ final adminAnalyticsBouquetsProvider = FutureProvider<List<FlowerModel>>((ref) {
 final pendingBouquetsStreamProvider = StreamProvider<List<FlowerModel>>((ref) {
   return ref.watch(bouquetRepositoryProvider).watchPendingBouquets();
 });
+
+/// Stream of approved bouquets for admin Bouquet Approval tab.
+final approvedBouquetsStreamProvider = StreamProvider<List<FlowerModel>>((ref) {
+  return ref.watch(bouquetRepositoryProvider).watchApprovedBouquetsForAdmin();
+});
+
+/// Stream of rejected bouquets for admin Bouquet Approval tab.
+final rejectedBouquetsStreamProvider = StreamProvider<List<FlowerModel>>((ref) {
+  return ref.watch(bouquetRepositoryProvider).watchRejectedBouquets();
+});

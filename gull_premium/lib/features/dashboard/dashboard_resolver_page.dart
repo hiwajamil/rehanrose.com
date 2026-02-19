@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/controllers.dart';
+import '../../data/repositories/auth_repository.dart';
 
 /// Resolves the current user's role from Firestore and redirects to the correct
 /// dashboard (Admin or Vendor). Use this as the single "Dashboard" destination
@@ -51,7 +52,14 @@ class _RoleResolverState extends ConsumerState<_RoleResolver> {
     final authRepo = ref.read(authRepositoryProvider);
     // Super admin / admin must go to admin dashboard; check isAdmin first.
     final isAdmin = await authRepo.isAdmin(widget.uid);
-    if (isAdmin) return 'admin';
+    if (isAdmin) {
+      final user = authRepo.currentUser;
+      if (user?.email?.trim().toLowerCase() ==
+          kSuperAdminEmail.trim().toLowerCase()) {
+        await authRepo.ensureSuperAdminUserDoc(user!.uid);
+      }
+      return 'admin';
+    }
     final role = await authRepo.getUserRole(widget.uid);
     if (role != null && role.isNotEmpty) return role;
     return null;

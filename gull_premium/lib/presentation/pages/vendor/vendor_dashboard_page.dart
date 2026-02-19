@@ -214,10 +214,184 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 980;
               final isMobile = constraints.maxWidth <= kMobileBreakpoint;
+              final formCard = Container(
+                padding: EdgeInsets.all(isMobile ? 16 : 28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 26,
+                      offset: Offset(0, 18),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _AuthToggle(
+                      isSignIn: _isSignIn,
+                      onChanged: (value) =>
+                          setState(() => _isSignIn = value),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      _isSignIn
+                          ? 'Vendor sign in'
+                          : 'Start your vendor application',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _isSignIn
+                          ? 'Welcome back. Access your storefront and orders.'
+                          : 'Tell us about your studio so we can review your application.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.inkMuted),
+                    ),
+                    const SizedBox(height: 20),
+                    if (_isSignIn) ...[
+                      _AuthField(
+                        label: 'Business email',
+                        hintText: '',
+                        icon: Icons.mail_outline,
+                        controller: _signInEmailController,
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 16),
+                      _AuthField(
+                        label: 'Password',
+                        hintText: '',
+                        icon: Icons.lock_outline,
+                        obscureText: true,
+                        controller: _signInPasswordController,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: _isSubmitting ? null : _signInVendor,
+                      ),
+                      const SizedBox(height: 24),
+                      PrimaryButton(
+                        label:
+                            _isSubmitting ? 'Signing in...' : 'Sign in',
+                        onPressed: _isSubmitting ? () {} : _signInVendor,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Forgot your password? Contact vendor support.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.inkMuted),
+                      ),
+                    ] else ...[
+                      _AuthField(
+                        label: 'Studio name',
+                        hintText: '',
+                        icon: Icons.storefront_outlined,
+                        controller: _studioNameController,
+                      ),
+                      const SizedBox(height: 16),
+                      _AuthField(
+                        label: 'Owner name',
+                        hintText: 'Full name',
+                        hintStyle: TextStyle(color: AppColors.inkMuted),
+                        icon: Icons.person_outline,
+                        controller: _ownerNameController,
+                      ),
+                      const SizedBox(height: 16),
+                      _AuthField(
+                        label: 'Business email',
+                        hintText: '',
+                        icon: Icons.mail_outline,
+                        controller: _signUpEmailController,
+                      ),
+                      const SizedBox(height: 16),
+                      _AuthField(
+                        label: 'Phone number',
+                        hintText: '',
+                        icon: Icons.call_outlined,
+                        controller: _phoneController,
+                      ),
+                      const SizedBox(height: 16),
+                      _AuthField(
+                        label: 'Studio location',
+                        hintText: 'city',
+                        hintStyle: TextStyle(color: AppColors.inkMuted),
+                        icon: Icons.location_on_outlined,
+                        controller: _locationController,
+                      ),
+                      const SizedBox(height: 16),
+                      _AuthField(
+                        label: 'Create a password',
+                        hintText: 'at least 8 characters',
+                        hintStyle: TextStyle(color: AppColors.inkMuted),
+                        icon: Icons.lock_outline,
+                        obscureText: true,
+                        controller: _signUpPasswordController,
+                      ),
+                      const SizedBox(height: 24),
+                      PrimaryButton(
+                        label: _isSubmitting
+                            ? 'Submitting...'
+                            : 'Submit application',
+                        onPressed:
+                            _isSubmitting ? () {} : _submitApplication,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'By submitting, you agree to our vendor terms and review process.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.inkMuted),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+              if (isNarrow) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.vendorSignupHeadline,
+                          style: Theme.of(context).textTheme.headlineLarge,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Showcase your studio, manage orders, and connect with clients who value artisanal florals.',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 28),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          children: const [
+                            _BenefitChip(label: 'Weekly payouts'),
+                            _BenefitChip(label: 'Curated client base'),
+                            _BenefitChip(label: 'Dedicated concierge'),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        _VendorStatsRow(isNarrow: true),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    formCard,
+                  ],
+                );
+              }
               return Flex(
-                direction: isNarrow ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment:
-                    isNarrow ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                direction: Axis.horizontal,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     flex: 6,
@@ -248,147 +422,10 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
                       ],
                     ),
                   ),
-                  if (!isNarrow) const SizedBox(width: 32),
+                  const SizedBox(width: 32),
                   Expanded(
                     flex: 5,
-                    child: Container(
-                      padding: EdgeInsets.all(isMobile ? 16 : 28),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: AppColors.border),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: AppColors.shadow,
-                            blurRadius: 26,
-                            offset: Offset(0, 18),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _AuthToggle(
-                            isSignIn: _isSignIn,
-                            onChanged: (value) =>
-                                setState(() => _isSignIn = value),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            _isSignIn
-                                ? 'Vendor sign in'
-                                : 'Start your vendor application',
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _isSignIn
-                                ? 'Welcome back. Access your storefront and orders.'
-                                : 'Tell us about your studio so we can review your application.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(color: AppColors.inkMuted),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_isSignIn) ...[
-                            _AuthField(
-                              label: 'Business email',
-                              hintText: '',
-                              icon: Icons.mail_outline,
-                              controller: _signInEmailController,
-                              textInputAction: TextInputAction.next,
-                            ),
-                            const SizedBox(height: 16),
-                            _AuthField(
-                              label: 'Password',
-                              hintText: '',
-                              icon: Icons.lock_outline,
-                              obscureText: true,
-                              controller: _signInPasswordController,
-                              textInputAction: TextInputAction.done,
-                              onSubmitted: _isSubmitting ? null : _signInVendor,
-                            ),
-                            const SizedBox(height: 24),
-                            PrimaryButton(
-                              label:
-                                  _isSubmitting ? 'Signing in...' : 'Sign in',
-                              onPressed: _isSubmitting ? () {} : _signInVendor,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Forgot your password? Contact vendor support.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: AppColors.inkMuted),
-                            ),
-                          ] else ...[
-                            _AuthField(
-                              label: 'Studio name',
-                              hintText: '',
-                              icon: Icons.storefront_outlined,
-                              controller: _studioNameController,
-                            ),
-                            const SizedBox(height: 16),
-                            _AuthField(
-                              label: 'Owner name',
-                              hintText: 'Full name',
-                              hintStyle: TextStyle(color: AppColors.inkMuted),
-                              icon: Icons.person_outline,
-                              controller: _ownerNameController,
-                            ),
-                            const SizedBox(height: 16),
-                            _AuthField(
-                              label: 'Business email',
-                              hintText: '',
-                              icon: Icons.mail_outline,
-                              controller: _signUpEmailController,
-                            ),
-                            const SizedBox(height: 16),
-                            _AuthField(
-                              label: 'Phone number',
-                              hintText: '',
-                              icon: Icons.call_outlined,
-                              controller: _phoneController,
-                            ),
-                            const SizedBox(height: 16),
-                            _AuthField(
-                              label: 'Studio location',
-                              hintText: 'city',
-                              hintStyle: TextStyle(color: AppColors.inkMuted),
-                              icon: Icons.location_on_outlined,
-                              controller: _locationController,
-                            ),
-                            const SizedBox(height: 16),
-                            _AuthField(
-                              label: 'Create a password',
-                              hintText: 'at least 8 characters',
-                              hintStyle: TextStyle(color: AppColors.inkMuted),
-                              icon: Icons.lock_outline,
-                              obscureText: true,
-                              controller: _signUpPasswordController,
-                            ),
-                            const SizedBox(height: 24),
-                            PrimaryButton(
-                              label: _isSubmitting
-                                  ? 'Submitting...'
-                                  : 'Submit application',
-                              onPressed:
-                                  _isSubmitting ? () {} : _submitApplication,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'By submitting, you agree to our vendor terms and review process.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: AppColors.inkMuted),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+                    child: formCard,
                   ),
                 ],
               );

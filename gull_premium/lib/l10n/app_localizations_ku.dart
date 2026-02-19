@@ -177,7 +177,7 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get carefullyCurated =>
-      'بە وریایی هەڵبژێردراوە. بە بەرژەوەندی گەیەندراوە.';
+      'بە وردی هەڵبژێردراوە، بە خۆشەویستییەوە پێشکەش دەکرێت.';
 
   @override
   String get sameDayDelivery => 'گەیاندنی هەمان ڕۆژ';

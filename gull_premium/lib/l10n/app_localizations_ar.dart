@@ -175,7 +175,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get browseAllBouquets => 'تصفح كل الباقات';
 
   @override
-  String get carefullyCurated => 'مختارة بعناية. مُوصَلة باهتمام.';
+  String get carefullyCurated => 'مختارة بعناية، ومقدمة بكل حب.';
 
   @override
   String get sameDayDelivery => 'توصيل في نفس اليوم';

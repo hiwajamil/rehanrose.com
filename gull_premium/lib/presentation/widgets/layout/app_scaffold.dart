@@ -848,7 +848,7 @@ class _MobileNavDrawer extends ConsumerWidget {
     return Drawer(
       backgroundColor: AppColors.headerBackground,
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -862,6 +862,30 @@ class _MobileNavDrawer extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               _LanguageSwitcher(),
+              const SizedBox(height: 24),
+              // Sign In and Become a Vendor at top so they are visible on mobile without scrolling
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  label: l10n.signIn,
+                  onPressed: () {
+                    context.go('/vendor');
+                    onNavigate();
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  label: l10n.ctaBecomeVendor,
+                  onPressed: () {
+                    context.go('/vendor');
+                    onNavigate();
+                  },
+                  variant: PrimaryButtonVariant.outline,
+                ),
+              ),
               const SizedBox(height: 32),
               _OccasionsAccordion(
                 onNavigate: onNavigate,
@@ -935,37 +959,6 @@ class _MobileNavDrawer extends ConsumerWidget {
                     context.go('/');
                     onNavigate();
                   },
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Divider(color: AppColors.headerBorder, height: 1),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: PrimaryButton(
-                  label: l10n.ctaBecomeVendor,
-                  onPressed: () {
-                    context.go('/vendor');
-                    onNavigate();
-                  },
-                  variant: PrimaryButtonVariant.outline,
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () {
-                    context.go('/vendor');
-                    onNavigate();
-                  },
-                  child: Text(
-                    l10n.signIn,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.navMuted,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
                 ),
               ),
             ],

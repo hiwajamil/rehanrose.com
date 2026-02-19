@@ -8,19 +8,16 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      let userPath = (/databases/$(database)/documents/users/$(uid)).bind({'database': database, 'uid': request.auth.uid});
-      let adminPath = (/databases/$(database)/documents/admins/$(uid)).bind({'database': database, 'uid': request.auth.uid});
       return isAuthenticated()
           && (
-            (exists(userPath) && get(userPath).data.role == 'admin')
-          || exists(adminPath));
+            (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+          || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
     }
 
     function isVendor() {
-      let userPath = (/databases/$(database)/documents/users/$(uid)).bind({'database': database, 'uid': request.auth.uid});
       return isAuthenticated()
-          && exists(userPath)
-          && get(userPath).data.role == 'vendor';
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor';
     }
 
     function isOwner(userId) {
@@ -43,10 +40,10 @@ service cloud.firestore {
           || (isVendor() && resource.data.vendorId == request.auth.uid)
           || isAdmin();
       allow create: if request.auth != null
-          && get((/databases/$(database)/documents/users/$(uid)).bind({'database': database, 'uid': request.auth.uid})).data.role in ['admin', 'vendor'];
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'vendor'];
       allow update, delete: if isAdmin()
           || (request.auth != null
-              && get((/databases/$(database)/documents/users/$(uid)).bind({'database': database, 'uid': request.auth.uid})).data.role == 'vendor'
+              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor'
               && resource.data.vendorId == request.auth.uid);
     }
 
@@ -58,18 +55,27 @@ service cloud.firestore {
 
     // ─── bouquets (flower products) ────────────────────────────────────────
     // Read: public. Create: admin (any) or vendor (only with approvalStatus == 'pending').
-    // Update: admins (e.g. set approvalStatus to approved/rejected); or analytics-only (viewCount/orderCount).
-    // Delete: admins; or vendor for their own bouquets only (dashboard).
+    // Fallback create by owner (vendorId == uid) so publish works on mobile when isVendor() get() fails.
+    // Update: admins; or analytics-only (viewCount/orderCount); or vendor own (priceIqd, imageUrls, thumbnailUrls).
+    // Delete: admins; or vendor for their own bouquets (owner fallback for mobile).
     match /bouquets/{bouquetId} {
       allow read: if true;
       allow create: if isAdmin()
-          || (isVendor() && request.resource.data.approvalStatus == 'pending');
+          || (isVendor() && request.resource.data.approvalStatus == 'pending')
+          || (request.auth != null
+              && request.resource.data.approvalStatus == 'pending'
+              && request.resource.data.vendorId == request.auth.uid);
       allow delete: if isAdmin()
-          || (isVendor() && resource.data.vendorId == request.auth.uid);
+          || (isVendor() && resource.data.vendorId == request.auth.uid)
+          || (request.auth != null && resource.data.vendorId == request.auth.uid);
       allow update: if isAdmin()
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderCount'])
-          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'orderCount']);
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'orderCount'])
+          || (resource.data.vendorId == request.auth.uid
+              && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['priceIqd'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])));
     }
 
     // ─── orders ────────────────────────────────────────────────────────────

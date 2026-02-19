@@ -180,6 +180,43 @@ class BouquetRepository {
     });
   }
 
+  /// Stream of approved bouquets for admin dashboard (all approved, no occasion filter).
+  Stream<List<FlowerModel>> watchApprovedBouquetsForAdmin() {
+    return _bouquets
+        .where('approvalStatus', isEqualTo: 'approved')
+        .orderBy('createdAt', descending: true)
+        .limit(_limit * 3)
+        .snapshots()
+        .timeout(_queryTimeout)
+        .map((snap) {
+      final list = _parseBouquetDocs(snap.docs);
+      list.sort((a, b) {
+        final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
+        final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
+        return bMs.compareTo(aMs);
+      });
+      return list;
+    });
+  }
+
+  /// Stream of rejected bouquets for admin dashboard.
+  Stream<List<FlowerModel>> watchRejectedBouquets() {
+    return _bouquets
+        .where('approvalStatus', isEqualTo: 'rejected')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .timeout(_queryTimeout)
+        .map((snap) {
+      final list = _parseBouquetDocs(snap.docs);
+      list.sort((a, b) {
+        final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
+        final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
+        return bMs.compareTo(aMs);
+      });
+      return list;
+    });
+  }
+
   /// Set bouquet approval status to 'approved' or 'rejected'. Admin only (enforced by rules).
   /// Uses .update() only; does NOT touch category, occasion, emotionCategoryId, or bouquetCode.
   /// Once approved, the bouquet appears in the user app under the occasion the vendor selected.
@@ -305,8 +342,31 @@ class BouquetRepository {
     await _bouquets.doc(bouquetId).update(data);
   }
 
-  /// Deletes a bouquet.
+  /// Deletes a bouquet (Firestore only).
   Future<void> delete(String bouquetId) async {
+    await _bouquets.doc(bouquetId).delete();
+  }
+
+  /// Permanently deletes a bouquet: removes all images from Storage, then deletes the Firestore doc.
+  /// Call only from admin flows. Throws on failure.
+  Future<void> deleteBouquetPermanently(String bouquetId) async {
+    final bouquet = await getById(bouquetId);
+    if (bouquet == null) {
+      throw StateError('Bouquet not found: $bouquetId');
+    }
+    final urls = <String>[
+      ...bouquet.imageUrls,
+      if (bouquet.thumbnailUrls != null) ...bouquet.thumbnailUrls!,
+    ];
+    for (final url in urls) {
+      if (url.trim().isEmpty) continue;
+      try {
+        final ref = _storage.refFromURL(url);
+        await ref.delete().timeout(const Duration(seconds: 10));
+      } catch (_) {
+        // Ignore Storage delete failures (e.g. invalid URL, already deleted)
+      }
+    }
     await _bouquets.doc(bouquetId).delete();
   }
 

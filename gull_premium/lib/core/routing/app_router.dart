@@ -11,7 +11,7 @@ import '../../presentation/pages/designers/designers_list_page.dart';
 import '../../presentation/pages/legal/legal_page.dart';
 import '../../presentation/pages/florists/vendor_profile_page.dart';
 import '../../presentation/pages/admin/admin_dashboard_page.dart';
-import '../../presentation/pages/admin/admin_product_approval_page.dart';
+import '../../presentation/pages/admin/bouquet_approval_page.dart';
 import '../../presentation/pages/admin/analytics_overview_page.dart';
 import '../../presentation/pages/admin/manage_add_ons_page.dart';
 import '../../presentation/pages/product/order_customization_page.dart';
@@ -174,7 +174,7 @@ class AppRouter {
           ),
           GoRoute(
             path: 'approvals',
-            builder: (_, __) => const AdminProductApprovalPage(),
+            builder: (_, __) => const BouquetApprovalPage(),
           ),
         ],
       ),

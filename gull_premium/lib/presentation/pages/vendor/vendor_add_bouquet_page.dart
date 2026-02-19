@@ -386,7 +386,7 @@ class _OccasionDropdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value != null && isValidEmotionCategoryId(value) ? value : null,
+          initialValue: value != null && isValidEmotionCategoryId(value) ? value : null,
           decoration: InputDecoration(
             errorText: error,
             filled: true,

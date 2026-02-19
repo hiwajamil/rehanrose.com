@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/section_container.dart';
@@ -11,10 +12,12 @@ class VendorDashboardHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    final horizontalPadding = isMobile ? 16.0 : 32.0;
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: SectionContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -39,26 +42,35 @@ class _SummaryCards extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(
       builder: (context, constraints) {
+        // On mobile: 2 columns of equal width; on desktop: fixed 180px cards.
+        final isMobile = constraints.maxWidth <= kMobileBreakpoint;
+        final cardWidth = isMobile
+            ? (constraints.maxWidth - 16) / 2
+            : 180.0;
         return Wrap(
           spacing: 16,
           runSpacing: 16,
           children: [
             _SummaryCard(
+              width: cardWidth,
               title: l10n.vendorTodaysOrders,
               value: '0',
               icon: Icons.receipt_long_outlined,
             ),
             _SummaryCard(
+              width: cardWidth,
               title: l10n.vendorPendingOrders,
               value: '0',
               icon: Icons.schedule_outlined,
             ),
             _SummaryCard(
+              width: cardWidth,
               title: l10n.vendorTodaysRevenue,
               value: 'IQD 0',
               icon: Icons.payments_outlined,
             ),
             _SummaryCard(
+              width: cardWidth,
               title: l10n.vendorShopStatus,
               value: l10n.offline,
               icon: Icons.storefront_outlined,
@@ -71,11 +83,13 @@ class _SummaryCards extends StatelessWidget {
 }
 
 class _SummaryCard extends StatelessWidget {
+  final double width;
   final String title;
   final String value;
   final IconData icon;
 
   const _SummaryCard({
+    required this.width,
     required this.title,
     required this.value,
     required this.icon,
@@ -84,7 +98,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 180,
+      width: width,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,

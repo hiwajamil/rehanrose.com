@@ -1,5 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 /// App domain for Firebase Hosting and Auth authorized domains.
 /// Ensure rehanrose.com is added in Firebase Console:
@@ -13,10 +13,16 @@ class DefaultFirebaseOptions {
     if (kIsWeb) {
       return web;
     }
-
-    throw UnsupportedError(
-      'DefaultFirebaseOptions are not supported for this platform.',
-    );
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.android:
+        return android;
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
+    }
   }
 
   static const FirebaseOptions web = FirebaseOptions(
@@ -27,6 +33,29 @@ class DefaultFirebaseOptions {
     authDomain: 'gull-48040.firebaseapp.com',
     storageBucket: 'gull-48040.firebasestorage.app',
     measurementId: 'G-3FSH29H6XS',
+  );
+
+  /// iOS config. Run `dart run flutterfire_cli:flutterfire configure` to generate
+  /// platform-specific keys after adding the iOS app in Firebase Console.
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDluGYifxWX1FRc9GnMwratL_mru1i9GH4',
+    appId: '1:1012920953592:ios:placeholder',
+    messagingSenderId: '1012920953592',
+    projectId: 'gull-48040',
+    authDomain: 'gull-48040.firebaseapp.com',
+    storageBucket: 'gull-48040.firebasestorage.app',
+    iosBundleId: 'com.example.rehanRose',
+  );
+
+  /// Android config. Run `dart run flutterfire_cli:flutterfire configure` to generate
+  /// platform-specific keys after adding the Android app in Firebase Console.
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDluGYifxWX1FRc9GnMwratL_mru1i9GH4',
+    appId: '1:1012920953592:android:placeholder',
+    messagingSenderId: '1012920953592',
+    projectId: 'gull-48040',
+    authDomain: 'gull-48040.firebaseapp.com',
+    storageBucket: 'gull-48040.firebasestorage.app',
   );
 
   /// Use when running on custom domain so Auth redirects match. Add rehanrose.com to
