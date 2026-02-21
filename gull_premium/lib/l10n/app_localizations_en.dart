@@ -313,6 +313,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceMessageAdded => 'Voice message added';
 
   @override
+  String addAmountMoreForFreeDelivery(String amount) {
+    return 'Add $amount IQD more to get FREE Delivery!';
+  }
+
+  @override
+  String get youUnlockedFreeDelivery => '🎉 You unlocked FREE Delivery!';
+
+  @override
   String get payWithFIB => 'Pay with FIB';
 
   @override
@@ -399,6 +407,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vendorNoNewAdminNotices => 'No new admin notices.';
+
+  @override
+  String get vendorActiveBouquets => 'Active Bouquets';
+
+  @override
+  String get vendorPendingApprovals => 'Pending Approvals';
+
+  @override
+  String get vendorTotalViewsClicks => 'Total Views / Clicks';
+
+  @override
+  String get vendorMotivationGreatJob =>
+      'Great job! Your shop is looking beautiful.';
+
+  @override
+  String get vendorMotivationMoreBouquets =>
+      'Add more beautiful bouquets to attract more customers!';
 
   @override
   String get footerTagline => 'Delivering emotions, one flower at a time.';

@@ -688,6 +688,18 @@ abstract class AppLocalizations {
   /// **'Voice message added'**
   String get voiceMessageAdded;
 
+  /// No description provided for @addAmountMoreForFreeDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {amount} IQD more to get FREE Delivery!'**
+  String addAmountMoreForFreeDelivery(String amount);
+
+  /// No description provided for @youUnlockedFreeDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'🎉 You unlocked FREE Delivery!'**
+  String get youUnlockedFreeDelivery;
+
   /// No description provided for @payWithFIB.
   ///
   /// In en, this message translates to:
@@ -861,6 +873,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No new admin notices.'**
   String get vendorNoNewAdminNotices;
+
+  /// No description provided for @vendorActiveBouquets.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Bouquets'**
+  String get vendorActiveBouquets;
+
+  /// No description provided for @vendorPendingApprovals.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Approvals'**
+  String get vendorPendingApprovals;
+
+  /// No description provided for @vendorTotalViewsClicks.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Views / Clicks'**
+  String get vendorTotalViewsClicks;
+
+  /// No description provided for @vendorMotivationGreatJob.
+  ///
+  /// In en, this message translates to:
+  /// **'Great job! Your shop is looking beautiful.'**
+  String get vendorMotivationGreatJob;
+
+  /// No description provided for @vendorMotivationMoreBouquets.
+  ///
+  /// In en, this message translates to:
+  /// **'Add more beautiful bouquets to attract more customers!'**
+  String get vendorMotivationMoreBouquets;
 
   /// No description provided for @footerTagline.
   ///

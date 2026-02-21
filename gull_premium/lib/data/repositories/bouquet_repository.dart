@@ -219,12 +219,37 @@ class BouquetRepository {
 
   /// Set bouquet approval status to 'approved' or 'rejected'. Admin only (enforced by rules).
   /// Uses .update() only; does NOT touch category, occasion, emotionCategoryId, or bouquetCode.
+  /// When rejecting, pass [rejectionReason] and optional [rejectionNote] for Fair Process.
   /// Once approved, the bouquet appears in the user app under the occasion the vendor selected.
-  Future<void> updateApprovalStatus(String bouquetId, String status) async {
+  Future<void> updateApprovalStatus(
+    String bouquetId,
+    String status, {
+    String? rejectionReason,
+    String? rejectionNote,
+  }) async {
     if (status != 'approved' && status != 'rejected') {
       throw ArgumentError('status must be approved or rejected');
     }
-    await _bouquets.doc(bouquetId).update({'approvalStatus': status});
+    final data = <String, dynamic>{'approvalStatus': status};
+    if (status == 'rejected') {
+      if (rejectionReason != null && rejectionReason.isNotEmpty) {
+        data['rejectionReason'] = rejectionReason;
+      }
+      if (rejectionNote != null && rejectionNote.isNotEmpty) {
+        data['rejectionNote'] = rejectionNote;
+      }
+    }
+    await _bouquets.doc(bouquetId).update(data);
+  }
+
+  /// Resubmit a rejected bouquet for review. Vendor only (enforced by rules).
+  /// Sets approvalStatus to 'pending' and clears rejection fields.
+  Future<void> resubmitForApproval(String bouquetId) async {
+    await _bouquets.doc(bouquetId).update({
+      'approvalStatus': 'pending',
+      'rejectionReason': FieldValue.delete(),
+      'rejectionNote': FieldValue.delete(),
+    });
   }
 
   /// Stream of bouquets for a given vendor. No customer-side filters.

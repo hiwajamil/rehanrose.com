@@ -98,6 +98,8 @@
   "couldNotLoadProduct": "تعذر تحميل المنتج.",
   "productNotFound": "المنتج غير موجود.",
   "voiceMessageAdded": "تمت إضافة الرسالة الصوتية",
+  "addAmountMoreForFreeDelivery": "أضف {amount} ديناراً إضافياً للحصول على توصيل مجاني!",
+  "youUnlockedFreeDelivery": "🎉 لقد فتحت التوصيل المجاني!",
   "payWithFIB": "الدفع بـ FIB",
   "currencyIqd": "دینار",
   "vendorDefaultName": "بائع",
@@ -127,6 +129,11 @@
   "vendorAlerts": "التنبيهات",
   "vendorNoOrdersNeedingConfirmation": "لا توجد طلبات تحتاج تأكيد.",
   "vendorNoNewAdminNotices": "لا توجد إشعارات جديدة من الإدارة.",
+  "vendorActiveBouquets": "الباقات النشطة",
+  "vendorPendingApprovals": "في انتظار الموافقة",
+  "vendorTotalViewsClicks": "إجمالي المشاهدات والنقرات",
+  "vendorMotivationGreatJob": "أحسنت! متجرك يبدو جميلاً.",
+  "vendorMotivationMoreBouquets": "أضف المزيد من الباقات الجميلة لجذب المزيد من العملاء!",
   "footerTagline": "نوصل المشاعر، وردة بواحدة.",
   "footerHelpCenter": "مركز المساعدة",
   "footerFlowerCareGuide": "دليل العناية بالورود",

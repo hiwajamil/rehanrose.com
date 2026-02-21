@@ -25,6 +25,13 @@ class FlowerModel {
   /// Null/absent is treated as approved for backward compatibility.
   final String? approvalStatus;
 
+  /// Reason for rejection (Fair Process). Set when admin rejects.
+  /// Options: "Image quality is too low", "Price is unreasonable", "Incomplete product details", "Other (Provide notes)".
+  final String? rejectionReason;
+
+  /// Optional admin notes when rejecting. Shown to vendor.
+  final String? rejectionNote;
+
   /// Canonical status for UI and logic. Values: 'pending', 'approved', 'rejected'.
   /// Defaults to 'approved' when [approvalStatus] is null (legacy docs).
   String get status => approvalStatus ?? 'approved';
@@ -51,6 +58,8 @@ class FlowerModel {
     this.emotionCategoryId,
     this.vendorId,
     this.approvalStatus,
+    this.rejectionReason,
+    this.rejectionNote,
     this.createdAt,
     this.isOnSale = false,
     this.discountPrice,
@@ -119,6 +128,8 @@ class FlowerModel {
     final orderCount = (json['orderCount'] as num?)?.toInt() ?? 0;
     final vendorId = json['vendorId']?.toString();
     final approvalStatus = json['approvalStatus']?.toString();
+    final rejectionReasonVal = json['rejectionReason']?.toString();
+    final rejectionNoteVal = json['rejectionNote']?.toString();
     return FlowerModel(
       id: id,
       name: json['name']?.toString() ?? '',
@@ -131,6 +142,8 @@ class FlowerModel {
       emotionCategoryId: emotionCategoryId,
       vendorId: vendorId,
       approvalStatus: approvalStatus,
+      rejectionReason: rejectionReasonVal,
+      rejectionNote: rejectionNoteVal,
       createdAt: _createdAtFromJson(json['createdAt']),
       isOnSale: isOnSale,
       discountPrice: discountPrice,
@@ -152,6 +165,8 @@ class FlowerModel {
       if (emotionCategoryId != null) 'emotionCategoryId': emotionCategoryId!,
       if (vendorId != null) 'vendorId': vendorId!,
       if (approvalStatus != null) 'approvalStatus': approvalStatus!,
+      if (rejectionReason != null) 'rejectionReason': rejectionReason!,
+      if (rejectionNote != null) 'rejectionNote': rejectionNote!,
       if (createdAt != null) 'createdAt': createdAt,
       if (isOnSale) 'isOnSale': true,
       if (discountPrice != null) 'discountPrice': discountPrice!,

@@ -25,8 +25,8 @@ class ImageCompressionService {
   /// Compression quality (0–100). 85% for premium look, target ~100–150 KB.
   static const int quality = 85;
 
-  /// Max size in bytes for add-on images (e.g. 500 KB).
-  static const int addOnMaxBytes = 500 * 1024;
+  /// Target max size for add-on images (~100–150 KB). Dimensions kept reasonably large.
+  static const int addOnMaxBytes = 150 * 1024;
 
   /// Thumbnail max dimension (fit inside N×N). Used only for optional grid
   /// previews; Product Cards display full-size [imageUrls], not thumbnails.
@@ -154,23 +154,23 @@ class ImageCompressionService {
     return result.isEmpty ? bytes : result;
   }
 
-  /// Compresses image to WebP for add-on uploads: quality 85%, max [addOnMaxBytes] (500 KB).
-  /// Reduces dimensions or quality iteratively until under the size limit.
+  /// Compresses image to WebP for add-on uploads: quality 85%, target ~100–150 KB.
+  /// Keeps dimensions from shrinking too much (min width 600px) while staying under size limit.
   static Future<Uint8List> compressToWebPForAddOn(Uint8List bytes) async {
     const maxBytes = addOnMaxBytes;
     const targetQuality = 85;
-    int maxWidth = 800;
+    int maxWidth = 1024;
     int quality = targetQuality;
     Uint8List result = await compressToWebP(
       bytes,
       maxWidth: maxWidth,
       compressQuality: quality,
     );
-    while (result.length > maxBytes && (maxWidth > 320 || quality > 50)) {
-      if (maxWidth > 320) {
-        maxWidth = (maxWidth * 0.8).round().clamp(320, 2000);
+    while (result.length > maxBytes && (maxWidth > 480 || quality > 55)) {
+      if (maxWidth > 480) {
+        maxWidth = (maxWidth * 0.85).round().clamp(480, 2000);
       } else {
-        quality = (quality - 10).clamp(50, 100);
+        quality = (quality - 5).clamp(55, 100);
       }
       result = await compressToWebP(
         bytes,

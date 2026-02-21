@@ -53,7 +53,7 @@ class AddOnRepository {
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
-  static const String _collection = 'addOns';
+  static const String _collection = 'addons';
   static const String _storagePath = 'addons';
   static const Duration _queryTimeout = Duration(seconds: 10);
 
@@ -61,23 +61,17 @@ class AddOnRepository {
       _firestore.collection(_collection);
 
   /// Fetches add-ons offered at checkout. [vendorId] optional for vendor-specific add-ons.
-  /// Returns global add-ons (isGlobal == true) plus any for [vendorId].
-  /// If Firestore returns none, returns [defaultAddOns] so the UI always has vase/chocolate/card.
+  /// Returns active add-ons from addons collection. If Firestore returns none, returns [defaultAddOns].
   Future<List<AddOnModel>> getAddOns({String? vendorId}) async {
     try {
-      final globalSnap = await _addOns
-          .where('isGlobal', isEqualTo: true)
-          .get()
-          .timeout(_queryTimeout);
-
+      final snap = await _addOns.get().timeout(_queryTimeout);
       final list = <AddOnModel>[];
-      for (final doc in globalSnap.docs) {
+      for (final doc in snap.docs) {
         try {
           final model = AddOnModel.fromJson(doc.id, doc.data());
           if (model.isActive) list.add(model);
         } catch (_) {}
       }
-
       if (vendorId != null && vendorId.isNotEmpty) {
         final vendorSnap = await _addOns
             .where('vendorId', isEqualTo: vendorId)
@@ -116,9 +110,9 @@ class AddOnRepository {
 
   /// Stream of add-ons for admin by type (vase, chocolate, card). Includes inactive.
   Stream<List<AddOnModel>> streamAddOnsByType(AddOnType type) {
-    final typeStr = type.firestoreValue;
+    final categoryStr = type.categoryValue;
     return _addOns
-        .where('type', isEqualTo: typeStr)
+        .where('category', isEqualTo: categoryStr)
         .snapshots()
         .map((snap) {
           final list = <AddOnModel>[];

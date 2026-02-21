@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../../controllers/vendor_controller.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/flower_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/section_container.dart';
 
-/// Dashboard home: summary cards + alerts. Shown when authenticated at /vendor.
-class VendorDashboardHomePage extends StatelessWidget {
+/// Dashboard home: mini analytics cards + motivation text + alerts.
+/// Shown when authenticated at /vendor. Uses Motivational Fishbowl strategy.
+class VendorDashboardHomePage extends ConsumerWidget {
   const VendorDashboardHomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final horizontalPadding = isMobile ? 16.0 : 32.0;
+    final bouquetsAsync = ref.watch(vendorBouquetsStreamProvider);
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: SectionContainer(
@@ -26,7 +33,11 @@ class VendorDashboardHomePage extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 24),
-            _SummaryCards(),
+            bouquetsAsync.when(
+              data: (bouquets) => _MiniAnalyticsSection(bouquets: bouquets),
+              loading: () => _MiniAnalyticsSection(bouquets: []),
+              error: (_, __) => _MiniAnalyticsSection(bouquets: []),
+            ),
             const SizedBox(height: 32),
             _AlertsSection(),
           ],
@@ -36,44 +47,71 @@ class VendorDashboardHomePage extends StatelessWidget {
   }
 }
 
-class _SummaryCards extends StatelessWidget {
+class _MiniAnalyticsSection extends StatelessWidget {
+  final List<FlowerModel> bouquets;
+
+  const _MiniAnalyticsSection({required this.bouquets});
+
+  int get _activeCount =>
+      bouquets.where((b) => b.isApproved).length;
+
+  int get _pendingCount =>
+      bouquets.where((b) => b.isPendingApproval).length;
+
+  int get _totalViewsClicks =>
+      bouquets.fold<int>(0, (sum, b) => sum + b.viewCount + b.orderCount);
+
+  String _motivationText(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return _activeCount > 5
+        ? l10n.vendorMotivationGreatJob
+        : l10n.vendorMotivationMoreBouquets;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(
       builder: (context, constraints) {
-        // On mobile: 2 columns of equal width; on desktop: fixed 180px cards.
         final isMobile = constraints.maxWidth <= kMobileBreakpoint;
         final cardWidth = isMobile
-            ? (constraints.maxWidth - 16) / 2
-            : 180.0;
-        return Wrap(
-          spacing: 16,
-          runSpacing: 16,
+            ? (constraints.maxWidth - 16) / 3
+            : (constraints.maxWidth - 32) / 3;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SummaryCard(
-              width: cardWidth,
-              title: l10n.vendorTodaysOrders,
-              value: '0',
-              icon: Icons.receipt_long_outlined,
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                _MiniAnalyticsCard(
+                  width: cardWidth.clamp(120.0, 220.0),
+                  title: l10n.vendorActiveBouquets,
+                  value: '$_activeCount',
+                  icon: Icons.local_florist_outlined,
+                ),
+                _MiniAnalyticsCard(
+                  width: cardWidth.clamp(120.0, 220.0),
+                  title: l10n.vendorPendingApprovals,
+                  value: '$_pendingCount',
+                  icon: Icons.schedule_outlined,
+                ),
+                _MiniAnalyticsCard(
+                  width: cardWidth.clamp(120.0, 220.0),
+                  title: l10n.vendorTotalViewsClicks,
+                  value: '$_totalViewsClicks',
+                  icon: Icons.touch_app_outlined,
+                ),
+              ],
             ),
-            _SummaryCard(
-              width: cardWidth,
-              title: l10n.vendorPendingOrders,
-              value: '0',
-              icon: Icons.schedule_outlined,
-            ),
-            _SummaryCard(
-              width: cardWidth,
-              title: l10n.vendorTodaysRevenue,
-              value: 'IQD 0',
-              icon: Icons.payments_outlined,
-            ),
-            _SummaryCard(
-              width: cardWidth,
-              title: l10n.vendorShopStatus,
-              value: l10n.offline,
-              icon: Icons.storefront_outlined,
+            const SizedBox(height: 20),
+            Text(
+              _motivationText(context),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                  ),
             ),
           ],
         );
@@ -82,13 +120,13 @@ class _SummaryCards extends StatelessWidget {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
+class _MiniAnalyticsCard extends StatelessWidget {
   final double width;
   final String title;
   final String value;
   final IconData icon;
 
-  const _SummaryCard({
+  const _MiniAnalyticsCard({
     required this.width,
     required this.title,
     required this.value,
@@ -119,10 +157,11 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.ink,
-                  fontWeight: FontWeight.w700,
-                ),
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+            ),
           ),
           const SizedBox(height: 4),
           Text(

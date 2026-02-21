@@ -191,6 +191,7 @@ class _VendorBouquetsPageState extends ConsumerState<VendorBouquetsPage> {
                 return Column(
                   children: toShow
                       .map((b) => _BouquetCard(
+                            key: ValueKey(b.id),
                             bouquet: b,
                             user: user!,
                             ref: ref,
@@ -299,6 +300,41 @@ class _VendorBouquetsPageState extends ConsumerState<VendorBouquetsPage> {
               },
               variant: PrimaryButtonVariant.outline,
             ),
+            if (bouquet.status == 'rejected') ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Text(
+                  'Fix the issues above, then resubmit for admin review.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              PrimaryButton(
+                label: 'Resubmit for Review',
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  await ref
+                      .read(vendorControllerProvider.notifier)
+                      .resubmitBouquet(bouquet.id);
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Bouquet resubmitted. It will appear in Pending for admin review.')));
+                  }
+                },
+                variant: PrimaryButtonVariant.outline,
+              ),
+            ],
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: () async {
@@ -354,6 +390,7 @@ class _BouquetCard extends StatelessWidget {
   final VoidCallback onEdit;
 
   const _BouquetCard({
+    super.key,
     required this.bouquet,
     required this.user,
     required this.ref,
@@ -394,6 +431,7 @@ class _BouquetCard extends StatelessWidget {
         : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=400&q=80';
     final isNarrow = MediaQuery.sizeOf(context).width < 500;
 
+    final isRejected = bouquet.status == 'rejected';
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -401,13 +439,23 @@ class _BouquetCard extends StatelessWidget {
         color: isSelected ? AppColors.sage.withValues(alpha: 0.08) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isSelected ? AppColors.sage : AppColors.border,
-          width: isSelected ? 2 : 1,
+          color: isRejected ? Colors.red.shade300 : (isSelected ? AppColors.sage : AppColors.border),
+          width: isRejected ? 2 : (isSelected ? 2 : 1),
         ),
       ),
-      child: isNarrow
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (isRejected)
+            _RejectionBanner(
+              reason: bouquet.rejectionReason ?? 'Rejected (no reason provided)',
+              note: bouquet.rejectionNote,
+            ),
+          if (isRejected)
+            const SizedBox(height: 12),
+          isNarrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -469,13 +517,13 @@ class _BouquetCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 PrimaryButton(
-                  label: 'Edit',
+                  label: isRejected ? 'Edit & Resubmit' : 'Edit',
                   onPressed: onEdit,
                   variant: PrimaryButtonVariant.outline,
                 ),
               ],
             )
-          : Row(
+              : Row(
               children: [
                 _selectionCheckbox(context),
                 ClipRRect(
@@ -531,12 +579,78 @@ class _BouquetCard extends StatelessWidget {
                 _StatusBadge(status: bouquet.status),
                 const SizedBox(width: 12),
                 PrimaryButton(
-                  label: 'Edit',
+                  label: isRejected ? 'Edit & Resubmit' : 'Edit',
                   onPressed: onEdit,
                   variant: PrimaryButtonVariant.outline,
                 ),
               ],
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Highly visible banner showing rejection reason and note to help vendor fix issues.
+class _RejectionBanner extends StatelessWidget {
+  const _RejectionBanner({required this.reason, this.note});
+
+  final String reason;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade300, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withValues(alpha: 0.1),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 20, color: Colors.red.shade800),
+              const SizedBox(width: 8),
+              Text(
+                'Rejection reason',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.red.shade900,
+                      letterSpacing: 0.5,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            reason,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red.shade900,
+                ),
+          ),
+          if (note != null && note!.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              note!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.red.shade800,
+                    height: 1.4,
+                  ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -309,6 +309,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voiceMessageAdded => 'تمت إضافة الرسالة الصوتية';
 
   @override
+  String addAmountMoreForFreeDelivery(String amount) {
+    return 'أضف $amount ديناراً إضافياً للحصول على توصيل مجاني!';
+  }
+
+  @override
+  String get youUnlockedFreeDelivery => '🎉 لقد فتحت التوصيل المجاني!';
+
+  @override
   String get payWithFIB => 'الدفع بـ FIB';
 
   @override
@@ -394,6 +402,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vendorNoNewAdminNotices => 'لا توجد إشعارات جديدة من الإدارة.';
+
+  @override
+  String get vendorActiveBouquets => 'الباقات النشطة';
+
+  @override
+  String get vendorPendingApprovals => 'في انتظار الموافقة';
+
+  @override
+  String get vendorTotalViewsClicks => 'إجمالي المشاهدات والنقرات';
+
+  @override
+  String get vendorMotivationGreatJob => 'أحسنت! متجرك يبدو جميلاً.';
+
+  @override
+  String get vendorMotivationMoreBouquets =>
+      'أضف المزيد من الباقات الجميلة لجذب المزيد من العملاء!';
 
   @override
   String get footerTagline => 'نوصل المشاعر، وردة بواحدة.';

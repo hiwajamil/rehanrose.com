@@ -112,6 +112,15 @@
   "couldNotLoadProduct": "Could not load product.",
   "productNotFound": "Product not found.",
   "voiceMessageAdded": "Voice message added",
+  "addAmountMoreForFreeDelivery": "Add {amount} IQD more to get FREE Delivery!",
+  "@addAmountMoreForFreeDelivery": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "youUnlockedFreeDelivery": "🎉 You unlocked FREE Delivery!",
   "payWithFIB": "Pay with FIB",
   "currencyIqd": "IQD",
   "vendorDefaultName": "Vendor",
@@ -141,6 +150,11 @@
   "vendorAlerts": "Alerts",
   "vendorNoOrdersNeedingConfirmation": "No orders needing confirmation.",
   "vendorNoNewAdminNotices": "No new admin notices.",
+  "vendorActiveBouquets": "Active Bouquets",
+  "vendorPendingApprovals": "Pending Approvals",
+  "vendorTotalViewsClicks": "Total Views / Clicks",
+  "vendorMotivationGreatJob": "Great job! Your shop is looking beautiful.",
+  "vendorMotivationMoreBouquets": "Add more beautiful bouquets to attract more customers!",
   "footerTagline": "Delivering emotions, one flower at a time.",
   "footerHelpCenter": "Help Center",
   "footerFlowerCareGuide": "Flower Care Guide",

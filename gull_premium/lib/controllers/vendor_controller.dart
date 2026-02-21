@@ -248,6 +248,18 @@ class VendorController extends AsyncNotifier<void> {
       rethrow;
     }
   }
+
+  /// Resubmit a rejected bouquet for admin review. Sets status to 'pending' and clears rejection reason/note.
+  Future<void> resubmitBouquet(String bouquetId) async {
+    state = const AsyncValue.loading();
+    try {
+      await _bouquetRepo.resubmitForApproval(bouquetId);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
 }
 
 final vendorControllerProvider =

@@ -75,7 +75,13 @@ service cloud.firestore {
           || (resource.data.vendorId == request.auth.uid
               && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['priceIqd'])
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls'])
-                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])));
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])))
+          // Vendor resubmit: change rejected -> pending (clears rejectionReason, rejectionNote)
+          || (resource.data.vendorId == request.auth.uid
+              && resource.data.approvalStatus == 'rejected'
+              && request.resource.data.approvalStatus == 'pending'
+              && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'rejectionReason', 'rejectionNote'])));
     }
 
     // ─── orders ────────────────────────────────────────────────────────────

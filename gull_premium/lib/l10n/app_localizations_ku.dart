@@ -314,6 +314,14 @@ class AppLocalizationsKu extends AppLocalizations {
   String get voiceMessageAdded => 'نامەی دەنگی زیادکرا';
 
   @override
+  String addAmountMoreForFreeDelivery(String amount) {
+    return '$amount دینار زیاتر زیاد بکە بۆ گەیاندنی بەخۆڕایی!';
+  }
+
+  @override
+  String get youUnlockedFreeDelivery => '🎉 گەیاندنی بەخۆڕایی کردیتەوە!';
+
+  @override
   String get payWithFIB => 'پارە بدە بە FIB';
 
   @override
@@ -400,6 +408,23 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get vendorNoNewAdminNotices => 'ئاگاداری نوێی بەڕێوەبەرانی نییە.';
+
+  @override
+  String get vendorActiveBouquets => 'دەستەگوڵە چالاکەکان';
+
+  @override
+  String get vendorPendingApprovals => 'چاوەڕوانی پەسەندکردن';
+
+  @override
+  String get vendorTotalViewsClicks => 'کۆی بینین و کرتەکان';
+
+  @override
+  String get vendorMotivationGreatJob =>
+      'کارەکەت زۆر باشە! فرۆشگاکەت زۆر جوانە.';
+
+  @override
+  String get vendorMotivationMoreBouquets =>
+      'دەستەگوڵی زیاتر زیاد بکە بۆ ڕاکێشانی کڕیاران!';
 
   @override
   String get footerTagline => 'هەستەکان دەگەیەنین، گوڵ بە گوڵێک.';

@@ -91,12 +91,26 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
     }
   }
 
-  Future<void> _reject(String bouquetId) async {
+  Future<void> _showRejectDialog(String bouquetId) async {
+    final result = await showDialog<({String reason, String note})>(
+      context: context,
+      builder: (context) => const _RejectBouquetDialog(),
+    );
+    if (result == null || !mounted) return;
+    await _reject(bouquetId, result.reason, result.note);
+  }
+
+  Future<void> _reject(String bouquetId, String rejectionReason, [String rejectionNote = '']) async {
     setState(() => _processingIds.add(bouquetId));
     try {
       await _ensureSuperAdmin();
-      await ref.read(bouquetRepositoryProvider).updateApprovalStatus(bouquetId, 'rejected');
-      if (mounted) _showMessage('Bouquet rejected.');
+      await ref.read(bouquetRepositoryProvider).updateApprovalStatus(
+            bouquetId,
+            'rejected',
+            rejectionReason: rejectionReason,
+            rejectionNote: rejectionNote.isNotEmpty ? rejectionNote : null,
+          );
+      if (mounted) _showMessage('Bouquet rejected. Vendor will see the reason.');
     } catch (e, st) {
       if (mounted) {
         debugPrint('Reject bouquet error: $e $st');
@@ -277,7 +291,7 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
                   variant: _ApprovalCardVariant.pending,
                   processingIds: _processingIds,
                   onApprove: _approve,
-                  onReject: _reject,
+                  onReject: _showRejectDialog,
                   onDeletePermanently: (bouquet) {
                     unawaited(_confirmDelete(context, bouquet));
                   },
@@ -288,7 +302,7 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
                   variant: _ApprovalCardVariant.approved,
                   processingIds: _processingIds,
                   onApprove: _approve,
-                  onReject: _reject,
+                  onReject: _showRejectDialog,
                   onDeletePermanently: (bouquet) {
                     unawaited(_confirmDelete(context, bouquet));
                   },
@@ -299,7 +313,7 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
                   variant: _ApprovalCardVariant.rejected,
                   processingIds: _processingIds,
                   onApprove: _approve,
-                  onReject: _reject,
+                  onReject: _showRejectDialog,
                   onDeletePermanently: (bouquet) {
                     unawaited(_confirmDelete(context, bouquet));
                   },
@@ -1099,6 +1113,109 @@ class _BouquetApprovalCard extends ConsumerWidget {
             ],
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Fair Process: Admin must select a rejection reason before rejecting a bouquet.
+const _rejectionReasons = [
+  'Image quality is too low',
+  'Price is unreasonable',
+  'Incomplete product details',
+  'Other (Provide notes)',
+];
+
+class _RejectBouquetDialog extends StatefulWidget {
+  const _RejectBouquetDialog();
+
+  @override
+  State<_RejectBouquetDialog> createState() => _RejectBouquetDialogState();
+}
+
+class _RejectBouquetDialogState extends State<_RejectBouquetDialog> {
+  String _selectedReason = _rejectionReasons.first;
+  final _noteController = TextEditingController();
+  final _noteFocus = FocusNode();
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    _noteFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final montserrat = GoogleFonts.montserrat();
+    final playfair = GoogleFonts.playfairDisplay();
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(
+        'Select Reason for Rejection',
+        style: playfair.copyWith(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.ink),
+      ),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ..._rejectionReasons.map((reason) => RadioListTile<String>(
+                    value: reason,
+                    groupValue: _selectedReason,
+                    onChanged: (v) => setState(() => _selectedReason = v ?? _selectedReason),
+                    title: Text(reason, style: montserrat.copyWith(fontSize: 14, color: AppColors.ink)),
+                    activeColor: AppColors.rosePrimary,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  )),
+              const SizedBox(height: 16),
+              Text(
+                'Additional notes (optional)',
+                style: montserrat.copyWith(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.inkMuted),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _noteController,
+                focusNode: _noteFocus,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Add details to help the vendor fix the issue...',
+                  hintStyle: montserrat.copyWith(fontSize: 13, color: AppColors.inkMuted),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+                style: montserrat.copyWith(fontSize: 14, color: AppColors.ink),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Cancel', style: montserrat.copyWith(color: AppColors.inkMuted)),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop((
+            reason: _selectedReason,
+            note: _noteController.text.trim(),
+          )),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFC62828),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          child: Text('Reject', style: montserrat.copyWith(fontWeight: FontWeight.w600)),
+        ),
       ],
     );
   }

@@ -36,6 +36,20 @@ extension AddOnTypeX on AddOnType {
         return 'TeddyBear';
     }
   }
+
+  /// Firestore category value: 'Vase' | 'Chocolate' | 'Card'.
+  String get categoryValue {
+    switch (this) {
+      case AddOnType.vase:
+        return 'Vase';
+      case AddOnType.chocolate:
+        return 'Chocolate';
+      case AddOnType.card:
+        return 'Card';
+      case AddOnType.teddyBear:
+        return 'TeddyBear';
+    }
+  }
 }
 
 /// Complementary product (cross-sell) offered at checkout.
@@ -82,12 +96,13 @@ class AddOnModel {
   }
 
   factory AddOnModel.fromJson(String id, Map<String, dynamic> json) {
-    final type = AddOnTypeX.fromString(json['type']?.toString()) ?? AddOnType.vase;
+    final typeStr = json['category']?.toString() ?? json['type']?.toString();
+    final type = AddOnTypeX.fromString(typeStr) ?? AddOnType.vase;
     return AddOnModel(
       id: id,
       nameEn: json['nameEn']?.toString() ?? json['name']?.toString() ?? '',
-      nameKu: json['nameKu']?.toString() ?? json['name']?.toString() ?? '',
-      nameAr: json['nameAr']?.toString() ?? json['name']?.toString() ?? '',
+      nameKu: json['nameKu']?.toString() ?? '',
+      nameAr: json['nameAr']?.toString() ?? '',
       priceIqd: (json['priceIqd'] as num?)?.toInt() ?? (json['price'] as num?)?.toInt() ?? 0,
       imageUrl: json['imageUrl']?.toString() ?? json['image']?.toString() ?? '',
       type: type,
@@ -96,15 +111,13 @@ class AddOnModel {
     );
   }
 
+  /// Firestore document for addons collection: { category, name, price, imageUrl, isActive }.
   Map<String, dynamic> toJson() {
     return {
-      'nameEn': nameEn,
-      'nameKu': nameKu,
-      'nameAr': nameAr,
-      'priceIqd': priceIqd,
+      'category': type.categoryValue,
+      'name': nameEn,
+      'price': priceIqd,
       'imageUrl': imageUrl,
-      'type': type.firestoreValue,
-      'isGlobal': isGlobal,
       'isActive': isActive,
     };
   }

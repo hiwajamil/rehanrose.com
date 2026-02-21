@@ -94,7 +94,7 @@ class _ManageAddOnsPageState extends ConsumerState<ManageAddOnsPage> {
         const SizedBox(height: 16),
         PrimaryButton(
           label: 'Back to Admin',
-          onPressed: () => context.go('/admin'),
+          onPressed: () => context.pop(),
           variant: PrimaryButtonVariant.outline,
         ),
       ],
@@ -117,12 +117,12 @@ class _ManageAddOnsPageState extends ConsumerState<ManageAddOnsPage> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back),
-                        onPressed: () => context.go('/admin'),
+                        onPressed: () => context.pop(),
                         tooltip: 'Back to dashboard',
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Manage Add-ons',
+                        'Super Admin Dashboard (Manage Add-ons)',
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                     ],
@@ -464,11 +464,7 @@ class _AddEditAddOnDialogState extends State<_AddEditAddOnDialog> {
   }
 
   Future<void> _pickImage() async {
-    final file = await widget.imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 800,
-    );
+    final file = await widget.imagePicker.pickImage(source: ImageSource.gallery);
     if (file == null) return;
     final bytes = await file.readAsBytes();
     if (!mounted) return;
@@ -485,7 +481,7 @@ class _AddEditAddOnDialogState extends State<_AddEditAddOnDialog> {
     final price = int.tryParse(_priceController.text.trim());
 
     if (nameEn.isEmpty) {
-      _showMessage('Enter name (English).');
+      _showMessage('Enter add-on name (English).');
       return;
     }
     if (price == null || price < 0) {
@@ -494,7 +490,7 @@ class _AddEditAddOnDialogState extends State<_AddEditAddOnDialog> {
     }
 
     if (!isEdit && _imageBytes == null) {
-      _showMessage('Please upload an image for the add-on.');
+      _showMessage('Please pick an image for the add-on.');
       return;
     }
 
@@ -515,7 +511,7 @@ class _AddEditAddOnDialogState extends State<_AddEditAddOnDialog> {
           priceIqd: price,
           imageUrl: imageUrl,
           type: existing.type,
-          isGlobal: existing.isGlobal,
+          isGlobal: true,
           isActive: existing.isActive,
         );
         await repo.update(updated);
@@ -525,7 +521,7 @@ class _AddEditAddOnDialogState extends State<_AddEditAddOnDialog> {
       }
 
       final newAddOn = AddOnModel(
-        id: '', // will be set by create
+        id: '',
         nameEn: nameEn,
         nameKu: nameKu,
         nameAr: nameAr,
@@ -582,7 +578,7 @@ class _AddEditAddOnDialogState extends State<_AddEditAddOnDialog> {
               OutlinedButton.icon(
                 onPressed: _saving ? null : _pickImage,
                 icon: const Icon(Icons.upload_file),
-                label: Text(_pickedImage != null ? 'Image selected' : (existing?.imageUrl.isNotEmpty == true ? 'Change image' : 'Upload image')),
+                label: Text(_pickedImage != null ? 'Image selected' : (existing?.imageUrl.isNotEmpty == true ? 'Change image' : 'Pick image')),
               ),
               if (_pickedImage != null || (existing?.imageUrl.isNotEmpty == true)) ...[
                 const SizedBox(height: 8),

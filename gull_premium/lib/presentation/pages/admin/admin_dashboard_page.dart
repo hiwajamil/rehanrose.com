@@ -245,7 +245,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                 ),
                 PrimaryButton(
                   label: 'Manage Add-ons',
-                  onPressed: () => context.go('/admin/add-ons'),
+                  onPressed: () => context.push('/admin/add-ons'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 PrimaryButton(
@@ -277,7 +277,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                 const SizedBox(width: 12),
                 PrimaryButton(
                   label: 'Manage Add-ons',
-                  onPressed: () => context.go('/admin/add-ons'),
+                  onPressed: () => context.push('/admin/add-ons'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 const SizedBox(width: 12),

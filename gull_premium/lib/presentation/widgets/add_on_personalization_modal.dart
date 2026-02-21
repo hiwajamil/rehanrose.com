@@ -13,6 +13,9 @@ import 'common/app_cached_image.dart';
 import 'common/order_via_whatsapp_button.dart';
 import 'voice_message_dialog.dart';
 
+/// Free delivery threshold in IQD. Orders at or above this total get free delivery.
+const int freeDeliveryThreshold = 50000;
+
 /// Opens the Add-on & Personalization dialog (centered) for the given bouquet.
 /// Step 1: Add-ons (multi-select). Step 2: Voice message QR. Step 3: Order via WhatsApp.
 void showAddOnPersonalizationModal(BuildContext context, String flowerId) {
@@ -22,7 +25,7 @@ void showAddOnPersonalizationModal(BuildContext context, String flowerId) {
     builder: (ctx) => Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 440,
+          maxWidth: 520,
           maxHeight: MediaQuery.of(ctx).size.height * 0.85,
         ),
         child: _AddOnPersonalizationSheet(flowerId: flowerId),
@@ -107,6 +110,7 @@ class _AddOnPersonalizationSheetState
     ref.read(bouquetRepositoryProvider).incrementOrderCount(bouquet.id);
     final l10n = AppLocalizations.of(context)!;
     final productUrl = '${Uri.base.origin}/p/${widget.flowerId}';
+    final total = _totalPriceIqd(bouquet);
     launchOrderWhatsApp(
       flowerName: bouquet.name,
       flowerPrice: formatPriceWithCurrency(bouquet.priceIqd, l10n.currencyIqd),
@@ -116,9 +120,10 @@ class _AddOnPersonalizationSheetState
           bouquet.bouquetCode.isNotEmpty ? bouquet.bouquetCode : null,
       selectedAddOns:
           _selectedAddOns.isEmpty ? null : List.from(_selectedAddOns),
-      totalPriceIqd: _totalPriceIqd(bouquet),
+      totalPriceIqd: total,
       productUrl: productUrl,
       voiceMessageUrl: _voiceMessageUrl,
+      freeDeliveryUnlocked: total >= freeDeliveryThreshold,
     );
     Navigator.of(context).pop();
   }
@@ -195,50 +200,72 @@ class _AddOnPersonalizationSheetState
                       style: playfair.copyWith(fontSize: 16),
                     ),
                     const SizedBox(height: 16),
-                    ..._addOnCategoryOrder.map((categoryType) {
-                      final ofType = addOns
-                          .where((a) => a.type == categoryType)
-                          .toList();
-                      if (ofType.isEmpty) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _categoryTitle(categoryType),
-                              style: playfair.copyWith(
-                                fontSize: 14,
-                                color: AppColors.inkMuted,
-                              ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: _addOnCategoryOrder.map((categoryType) {
+                        final ofType = addOns
+                            .where((a) => a.type == categoryType)
+                            .toList();
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: categoryType != _addOnCategoryOrder.last
+                                  ? 12
+                                  : 0,
                             ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              height: 132,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.only(right: 24),
-                                itemCount: ofType.length,
-                                itemBuilder: (context, index) {
-                                  final addOn = ofType[index];
-                                  final selected = _isSelected(addOn);
-                                  final name = addOn.nameForLocale(locale);
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 12),
-                                    child: _AddOnModalCard(
-                                      addOn: addOn,
-                                      name: name,
-                                      selected: selected,
-                                      onTap: () => _toggleAddOn(addOn),
-                                    ),
-                                  );
-                                },
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _categoryTitle(categoryType),
+                                  style: playfair.copyWith(
+                                    fontSize: 14,
+                                    color: AppColors.inkMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  height: 132,
+                                  child: ofType.isEmpty
+                                      ? Center(
+                                          child: Icon(
+                                            Icons.card_giftcard,
+                                            color: AppColors.inkMuted
+                                                .withValues(alpha: 0.5),
+                                            size: 32,
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: ofType.length,
+                                          itemBuilder: (context, index) {
+                                            final addOn = ofType[index];
+                                            final selected =
+                                                _isSelected(addOn);
+                                            final name = addOn
+                                                .nameForLocale(locale);
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                right: 8,
+                                              ),
+                                              child: _AddOnModalCard(
+                                                addOn: addOn,
+                                                name: name,
+                                                selected: selected,
+                                                onTap: () =>
+                                                    _toggleAddOn(addOn),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    }),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                     const SizedBox(height: 28),
                     Text(
                       l10n.step2VoiceMessage,
@@ -344,6 +371,12 @@ class _AddOnPersonalizationSheetState
                       ],
                     ),
                     const SizedBox(height: 20),
+                    _FreeDeliveryProgressBar(
+                      currentTotal: total,
+                      threshold: freeDeliveryThreshold,
+                      l10n: l10n,
+                    ),
+                    const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: OrderViaWhatsAppButton(
@@ -363,6 +396,69 @@ class _AddOnPersonalizationSheetState
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FreeDeliveryProgressBar extends StatelessWidget {
+  final int currentTotal;
+  final int threshold;
+  final AppLocalizations l10n;
+
+  const _FreeDeliveryProgressBar({
+    required this.currentTotal,
+    required this.threshold,
+    required this.l10n,
+  });
+
+  /// Motivating orange color for "add more" state
+  static const Color _addMoreColor = Color(0xFFE67E22);
+  /// Success green when free delivery unlocked
+  static const Color _unlockedColor = Color(0xFF4CAF50);
+
+  @override
+  Widget build(BuildContext context) {
+    final unlocked = currentTotal >= threshold;
+    final progress = unlocked ? 1.0 : (currentTotal / threshold).clamp(0.0, 1.0);
+    final remaining = threshold - currentTotal;
+    final progressColor = unlocked ? _unlockedColor : _addMoreColor;
+    final text = unlocked
+        ? l10n.youUnlockedFreeDelivery
+        : l10n.addAmountMoreForFreeDelivery(formatPriceIqd(remaining));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: progressColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: progressColor.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: progressColor.withValues(alpha: 0.2),
+            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+            borderRadius: BorderRadius.circular(4),
+            minHeight: 6,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: progressColor,
+                  fontSize: 13,
+                ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
