@@ -295,6 +295,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addOnPersonalizationTitle => 'Add-on & Personalization';
 
   @override
+  String get addOnAddButton => 'Add';
+
+  @override
+  String get addOnChooseVases => 'Choose a Vase';
+
+  @override
+  String get addOnChooseChocolates => 'Choose Chocolates';
+
+  @override
+  String get addOnChooseCards => 'Choose a Card';
+
+  @override
+  String get addOnChooseAddOn => 'Choose Add-on';
+
+  @override
   String get step1AddOns => 'Step 1: Add-ons';
 
   @override
@@ -568,4 +583,108 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backOnline => 'Back Online';
+
+  @override
+  String get adminSuperAdminDashboard => 'Super Admin Dashboard';
+
+  @override
+  String get adminSignInPrompt =>
+      'Sign in to review vendor applications. If you see \"Access restricted\", add your UID to the admins collection in Firestore (instructions shown there).';
+
+  @override
+  String get adminEmailLabel => 'Admin email';
+
+  @override
+  String get adminEmailHint => 'admin@email.com';
+
+  @override
+  String get adminPasswordLabel => 'Password';
+
+  @override
+  String get adminPasswordHint => 'Enter your password';
+
+  @override
+  String get adminSigningIn => 'Signing in...';
+
+  @override
+  String get adminEnterEmailPassword => 'Enter your admin email and password.';
+
+  @override
+  String get adminUnableToSignIn => 'Unable to sign in.';
+
+  @override
+  String get adminAccessRestricted => 'Access restricted';
+
+  @override
+  String get adminNotRegisteredPrompt =>
+      'This account is not registered as a super admin. To grant access, add a document in Firestore:';
+
+  @override
+  String adminFirestoreInstructions(String uid) {
+    return 'Collection: admins\nDocument ID: $uid';
+  }
+
+  @override
+  String get adminFirestoreSteps =>
+      'You can create an empty document in Firebase Console (Firestore → admins → Add document with the ID above). Then sign out and sign in again.';
+
+  @override
+  String get adminSignOut => 'Sign out';
+
+  @override
+  String get adminPendingApplications => 'Pending vendor applications';
+
+  @override
+  String get adminAnalytics => 'Analytics';
+
+  @override
+  String get adminBouquetApproval => 'Bouquet Approval';
+
+  @override
+  String get adminManageAddOns => 'Manage Add-ons';
+
+  @override
+  String get adminLoadingApplications => 'Loading applications…';
+
+  @override
+  String get adminUnableToLoadApplications => 'Unable to load applications.';
+
+  @override
+  String get adminNoPendingApplications => 'No pending applications.';
+
+  @override
+  String get adminStudio => 'Studio';
+
+  @override
+  String get adminOwner => 'Owner';
+
+  @override
+  String get adminEmail => 'Email';
+
+  @override
+  String get adminPhone => 'Phone';
+
+  @override
+  String get adminLocation => 'Location';
+
+  @override
+  String get adminApprove => 'Approve';
+
+  @override
+  String get adminReject => 'Reject';
+
+  @override
+  String get adminWorking => 'Working...';
+
+  @override
+  String get adminApplicationApproved => 'Application approved.';
+
+  @override
+  String get adminApplicationRejected => 'Application rejected.';
+
+  @override
+  String get adminUnableToApprove => 'Unable to approve application.';
+
+  @override
+  String get adminUnableToReject => 'Unable to reject application.';
 }

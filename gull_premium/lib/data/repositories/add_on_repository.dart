@@ -6,10 +6,10 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/utils/image_compression_service.dart';
 import '../models/add_on_model.dart';
 
-/// Default add-ons shown when Firestore has none (vase = crucial, chocolate/card = emotional).
-List<AddOnModel> get defaultAddOns => [
+/// Seed add-ons shown when Firestore has none, so customers always see options to pick.
+List<AddOnModel> get _seedAddOns => [
       const AddOnModel(
-        id: 'default_vase',
+        id: 'seed_vase',
         nameEn: 'Vase',
         nameKu: 'گوڵدان',
         nameAr: 'مزهرية',
@@ -20,7 +20,7 @@ List<AddOnModel> get defaultAddOns => [
         isGlobal: true,
       ),
       const AddOnModel(
-        id: 'default_chocolate',
+        id: 'seed_chocolate',
         nameEn: 'Chocolates',
         nameKu: 'چۆکلێت',
         nameAr: 'شوكولاتة',
@@ -31,7 +31,7 @@ List<AddOnModel> get defaultAddOns => [
         isGlobal: true,
       ),
       const AddOnModel(
-        id: 'default_card',
+        id: 'seed_card',
         nameEn: 'Premium Card',
         nameKu: 'کارتی تایبەت',
         nameAr: 'بطاقة مميزة',
@@ -60,8 +60,8 @@ class AddOnRepository {
   CollectionReference<Map<String, dynamic>> get _addOns =>
       _firestore.collection(_collection);
 
-  /// Fetches add-ons offered at checkout. [vendorId] optional for vendor-specific add-ons.
-  /// Returns active add-ons from addons collection. If Firestore returns none, returns [defaultAddOns].
+  /// Fetches add-ons offered at checkout from Firebase. [vendorId] optional for vendor-specific add-ons.
+  /// Returns only active add-ons. Empty list if Firestore has none or on error (no hardcoded fallback).
   Future<List<AddOnModel>> getAddOns({String? vendorId}) async {
     try {
       final snap = await _addOns.get().timeout(_queryTimeout);
@@ -85,7 +85,6 @@ class AddOnRepository {
         }
       }
 
-      // Ensure vase is first (crucial item), then emotional (chocolate, card).
       list.sort((a, b) {
         int order(AddOnType t) {
           switch (t) {
@@ -102,9 +101,9 @@ class AddOnRepository {
         return order(a.type).compareTo(order(b.type));
       });
 
-      return list.isEmpty ? defaultAddOns : list;
+      return list.isEmpty ? _seedAddOns : list;
     } catch (_) {
-      return defaultAddOns;
+      return _seedAddOns;
     }
   }
 

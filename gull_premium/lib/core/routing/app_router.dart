@@ -13,7 +13,8 @@ import '../../presentation/pages/florists/vendor_profile_page.dart';
 import '../../presentation/pages/admin/admin_dashboard_page.dart';
 import '../../presentation/pages/admin/bouquet_approval_page.dart';
 import '../../presentation/pages/admin/analytics_overview_page.dart';
-import '../../presentation/pages/admin/manage_add_ons_page.dart';
+import '../../presentation/pages/admin/add_on_category_inventory_page.dart';
+import '../../presentation/pages/admin/manage_add_ons_landing_page.dart';
 import '../../presentation/pages/product/order_customization_page.dart';
 import '../../presentation/pages/product/product_detail_page.dart';
 import '../../presentation/pages/product/product_listing_page.dart';
@@ -26,6 +27,7 @@ import '../../presentation/pages/vendor/vendor_notifications_page.dart';
 import '../../presentation/pages/vendor/vendor_shop_settings_page.dart';
 import '../../presentation/pages/vendor/vendor_support_page.dart';
 import '../../presentation/widgets/layout/vendor_shell_layout.dart';
+import '../../data/models/add_on_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../features/dashboard/dashboard_resolver_page.dart';
 
@@ -166,7 +168,27 @@ class AppRouter {
         routes: [
           GoRoute(
             path: 'add-ons',
-            builder: (_, __) => const ManageAddOnsPage(),
+            builder: (_, __) => const ManageAddOnsLandingPage(),
+            routes: [
+              GoRoute(
+                path: 'vases',
+                builder: (_, __) => const AddOnCategoryInventoryPage(
+                  categoryType: AddOnType.vase,
+                ),
+              ),
+              GoRoute(
+                path: 'chocolates',
+                builder: (_, __) => const AddOnCategoryInventoryPage(
+                  categoryType: AddOnType.chocolate,
+                ),
+              ),
+              GoRoute(
+                path: 'cards',
+                builder: (_, __) => const AddOnCategoryInventoryPage(
+                  categoryType: AddOnType.card,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: 'analytics',

@@ -12,7 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/order_via_whatsapp_button.dart';
 import '../../widgets/layout/app_scaffold.dart';
-import 'add_on_selection_sheet.dart';
+import 'add_on_variant_selection_page.dart';
 
 /// Product Details & Customization (Upsell) page.
 /// Flow: Order via WhatsApp -> this page -> user picks add-ons -> ORDER VIA WHATSAPP opens WhatsApp.
@@ -70,18 +70,15 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
     final filtered =
         addOns.where((a) => a.type == type && a.isActive).toList();
     if (filtered.isEmpty) return;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => AddOnSelectionSheet(
-        addOns: filtered,
-        onSelect: (addOn) {
-          Navigator.of(context).pop();
-          _onAddOnSelected(addOn);
-        },
-      ),
-    );
+    AddOnVariantSelectionPage.open(
+      context,
+      categoryType: type,
+      variants: filtered,
+    ).then((selected) {
+      if (selected != null && mounted) {
+        _onAddOnSelected(selected);
+      }
+    });
   }
 
   void _orderViaWhatsApp(FlowerModel bouquet) {

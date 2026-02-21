@@ -83,13 +83,13 @@ class AddOnModel {
     this.isActive = true,
   });
 
-  /// Localized name for locale code: en, ku, ar.
+  /// Localized name for locale code: en, ku, ar. Falls back to nameEn when locale-specific name is empty.
   String nameForLocale(String localeCode) {
     switch (localeCode) {
       case 'ku':
-        return nameKu;
+        return nameKu.isNotEmpty ? nameKu : nameEn;
       case 'ar':
-        return nameAr;
+        return nameAr.isNotEmpty ? nameAr : nameEn;
       default:
         return nameEn;
     }

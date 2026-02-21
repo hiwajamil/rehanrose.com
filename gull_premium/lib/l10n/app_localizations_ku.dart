@@ -296,6 +296,21 @@ class AppLocalizationsKu extends AppLocalizations {
   String get addOnPersonalizationTitle => 'زیادە و تایبەتمەندی';
 
   @override
+  String get addOnAddButton => 'زیاد بکە';
+
+  @override
+  String get addOnChooseVases => 'گوڵدانێک هەڵبژێرە';
+
+  @override
+  String get addOnChooseChocolates => 'چۆکلێت هەڵبژێرە';
+
+  @override
+  String get addOnChooseCards => 'کارتێک هەڵبژێرە';
+
+  @override
+  String get addOnChooseAddOn => 'زیادەیەک هەڵبژێرە';
+
+  @override
   String get step1AddOns => 'هەنگاو ١: زیادەکان';
 
   @override
@@ -569,4 +584,110 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get backOnline => 'گەڕانەوە بۆ ئۆنلاین';
+
+  @override
+  String get adminSuperAdminDashboard => 'داشبۆردی بەڕێوەبەری سەرەکی';
+
+  @override
+  String get adminSignInPrompt =>
+      'چوونەژوورەوە بکە بۆ پشکنینی داواکارییەکانی فرۆشیاران. ئەگەر «دەستڕاگەیشتن سنووردارە» دەبینیت، UIDی خۆت زیاد بکە بۆ کۆکراوەی admins لە Firestore (ڕێنماییەکان پیشان دەدرێن).';
+
+  @override
+  String get adminEmailLabel => 'ئیمەیڵی بەڕێوەبەر';
+
+  @override
+  String get adminEmailHint => 'admin@email.com';
+
+  @override
+  String get adminPasswordLabel => 'وشەی نهێنی';
+
+  @override
+  String get adminPasswordHint => 'وشەی نهێنیەکەت بنووسە';
+
+  @override
+  String get adminSigningIn => 'چوونەژوورەوە…';
+
+  @override
+  String get adminEnterEmailPassword =>
+      'ئیمەیڵ و وشەی نهێنی بەڕێوەبەرەکەت بنووسە.';
+
+  @override
+  String get adminUnableToSignIn => 'چوونەژوورەوە سەرکەوتوو نەبوو.';
+
+  @override
+  String get adminAccessRestricted => 'دەستڕاگەیشتن سنووردارە';
+
+  @override
+  String get adminNotRegisteredPrompt =>
+      'ئەم هەژمارە وەک بەڕێوەبەری سەرەکی تۆمار نەکراوە. بۆ دەستڕاگەیشتن، بەڵگەنامەیەک زیاد بکە لە Firestore:';
+
+  @override
+  String adminFirestoreInstructions(String uid) {
+    return 'کۆکراوە: admins\nکۆدی بەڵگەنامە: $uid';
+  }
+
+  @override
+  String get adminFirestoreSteps =>
+      'دەتوانیت بەڵگەنامەیەکی بەتاڵ دروست بکەیت لە Firebase Console (Firestore → admins → بەڵگەنامەی زیاد بکە بە ئەو IDیەوە). دواتر دەرچوونەژوورەوە و دووبارە چوونەژوورەوە بکە.';
+
+  @override
+  String get adminSignOut => 'دەرچوونەژوورەوە';
+
+  @override
+  String get adminPendingApplications => 'داواکاری چاوەڕوانی فرۆشیاران';
+
+  @override
+  String get adminAnalytics => 'شیکاری';
+
+  @override
+  String get adminBouquetApproval => 'پەسەندکردنی دەستەگوڵ';
+
+  @override
+  String get adminManageAddOns => 'بەڕێوەبردنی زیادەکان';
+
+  @override
+  String get adminLoadingApplications => 'داواکاریەکان بار دەبن…';
+
+  @override
+  String get adminUnableToLoadApplications =>
+      'بارکردنی داواکاریەکان سەرکەوتوو نەبوو.';
+
+  @override
+  String get adminNoPendingApplications => 'هیچ داواکاری چاوەڕوان نییە.';
+
+  @override
+  String get adminStudio => 'ئستۆدیۆ';
+
+  @override
+  String get adminOwner => 'خاوەن';
+
+  @override
+  String get adminEmail => 'ئیمەیڵ';
+
+  @override
+  String get adminPhone => 'تەلەفۆن';
+
+  @override
+  String get adminLocation => 'شوێن';
+
+  @override
+  String get adminApprove => 'پەسەند بکە';
+
+  @override
+  String get adminReject => 'ڕەت بکەرەوە';
+
+  @override
+  String get adminWorking => 'کار کرا…';
+
+  @override
+  String get adminApplicationApproved => 'داواکاری پەسەندکرا.';
+
+  @override
+  String get adminApplicationRejected => 'داواکاری ڕەتکرایەوە.';
+
+  @override
+  String get adminUnableToApprove => 'پەسەندکردنی داواکاری سەرکەوتوو نەبوو.';
+
+  @override
+  String get adminUnableToReject => 'ڕەتکردنەوەی داواکاری سەرکەوتوو نەبوو.';
 }

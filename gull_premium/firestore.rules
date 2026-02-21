@@ -121,6 +121,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ─── addons (vases, chocolates, cards) ─────────────────────────────────
+    // Read: public (customers see add-ons at checkout).
+    // Write: admin only (Super Admin manages add-on inventory).
+    match /addons/{addonId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // Default: deny all other paths
     match /{document=**} {
       allow read, write: if false;

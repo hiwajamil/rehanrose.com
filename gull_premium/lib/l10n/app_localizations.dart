@@ -652,6 +652,36 @@ abstract class AppLocalizations {
   /// **'Add-on & Personalization'**
   String get addOnPersonalizationTitle;
 
+  /// No description provided for @addOnAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addOnAddButton;
+
+  /// No description provided for @addOnChooseVases.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Vase'**
+  String get addOnChooseVases;
+
+  /// No description provided for @addOnChooseChocolates.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Chocolates'**
+  String get addOnChooseChocolates;
+
+  /// No description provided for @addOnChooseCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Card'**
+  String get addOnChooseCards;
+
+  /// No description provided for @addOnChooseAddOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Add-on'**
+  String get addOnChooseAddOn;
+
   /// No description provided for @step1AddOns.
   ///
   /// In en, this message translates to:
@@ -1155,6 +1185,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back Online'**
   String get backOnline;
+
+  /// No description provided for @adminSuperAdminDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Super Admin Dashboard'**
+  String get adminSuperAdminDashboard;
+
+  /// No description provided for @adminSignInPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to review vendor applications. If you see \"Access restricted\", add your UID to the admins collection in Firestore (instructions shown there).'**
+  String get adminSignInPrompt;
+
+  /// No description provided for @adminEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin email'**
+  String get adminEmailLabel;
+
+  /// No description provided for @adminEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'admin@email.com'**
+  String get adminEmailHint;
+
+  /// No description provided for @adminPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get adminPasswordLabel;
+
+  /// No description provided for @adminPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get adminPasswordHint;
+
+  /// No description provided for @adminSigningIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in...'**
+  String get adminSigningIn;
+
+  /// No description provided for @adminEnterEmailPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your admin email and password.'**
+  String get adminEnterEmailPassword;
+
+  /// No description provided for @adminUnableToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to sign in.'**
+  String get adminUnableToSignIn;
+
+  /// No description provided for @adminAccessRestricted.
+  ///
+  /// In en, this message translates to:
+  /// **'Access restricted'**
+  String get adminAccessRestricted;
+
+  /// No description provided for @adminNotRegisteredPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is not registered as a super admin. To grant access, add a document in Firestore:'**
+  String get adminNotRegisteredPrompt;
+
+  /// No description provided for @adminFirestoreInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection: admins\nDocument ID: {uid}'**
+  String adminFirestoreInstructions(String uid);
+
+  /// No description provided for @adminFirestoreSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'You can create an empty document in Firebase Console (Firestore → admins → Add document with the ID above). Then sign out and sign in again.'**
+  String get adminFirestoreSteps;
+
+  /// No description provided for @adminSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get adminSignOut;
+
+  /// No description provided for @adminPendingApplications.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending vendor applications'**
+  String get adminPendingApplications;
+
+  /// No description provided for @adminAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics'**
+  String get adminAnalytics;
+
+  /// No description provided for @adminBouquetApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Bouquet Approval'**
+  String get adminBouquetApproval;
+
+  /// No description provided for @adminManageAddOns.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Add-ons'**
+  String get adminManageAddOns;
+
+  /// No description provided for @adminLoadingApplications.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading applications…'**
+  String get adminLoadingApplications;
+
+  /// No description provided for @adminUnableToLoadApplications.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load applications.'**
+  String get adminUnableToLoadApplications;
+
+  /// No description provided for @adminNoPendingApplications.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending applications.'**
+  String get adminNoPendingApplications;
+
+  /// No description provided for @adminStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Studio'**
+  String get adminStudio;
+
+  /// No description provided for @adminOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get adminOwner;
+
+  /// No description provided for @adminEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get adminEmail;
+
+  /// No description provided for @adminPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get adminPhone;
+
+  /// No description provided for @adminLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get adminLocation;
+
+  /// No description provided for @adminApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get adminApprove;
+
+  /// No description provided for @adminReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get adminReject;
+
+  /// No description provided for @adminWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working...'**
+  String get adminWorking;
+
+  /// No description provided for @adminApplicationApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Application approved.'**
+  String get adminApplicationApproved;
+
+  /// No description provided for @adminApplicationRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Application rejected.'**
+  String get adminApplicationRejected;
+
+  /// No description provided for @adminUnableToApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to approve application.'**
+  String get adminUnableToApprove;
+
+  /// No description provided for @adminUnableToReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to reject application.'**
+  String get adminUnableToReject;
 }
 
 class _AppLocalizationsDelegate

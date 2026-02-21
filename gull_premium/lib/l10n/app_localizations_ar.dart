@@ -291,6 +291,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addOnPersonalizationTitle => 'الإضافات والتخصيص';
 
   @override
+  String get addOnAddButton => 'إضافة';
+
+  @override
+  String get addOnChooseVases => 'اختر مزهرية';
+
+  @override
+  String get addOnChooseChocolates => 'اختر شوكولاتة';
+
+  @override
+  String get addOnChooseCards => 'اختر بطاقة';
+
+  @override
+  String get addOnChooseAddOn => 'اختر إضافة';
+
+  @override
   String get step1AddOns => 'الخطوة 1: الإضافات';
 
   @override
@@ -562,4 +577,108 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get backOnline => 'عودة الاتصال';
+
+  @override
+  String get adminSuperAdminDashboard => 'لوحة تحكم المدير الرئيسي';
+
+  @override
+  String get adminSignInPrompt =>
+      'سجّل الدخول لمراجعة طلبات البائعين. إن رأيت \"الوصول مقيد\"، أضف UID الخاص بك إلى مجموعة admins في Firestore (تُعرض التعليمات هناك).';
+
+  @override
+  String get adminEmailLabel => 'بريد المدير';
+
+  @override
+  String get adminEmailHint => 'admin@email.com';
+
+  @override
+  String get adminPasswordLabel => 'كلمة المرور';
+
+  @override
+  String get adminPasswordHint => 'أدخل كلمة المرور';
+
+  @override
+  String get adminSigningIn => 'جاري تسجيل الدخول…';
+
+  @override
+  String get adminEnterEmailPassword => 'أدخل بريد المدير وكلمة المرور.';
+
+  @override
+  String get adminUnableToSignIn => 'تعذّر تسجيل الدخول.';
+
+  @override
+  String get adminAccessRestricted => 'الوصول مقيد';
+
+  @override
+  String get adminNotRegisteredPrompt =>
+      'هذا الحساب غير مسجّل كمدير رئيسي. للمنح الوصول، أضف مستنداً في Firestore:';
+
+  @override
+  String adminFirestoreInstructions(String uid) {
+    return 'المجموعة: admins\nمعرف المستند: $uid';
+  }
+
+  @override
+  String get adminFirestoreSteps =>
+      'يمكنك إنشاء مستند فارغ في Firebase Console (Firestore → admins → أضف مستنداً بالـ ID أعلاه). ثم سجّل الخروج وسجّل الدخول مجدداً.';
+
+  @override
+  String get adminSignOut => 'تسجيل الخروج';
+
+  @override
+  String get adminPendingApplications => 'طلبات البائعين المعلقة';
+
+  @override
+  String get adminAnalytics => 'التحليلات';
+
+  @override
+  String get adminBouquetApproval => 'الموافقة على الباقات';
+
+  @override
+  String get adminManageAddOns => 'إدارة الإضافات';
+
+  @override
+  String get adminLoadingApplications => 'جاري تحميل الطلبات…';
+
+  @override
+  String get adminUnableToLoadApplications => 'تعذّر تحميل الطلبات.';
+
+  @override
+  String get adminNoPendingApplications => 'لا توجد طلبات معلقة.';
+
+  @override
+  String get adminStudio => 'استوديو';
+
+  @override
+  String get adminOwner => 'المالك';
+
+  @override
+  String get adminEmail => 'البريد';
+
+  @override
+  String get adminPhone => 'الهاتف';
+
+  @override
+  String get adminLocation => 'الموقع';
+
+  @override
+  String get adminApprove => 'موافقة';
+
+  @override
+  String get adminReject => 'رفض';
+
+  @override
+  String get adminWorking => 'جاري المعالجة…';
+
+  @override
+  String get adminApplicationApproved => 'تمت الموافقة على الطلب.';
+
+  @override
+  String get adminApplicationRejected => 'تم رفض الطلب.';
+
+  @override
+  String get adminUnableToApprove => 'تعذّرت الموافقة على الطلب.';
+
+  @override
+  String get adminUnableToReject => 'تعذّر رفض الطلب.';
 }

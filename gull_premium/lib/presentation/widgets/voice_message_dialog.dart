@@ -53,18 +53,37 @@ class _VoiceMessageDialogContentState
   }
 
   Future<void> _checkPermission() async {
-    if (kIsWeb) {
+    try {
+      final has = await _recorder.hasPermission();
+      if (!mounted) return;
+      setState(() {
+        _permissionChecked = true;
+        _hasPermission = has;
+      });
+      if (!has) _showPermissionDeniedSnackBar();
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _permissionChecked = true;
         _hasPermission = false;
       });
-      return;
+      _showPermissionDeniedSnackBar();
     }
-    final has = await _recorder.hasPermission();
-    setState(() {
-      _permissionChecked = true;
-      _hasPermission = has;
-    });
+  }
+
+  void _showPermissionDeniedSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          kIsWeb
+              ? 'Microphone access was denied. To enable: click the lock or info icon in your browser\'s address bar, allow microphone, then refresh the page.'
+              : 'Microphone permission is needed to record. Please enable it in your device settings.',
+        ),
+        backgroundColor: Colors.black87,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 6),
+      ),
+    );
   }
 
   @override
@@ -75,14 +94,19 @@ class _VoiceMessageDialogContentState
   }
 
   Future<void> _startRecording() async {
-    if (kIsWeb || !_hasPermission) return;
-    final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    if (!_hasPermission) return;
+    final String path;
+    final RecordConfig config;
+    if (kIsWeb) {
+      path = 'web_voice_${DateTime.now().millisecondsSinceEpoch}';
+      config = const RecordConfig(encoder: AudioEncoder.wav);
+    } else {
+      final dir = await getTemporaryDirectory();
+      path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      config = const RecordConfig(encoder: AudioEncoder.aacLc);
+    }
     try {
-      await _recorder.start(
-        const RecordConfig(encoder: AudioEncoder.aacLc),
-        path: path,
-      );
+      await _recorder.start(config, path: path);
       setState(() {
         _recordingPath = path;
         _isRecording = true;
@@ -113,7 +137,7 @@ class _VoiceMessageDialogContentState
       final stoppedPath = await _recorder.stop();
       final actualPath = stoppedPath ?? path;
       setState(() => _isRecording = false);
-      await _uploadAndShowQr(actualPath);
+      await _uploadAndShowQr(actualPath, isWebRecording: kIsWeb);
     } catch (e) {
       setState(() {
         _isRecording = false;
@@ -122,7 +146,8 @@ class _VoiceMessageDialogContentState
     }
   }
 
-  Future<void> _uploadAndShowQr(String filePath) async {
+  Future<void> _uploadAndShowQr(String filePath,
+      {bool isWebRecording = false}) async {
     setState(() => _isUploading = true);
     _error = null;
     try {
@@ -135,7 +160,11 @@ class _VoiceMessageDialogContentState
         return;
       }
       final repo = ref.read(voiceMessageRepositoryProvider);
-      final url = await repo.uploadVoiceMessage(bytes: Uint8List.fromList(bytes));
+      final url = await repo.uploadVoiceMessage(
+        bytes: Uint8List.fromList(bytes),
+        extension: isWebRecording ? 'wav' : 'm4a',
+        contentType: isWebRecording ? 'audio/wav' : 'audio/mp4',
+      );
       if (!mounted) return;
       setState(() {
         _voiceMessageUrl = url;
@@ -185,18 +214,7 @@ class _VoiceMessageDialogContentState
               style: playfair.copyWith(fontSize: 22),
             ),
             const SizedBox(height: 24),
-            if (kIsWeb)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  'Voice recording is available in the native app. Install from the App Store or Google Play to record.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.inkMuted,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              )
-            else if (!_permissionChecked || !_hasPermission)
+            if (!_permissionChecked || !_hasPermission)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(

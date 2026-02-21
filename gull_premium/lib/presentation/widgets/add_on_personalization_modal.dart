@@ -9,6 +9,7 @@ import '../../core/utils/price_format_utils.dart';
 import '../../data/models/add_on_model.dart';
 import '../../data/models/flower_model.dart';
 import '../../l10n/app_localizations.dart';
+import '../pages/product/add_on_variant_selection_page.dart';
 import 'common/app_cached_image.dart';
 import 'common/order_via_whatsapp_button.dart';
 import 'voice_message_dialog.dart';
@@ -65,13 +66,23 @@ class _AddOnPersonalizationSheetState
   bool _isSelected(AddOnModel addOn) =>
       _selectedAddOns.any((a) => a.id == addOn.id);
 
-  void _toggleAddOn(AddOnModel addOn) {
-    setState(() {
-      _selectedAddOns.removeWhere((a) => a.type == addOn.type);
-      if (!_isSelected(addOn)) {
-        _selectedAddOns.add(addOn);
-      }
-    });
+  Future<void> _openVariantSelection(
+    BuildContext context,
+    AddOnType categoryType,
+    List<AddOnModel> variants,
+  ) async {
+    if (variants.isEmpty) return;
+    final selected = await AddOnVariantSelectionPage.open(
+      context,
+      categoryType: categoryType,
+      variants: variants,
+    );
+    if (selected != null && mounted) {
+      setState(() {
+        _selectedAddOns.removeWhere((a) => a.type == selected.type);
+        _selectedAddOns.add(selected);
+      });
+    }
   }
 
   static const List<AddOnType> _addOnCategoryOrder = [
@@ -254,7 +265,11 @@ class _AddOnPersonalizationSheetState
                                                 name: name,
                                                 selected: selected,
                                                 onTap: () =>
-                                                    _toggleAddOn(addOn),
+                                                    _openVariantSelection(
+                                                  context,
+                                                  categoryType,
+                                                  ofType,
+                                                ),
                                               ),
                                             );
                                           },
@@ -381,6 +396,7 @@ class _AddOnPersonalizationSheetState
                       width: double.infinity,
                       child: OrderViaWhatsAppButton(
                         label: l10n.orderViaWhatsApp,
+                        valueProposition: '',
                         onPressed: () {
                           ref.read(analyticsServiceProvider).logClickWhatsApp(
                                 itemId: bouquet.id,

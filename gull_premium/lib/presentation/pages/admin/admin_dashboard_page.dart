@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/breakpoints.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../data/repositories/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,8 +41,8 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-    if (email.isEmpty || password.isEmpty) {
-      _showMessage('Enter your admin email and password.');
+        if (email.isEmpty || password.isEmpty) {
+      _showMessage(AppLocalizations.of(context)!.adminEnterEmailPassword);
       return;
     }
     setState(() => _isSigningIn = true);
@@ -69,7 +70,9 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         await authRepo.ensureSuperAdminUserDoc(user.uid);
       }
     } on fa.FirebaseAuthException catch (e) {
-      _showMessage(e.message ?? 'Unable to sign in.');
+      if (mounted) {
+        _showMessage(e.message ?? AppLocalizations.of(context)!.adminUnableToSignIn);
+      }
     } finally {
       if (mounted) setState(() => _isSigningIn = false);
     }
@@ -111,6 +114,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 
   Widget _buildAdminSignIn(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return Container(
       padding: EdgeInsets.all(isMobile ? 20 : 28),
@@ -130,28 +134,28 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Super Admin Dashboard',
+            l10n.adminSuperAdminDashboard,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
-            'Sign in to review vendor applications. If you see "Access restricted", add your UID to the admins collection in Firestore (instructions shown there).',
+            l10n.adminSignInPrompt,
             style:
                 Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
           ),
           const SizedBox(height: 20),
           _AdminField(
-            label: 'Admin email',
+            label: l10n.adminEmailLabel,
             controller: _emailController,
-            hintText: 'admin@email.com',
+            hintText: l10n.adminEmailHint,
             icon: Icons.mail_outline,
             textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 16),
           _AdminField(
-            label: 'Password',
+            label: l10n.adminPasswordLabel,
             controller: _passwordController,
-            hintText: 'Enter your password',
+            hintText: l10n.adminPasswordHint,
             icon: Icons.lock_outline,
             obscureText: true,
             textInputAction: TextInputAction.done,
@@ -159,7 +163,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           ),
           const SizedBox(height: 24),
           PrimaryButton(
-            label: _isSigningIn ? 'Signing in...' : 'Sign in',
+            label: _isSigningIn ? l10n.adminSigningIn : l10n.signIn,
             onPressed: _isSigningIn ? () {} : _signIn,
           ),
         ],
@@ -168,6 +172,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 
   Widget _buildNotAuthorized(BuildContext context, fa.User user) {
+    final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return Container(
       padding: EdgeInsets.all(isMobile ? 20 : 28),
@@ -181,18 +186,18 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Access restricted',
+            l10n.adminAccessRestricted,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
-            'This account is not registered as a super admin. To grant access, add a document in Firestore:',
+            l10n.adminNotRegisteredPrompt,
             style:
                 Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
           ),
           const SizedBox(height: 12),
           SelectableText(
-            'Collection: admins\nDocument ID: ${user.uid}',
+            l10n.adminFirestoreInstructions(user.uid),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontFamily: 'monospace',
                   color: AppColors.inkMuted,
@@ -200,13 +205,13 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'You can create an empty document in Firebase Console (Firestore → admins → Add document with the ID above). Then sign out and sign in again.',
+            l10n.adminFirestoreSteps,
             style:
                 Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted),
           ),
           const SizedBox(height: 20),
           PrimaryButton(
-            label: 'Sign out',
+            label: l10n.adminSignOut,
             onPressed: () => ref.read(authRepositoryProvider).signOut(),
             variant: PrimaryButtonVariant.outline,
           ),
@@ -216,6 +221,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 
   Widget _buildAdminDashboard(BuildContext context, String adminId) {
+    final l10n = AppLocalizations.of(context)!;
     final applicationsAsync = ref.watch(pendingVendorApplicationsStreamProvider);
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
 
@@ -225,7 +231,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         children: [
           if (isMobile) ...[
             Text(
-              'Pending vendor applications',
+              l10n.adminPendingApplications,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
@@ -234,22 +240,22 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               runSpacing: 8,
               children: [
                 PrimaryButton(
-                  label: 'Analytics',
+                  label: l10n.adminAnalytics,
                   onPressed: () => context.go('/admin/analytics'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 PrimaryButton(
-                  label: 'Bouquet Approval',
+                  label: l10n.adminBouquetApproval,
                   onPressed: () => context.go('/admin/approvals'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 PrimaryButton(
-                  label: 'Manage Add-ons',
+                  label: l10n.adminManageAddOns,
                   onPressed: () => context.push('/admin/add-ons'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 PrimaryButton(
-                  label: 'Sign out',
+                  label: l10n.adminSignOut,
                   onPressed: () => ref.read(authRepositoryProvider).signOut(),
                   variant: PrimaryButtonVariant.outline,
                 ),
@@ -259,30 +265,30 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             Row(
               children: [
                 Text(
-                  'Pending vendor applications',
+                  l10n.adminPendingApplications,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const Spacer(),
                 PrimaryButton(
-                  label: 'Analytics',
+                  label: l10n.adminAnalytics,
                   onPressed: () => context.go('/admin/analytics'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 const SizedBox(width: 12),
                 PrimaryButton(
-                  label: 'Bouquet Approval',
+                  label: l10n.adminBouquetApproval,
                   onPressed: () => context.go('/admin/approvals'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 const SizedBox(width: 12),
                 PrimaryButton(
-                  label: 'Manage Add-ons',
+                  label: l10n.adminManageAddOns,
                   onPressed: () => context.push('/admin/add-ons'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 const SizedBox(width: 12),
                 PrimaryButton(
-                  label: 'Sign out',
+                  label: l10n.adminSignOut,
                   onPressed: () => ref.read(authRepositoryProvider).signOut(),
                   variant: PrimaryButtonVariant.outline,
                 ),
@@ -305,7 +311,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Loading applications…',
+                  l10n.adminLoadingApplications,
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -315,7 +321,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             ),
           ),
           error: (_, __) => Text(
-            'Unable to load applications.',
+            l10n.adminUnableToLoadApplications,
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
@@ -327,7 +333,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
-                  'No pending applications.',
+                  l10n.adminNoPendingApplications,
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -352,24 +358,24 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        data['studioName']?.toString() ?? 'Studio',
+                        data['studioName']?.toString() ?? l10n.adminStudio,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
                       _DetailRow(
-                        label: 'Owner',
+                        label: l10n.adminOwner,
                         value: data['ownerName']?.toString() ?? '--',
                       ),
                       _DetailRow(
-                        label: 'Email',
+                        label: l10n.adminEmail,
                         value: data['email']?.toString() ?? '--',
                       ),
                       _DetailRow(
-                        label: 'Phone',
+                        label: l10n.adminPhone,
                         value: data['phone']?.toString() ?? '--',
                       ),
                       _DetailRow(
-                        label: 'Location',
+                        label: l10n.adminLocation,
                         value: data['location']?.toString() ?? '--',
                       ),
                       const SizedBox(height: 16),
@@ -377,7 +383,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                         children: [
                           Expanded(
                             child: PrimaryButton(
-                              label: isProcessing ? 'Working...' : 'Approve',
+                              label: isProcessing ? l10n.adminWorking : l10n.adminApprove,
                               onPressed: isProcessing
                                   ? () {}
                                   : () async {
@@ -392,11 +398,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                                                 adminId,
                                               );
                                           if (mounted) {
-                                            _showMessage('Application approved.');
+                                            _showMessage(l10n.adminApplicationApproved);
                                           }
                                         } catch (_) {
                                           if (mounted) {
-                                            _showMessage('Unable to approve application.');
+                                            _showMessage(l10n.adminUnableToApprove);
                                           }
                                         } finally {
                                           if (mounted) {
@@ -410,7 +416,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: PrimaryButton(
-                              label: isProcessing ? 'Working...' : 'Reject',
+                              label: isProcessing ? l10n.adminWorking : l10n.adminReject,
                               onPressed: isProcessing
                                   ? () {}
                                   : () async {
@@ -421,11 +427,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                                               .read(authRepositoryProvider)
                                               .rejectVendorApplication(doc.id, adminId);
                                           if (mounted) {
-                                            _showMessage('Application rejected.');
+                                            _showMessage(l10n.adminApplicationRejected);
                                           }
                                         } catch (_) {
                                           if (mounted) {
-                                            _showMessage('Unable to reject application.');
+                                            _showMessage(l10n.adminUnableToReject);
                                           }
                                         } finally {
                                           if (mounted) {
