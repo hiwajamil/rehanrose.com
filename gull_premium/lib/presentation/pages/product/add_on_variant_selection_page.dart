@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
@@ -67,8 +68,14 @@ class _AddOnVariantSelectionPageState extends State<AddOnVariantSelectionPage> {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
 
-    return Scaffold(
-      appBar: AppBar(
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textTheme: GoogleFonts.montserratTextTheme(
+          Theme.of(context).textTheme,
+        ),
+      ),
+      child: Scaffold(
+        appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -195,6 +202,7 @@ class _AddOnVariantSelectionPageState extends State<AddOnVariantSelectionPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

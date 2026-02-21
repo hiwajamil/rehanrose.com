@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../controllers/controllers.dart';
 import '../../core/services/whatsapp_service.dart';
@@ -65,6 +66,13 @@ class _AddOnPersonalizationSheetState
 
   bool _isSelected(AddOnModel addOn) =>
       _selectedAddOns.any((a) => a.id == addOn.id);
+
+  bool _hasSelectedAddOn(AddOnType type) =>
+      _selectedAddOns.any((a) => a.type == type);
+
+  void _removeAddOn(AddOnType type) {
+    setState(() => _selectedAddOns.removeWhere((a) => a.type == type));
+  }
 
   Future<void> _openVariantSelection(
     BuildContext context,
@@ -145,14 +153,20 @@ class _AddOnPersonalizationSheetState
     final addOnsAsync = ref.watch(addOnsProvider(null));
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
-    final playfair = GoogleFonts.playfairDisplay(
+    final montserrat = GoogleFonts.montserrat(
       fontWeight: FontWeight.w600,
       color: AppColors.ink,
     );
 
     final maxH = MediaQuery.of(context).size.height * 0.85;
-    return Container(
-      height: maxH,
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textTheme: GoogleFonts.montserratTextTheme(
+          Theme.of(context).textTheme,
+        ),
+      ),
+      child: Container(
+        height: maxH,
       decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.all(Radius.circular(24)),
@@ -163,7 +177,7 @@ class _AddOnPersonalizationSheetState
           const SizedBox(height: 20),
           Text(
             l10n.addOnPersonalizationTitle,
-            style: playfair.copyWith(fontSize: 22),
+            style: montserrat.copyWith(fontSize: 22),
           ),
           const SizedBox(height: 8),
           Expanded(
@@ -196,7 +210,7 @@ class _AddOnPersonalizationSheetState
                   children: [
                     Text(
                       bouquet.name,
-                      style: playfair.copyWith(fontSize: 18),
+                      style: montserrat.copyWith(fontSize: 18),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -208,7 +222,7 @@ class _AddOnPersonalizationSheetState
                     const SizedBox(height: 24),
                     Text(
                       l10n.step1AddOns,
-                      style: playfair.copyWith(fontSize: 16),
+                      style: montserrat.copyWith(fontSize: 16),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -224,13 +238,26 @@ class _AddOnPersonalizationSheetState
                                   ? 12
                                   : 0,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.background.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppColors.border,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                 Text(
                                   _categoryTitle(categoryType),
-                                  style: playfair.copyWith(
+                                  style: montserrat.copyWith(
                                     fontSize: 14,
                                     color: AppColors.inkMuted,
                                   ),
@@ -275,7 +302,43 @@ class _AddOnPersonalizationSheetState
                                           },
                                         ),
                                 ),
-                              ],
+                                const SizedBox(height: 12),
+                                Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _CategoryCircleIndicator(
+                                        isSelected: _hasSelectedAddOn(categoryType),
+                                      ),
+                                      if (_hasSelectedAddOn(categoryType)) ...[
+                                        const SizedBox(height: 6),
+                                        TextButton(
+                                          onPressed: () => _removeAddOn(categoryType),
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            minimumSize: Size.zero,
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          ),
+                                          child: Text(
+                                            'Remove',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(
+                                                  color: AppColors.inkMuted,
+                                                  decoration: TextDecoration.underline,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -284,7 +347,7 @@ class _AddOnPersonalizationSheetState
                     const SizedBox(height: 28),
                     Text(
                       l10n.step2VoiceMessage,
-                      style: playfair.copyWith(fontSize: 16),
+                      style: montserrat.copyWith(fontSize: 16),
                     ),
                     const SizedBox(height: 12),
                     Material(
@@ -361,7 +424,7 @@ class _AddOnPersonalizationSheetState
                     const SizedBox(height: 28),
                     Text(
                       l10n.step3Order,
-                      style: playfair.copyWith(fontSize: 16),
+                      style: montserrat.copyWith(fontSize: 16),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -413,6 +476,44 @@ class _AddOnPersonalizationSheetState
               },
             ),
           ),
+        ],
+      ),
+    ),
+    );
+  }
+}
+
+/// Circle indicator below each add-on category (Vase, Chocolate, Card).
+/// Empty circle when no add-on selected; green tick inside when selected.
+/// Positioned outside the card boundary.
+class _CategoryCircleIndicator extends StatelessWidget {
+  final bool isSelected;
+
+  const _CategoryCircleIndicator({required this.isSelected});
+
+  static const double _size = 28;
+  static const Color _selectedGreen = Color(0xFF4CAF50);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _size,
+      height: _size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.transparent,
+              border: Border.all(
+                color: isSelected ? _selectedGreen : AppColors.border,
+                width: 2,
+              ),
+            ),
+          ),
+          if (isSelected)
+            Icon(Icons.check, size: 14, color: _selectedGreen),
         ],
       ),
     );
@@ -499,7 +600,7 @@ class _AddOnModalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Material(
-      color: AppColors.surface,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -509,10 +610,20 @@ class _AddOnModalCard extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
+            color: AppColors.surface,
             border: Border.all(
               color: selected ? AppColors.rosePrimary : AppColors.border,
               width: selected ? 2 : 1,
             ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.rosePrimary.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -521,13 +632,17 @@ class _AddOnModalCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: addOn.imageUrl.isEmpty
-                    ? Container(
-                        height: 56,
-                        color: AppColors.background,
-                        child: Icon(
-                          Icons.card_giftcard,
-                          color: AppColors.inkMuted,
-                          size: 28,
+                    ? Shimmer.fromColors(
+                        baseColor: AppColors.border,
+                        highlightColor: AppColors.surface,
+                        child: Container(
+                          height: 56,
+                          color: AppColors.border,
+                          child: Icon(
+                            Icons.card_giftcard,
+                            color: AppColors.inkMuted,
+                            size: 28,
+                          ),
                         ),
                       )
                     : SizedBox(
@@ -556,16 +671,6 @@ class _AddOnModalCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.inkMuted,
                     ),
-              ),
-              const SizedBox(height: 4),
-              SizedBox(
-                height: 24,
-                child: Checkbox(
-                  value: selected,
-                  onChanged: (_) => onTap(),
-                  activeColor: AppColors.rosePrimary,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
               ),
             ],
           ),

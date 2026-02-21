@@ -30,6 +30,7 @@ import '../../presentation/widgets/layout/vendor_shell_layout.dart';
 import '../../data/models/add_on_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../features/dashboard/dashboard_resolver_page.dart';
+import '../../presentation/pages/voice/voice_playback_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -53,6 +54,13 @@ class AppRouter {
       GoRoute(
         path: '/',
         builder: (context, state) => const LandingPage(),
+      ),
+      GoRoute(
+        path: '/v',
+        builder: (context, state) {
+          final url = state.uri.queryParameters['url'] ?? '';
+          return VoicePlaybackPage(audioUrl: url);
+        },
       ),
       GoRoute(
         path: '/dashboard',

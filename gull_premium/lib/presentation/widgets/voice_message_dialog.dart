@@ -182,6 +182,23 @@ class _VoiceMessageDialogContentState
     Navigator.of(context).pop(_voiceMessageUrl);
   }
 
+  /// Returns the URL to encode in QR: our playback page with the audio URL as param.
+  /// When scanned, opens our app at /v?url=... which plays the audio with proper controls.
+  String _playbackUrlForQr(String audioUrl) {
+    try {
+      final origin = Uri.base.origin;
+      final basePath = Uri.base.path.replaceAll(RegExp(r'/+$'), '');
+      final path = (basePath.isEmpty || basePath == '/') ? '/v' : '$basePath/v';
+      final uri = Uri.parse(origin).replace(
+        path: path.startsWith('/') ? path : '/$path',
+        queryParameters: {'url': audioUrl},
+      );
+      return uri.toString();
+    } catch (_) {
+      return audioUrl;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final padding = MediaQuery.paddingOf(context);
@@ -229,7 +246,7 @@ class _VoiceMessageDialogContentState
               )
             else if (_voiceMessageUrl != null) ...[
               QrImageView(
-                data: _voiceMessageUrl!,
+                data: _playbackUrlForQr(_voiceMessageUrl!),
                 version: QrVersions.auto,
                 size: 180,
                 backgroundColor: Colors.white,
