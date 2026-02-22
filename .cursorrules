@@ -1,0 +1,90 @@
+# Gull Project – Cursor Rules
+
+## General Philosophy
+Before implementing any change, consider whether a better approach exists. If you see an opportunity to refactor, improve architecture, or simplify code, always ask: "There may be a better way to do this. Should I refactor?"
+
+---
+
+## Security
+
+### Firebase & Authentication
+- Never log or expose Firebase API keys, service account credentials, or tokens
+- Validate user identity server-side; never trust client-only checks for sensitive actions
+- Use Firebase Security Rules for Firestore, Storage, and Realtime Database; never rely on client validation alone
+- Call `isAdmin`/role checks from trusted backend or Firebase Auth custom claims when possible
+- Sanitize and validate all user input before writing to Firestore or Storage
+
+### Data & Privacy
+- Avoid storing PII (emails, names, addresses) in logs, analytics, or crash reports unless necessary and compliant
+- Use `const` constructors and immutable data where possible to reduce accidental mutations
+- Never hardcode secrets, API keys, or credentials; use environment variables or a secrets manager
+
+### Input Validation
+- Validate and sanitize all user input (forms, file uploads, URLs) before use
+- Use strong typing; avoid dynamic types for user-supplied data
+- Validate file types, sizes, and content for uploads (image_picker, etc.)
+
+---
+
+## Performance
+
+### Flutter Widgets
+- Prefer `const` constructors whenever possible to reduce rebuilds
+- Use `const` for `EdgeInsets`, `SizedBox`, `TextStyle`, and similar widgets
+- Extract widgets into `const` stateless widgets to minimize rebuild scope
+- Use `RepaintBoundary` for complex or frequently updating widgets
+- Avoid rebuilding large subtrees; split state with `Consumer` or `ConsumerWidget` where appropriate
+
+### Riverpod
+- Prefer `ref.watch` only for the minimal data needed in the UI
+- Use `ref.read` for one-off actions (callbacks, event handlers)
+- Avoid expensive computations in providers; use `FutureProvider`/`AsyncNotifier` for async work
+- Use `autoDispose` for providers that should clean up when no longer listened to
+
+### Images & Media
+- Use `cached_network_image` for remote images; avoid raw `Image.network` for repeated loads
+- Compress images before upload (e.g. `flutter_image_compress`)
+- Lazy-load lists with `ListView.builder` or similar; avoid loading all items at once
+- Dispose controllers (e.g. `VideoPlayerController`, `AnimationController`) in `dispose()`
+
+### General
+- Avoid heavy work on the UI thread; use `compute()` for CPU-bound tasks
+- Debounce search, autocomplete, and other frequent user inputs
+- Use `Key` appropriately for list items to avoid unnecessary rebuilds
+
+---
+
+## Clean Code
+
+### Dart Style
+- Follow [Effective Dart](https://dart.dev/effective-dart)
+- Use `lowerCamelCase` for variables, parameters, and methods; `UpperCamelCase` for types
+- Prefer `final` and `const` over mutable variables
+- Use trailing commas for better formatting
+- Prefer null safety; avoid `!` where possible; use `?.` and null-aware operators
+
+### Structure
+- Keep functions and methods short and focused; extract helpers when logic grows
+- One logical concept per file; split large files into smaller modules
+- Use meaningful names; avoid abbreviations except common ones (e.g. `id`, `uid`)
+- Prefer composition over inheritance for widgets
+
+### Error Handling
+- Handle errors explicitly; avoid empty catch blocks
+- Show user-friendly messages for recoverable errors; log technical details for debugging
+- Use `Result`-style types or proper exception handling instead of silently failing
+- Check `mounted` before calling `setState`, `context`, or showing dialogs after async gaps
+
+### Organization
+- Group imports: Dart → Flutter → packages → project (alphabetized within groups)
+- Place related widgets, models, and logic together
+- Use `part`/`part of` sparingly; prefer separate files and imports
+
+---
+
+## Refactoring
+
+- **Before adding code**: Consider if existing patterns, utilities, or abstractions can be reused
+- **When duplicating logic**: Prefer extraction into shared functions, extensions, or mixins
+- **When you see complexity**: Suggest a simpler approach or ask if the user wants a refactor
+- **Always ask**: "There may be a cleaner or more maintainable way. Should I refactor?"

@@ -49,8 +49,10 @@ service cloud.firestore {
 
     // ─── counters (e.g. bouquet code sequence) ──────────────────────────────
     // Vendors need to reserve next bouquet code when publishing; admins too.
+    // Read: authenticated. Write: admin or vendor only (prevents customers from manipulating codes).
     match /counters/{counterId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isVendor();
     }
 
     // ─── bouquets (flower products) ────────────────────────────────────────

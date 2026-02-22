@@ -1,10 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
+import 'package:flutter/foundation.dart';
 
 import '../models/vendor_list_model.dart';
 
 /// Super admin email — always has admin access without admins collection.
-const String kSuperAdminEmail = 'hiwa.constructions@gmail.com';
+/// Set via --dart-define=SUPER_ADMIN_EMAIL=... for different environments.
+const String kSuperAdminEmail = String.fromEnvironment(
+  'SUPER_ADMIN_EMAIL',
+  defaultValue: 'hiwa.constructions@gmail.com',
+);
 
 /// Repository for authentication and user/vendor/admin status.
 class AuthRepository {
@@ -184,8 +189,9 @@ class AuthRepository {
     for (final doc in snap.docs) {
       try {
         list.add(VendorListModel.fromFirestore(doc.id, doc.data()));
-      } catch (_) {
-        // Skip malformed docs
+      } catch (e, st) {
+        debugPrint('Error parsing vendor doc ${doc.id}: $e');
+        debugPrintStack(stackTrace: st);
       }
     }
     return list;
@@ -198,7 +204,9 @@ class AuthRepository {
     if (data == null) return null;
     try {
       return VendorListModel.fromFirestore(doc.id, data);
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('Error parsing vendor doc $vendorId: $e');
+      debugPrintStack(stackTrace: st);
       return null;
     }
   }

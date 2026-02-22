@@ -54,10 +54,12 @@ class _VoicePlaybackPageState extends State<VoicePlaybackPage> {
     });
 
     if (widget.audioUrl.isEmpty) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _hasError = true;
         _isLoading = false;
       });
+      }
       return;
     }
     try {

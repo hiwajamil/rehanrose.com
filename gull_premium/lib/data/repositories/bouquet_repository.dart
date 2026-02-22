@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../../core/constants/emotion_categories.dart';
@@ -37,7 +37,9 @@ class BouquetRepository {
     if (data == null) return null;
     try {
       return FlowerModel.fromJson(doc.id, data);
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('Error parsing bouquet $id: $e');
+      debugPrintStack(stackTrace: st);
       return null;
     }
   }
@@ -56,27 +58,27 @@ class BouquetRepository {
   Future<List<FlowerModel>> getBouquets({String? occasion}) async {
     Query<Map<String, dynamic>> query = _bouquets
         .where('approvalStatus', isEqualTo: 'approved')
-        .limit(_limit * 2);
+        .limit(_limit);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
       if (isValidEmotionCategoryId(occasion)) {
         query = _bouquets
             .where('approvalStatus', isEqualTo: 'approved')
             .where('emotionCategoryId', isEqualTo: occasion)
-            .limit(_limit * 2);
+            .limit(_limit);
       } else {
         final storedValues = storedValuesForFilter(occasion);
         if (storedValues.isNotEmpty) {
           query = _bouquets
               .where('approvalStatus', isEqualTo: 'approved')
               .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
-              .limit(_limit * 2);
+              .limit(_limit);
         }
       }
     }
 
     final snap = await query.get().timeout(_queryTimeout);
-    final list = _parseBouquetDocs(snap.docs).take(_limit).toList();
+    final list = _parseBouquetDocs(snap.docs).toList();
     list.sort((a, b) {
       final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
       final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
@@ -96,7 +98,7 @@ class BouquetRepository {
     Query<Map<String, dynamic>> query = _bouquets
         .where('approvalStatus', isEqualTo: 'approved')
         .orderBy('createdAt', descending: true)
-        .limit(limit * 3);
+        .limit(limit);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
       if (isValidEmotionCategoryId(occasion)) {
@@ -104,7 +106,7 @@ class BouquetRepository {
             .where('approvalStatus', isEqualTo: 'approved')
             .where('emotionCategoryId', isEqualTo: occasion)
             .orderBy('createdAt', descending: true)
-            .limit(limit * 3);
+            .limit(limit);
       } else {
         final storedValues = storedValuesForFilter(occasion);
         if (storedValues.isNotEmpty) {
@@ -112,7 +114,7 @@ class BouquetRepository {
               .where('approvalStatus', isEqualTo: 'approved')
               .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
               .orderBy('createdAt', descending: true)
-              .limit(limit * 3);
+              .limit(limit);
         }
       }
     }
@@ -122,7 +124,7 @@ class BouquetRepository {
     }
 
     final snap = await query.get().timeout(_queryTimeout);
-    final list = _parseBouquetDocs(snap.docs).take(limit).toList();
+    final list = _parseBouquetDocs(snap.docs).toList();
     final lastDoc = snap.docs.isEmpty ? null : snap.docs.last;
     return (items: list, lastDoc: lastDoc);
   }
@@ -132,27 +134,27 @@ class BouquetRepository {
   Stream<List<FlowerModel>> watchBouquets({String? occasion}) {
     Query<Map<String, dynamic>> query = _bouquets
         .where('approvalStatus', isEqualTo: 'approved')
-        .limit(_limit * 2);
+        .limit(_limit);
 
     if (occasion != null && occasion.isNotEmpty && occasion != 'All') {
       if (isValidEmotionCategoryId(occasion)) {
         query = _bouquets
             .where('approvalStatus', isEqualTo: 'approved')
             .where('emotionCategoryId', isEqualTo: occasion)
-            .limit(_limit * 2);
+            .limit(_limit);
       } else {
         final storedValues = storedValuesForFilter(occasion);
         if (storedValues.isNotEmpty) {
           query = _bouquets
               .where('approvalStatus', isEqualTo: 'approved')
               .where('occasion', whereIn: storedValues.length > 10 ? storedValues.take(10).toList() : storedValues)
-              .limit(_limit * 2);
+              .limit(_limit);
         }
       }
     }
 
     return query.snapshots().timeout(_queryTimeout).map((snap) {
-      final list = _parseBouquetDocs(snap.docs).take(_limit).toList();
+      final list = _parseBouquetDocs(snap.docs).toList();
       list.sort((a, b) {
         final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
         final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
@@ -185,7 +187,7 @@ class BouquetRepository {
     return _bouquets
         .where('approvalStatus', isEqualTo: 'approved')
         .orderBy('createdAt', descending: true)
-        .limit(_limit * 3)
+        .limit(_limit)
         .snapshots()
         .timeout(_queryTimeout)
         .map((snap) {
@@ -278,7 +280,9 @@ class BouquetRepository {
     for (final doc in docs) {
       try {
         result.add(FlowerModel.fromJson(doc.id, doc.data()));
-      } catch (_) {
+      } catch (e, st) {
+        debugPrint('Error parsing bouquet doc ${doc.id}: $e');
+        debugPrintStack(stackTrace: st);
         // Skip malformed docs; do not fail the whole stream
       }
     }
@@ -388,7 +392,9 @@ class BouquetRepository {
       try {
         final ref = _storage.refFromURL(url);
         await ref.delete().timeout(const Duration(seconds: 10));
-      } catch (_) {
+      } catch (e, st) {
+        debugPrint('Error deleting Storage URL $url: $e');
+        debugPrintStack(stackTrace: st);
         // Ignore Storage delete failures (e.g. invalid URL, already deleted)
       }
     }
@@ -401,7 +407,10 @@ class BouquetRepository {
     _bouquets
         .doc(bouquetId)
         .update({'viewCount': FieldValue.increment(1)})
-        .catchError((_) {});
+        .catchError((e, st) {
+      debugPrint('Error incrementing viewCount for $bouquetId: $e');
+      debugPrintStack(stackTrace: st);
+    });
   }
 
   /// Increments orderCount by 1 in Firestore. Fire-and-forget (silent, no loading).
@@ -410,7 +419,10 @@ class BouquetRepository {
     _bouquets
         .doc(bouquetId)
         .update({'orderCount': FieldValue.increment(1)})
-        .catchError((_) {});
+        .catchError((e, st) {
+      debugPrint('Error incrementing orderCount for $bouquetId: $e');
+      debugPrintStack(stackTrace: st);
+    });
   }
 
   /// Result of uploading one image (full-size and optional thumbnail).

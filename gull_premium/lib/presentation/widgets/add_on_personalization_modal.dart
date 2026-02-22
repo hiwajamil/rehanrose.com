@@ -231,6 +231,7 @@ class _AddOnPersonalizationSheetState
                         final ofType = addOns
                             .where((a) => a.type == categoryType)
                             .toList();
+                        final isAvailable = ofType.isNotEmpty;
                         return Expanded(
                           child: Padding(
                             padding: EdgeInsets.only(
@@ -238,106 +239,141 @@ class _AddOnPersonalizationSheetState
                                   ? 12
                                   : 0,
                             ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.background.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: AppColors.border,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                Text(
-                                  _categoryTitle(categoryType),
-                                  style: montserrat.copyWith(
-                                    fontSize: 14,
-                                    color: AppColors.inkMuted,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  height: 132,
-                                  child: ofType.isEmpty
-                                      ? Center(
-                                          child: Icon(
-                                            Icons.card_giftcard,
-                                            color: AppColors.inkMuted
-                                                .withValues(alpha: 0.5),
-                                            size: 32,
-                                          ),
-                                        )
-                                      : ListView.builder(
-                                          scrollDirection: Axis.horizontal,
-                                          itemCount: ofType.length,
-                                          itemBuilder: (context, index) {
-                                            final addOn = ofType[index];
-                                            final selected =
-                                                _isSelected(addOn);
-                                            final name = addOn
-                                                .nameForLocale(locale);
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                right: 8,
-                                              ),
-                                              child: _AddOnModalCard(
-                                                addOn: addOn,
-                                                name: name,
-                                                selected: selected,
-                                                onTap: () =>
-                                                    _openVariantSelection(
-                                                  context,
-                                                  categoryType,
-                                                  ofType,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                ),
-                                const SizedBox(height: 12),
-                                Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _CategoryCircleIndicator(
-                                        isSelected: _hasSelectedAddOn(categoryType),
+                            child: Opacity(
+                              opacity: isAvailable ? 1.0 : 0.6,
+                              child: AbsorbPointer(
+                                absorbing: !isAvailable,
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
                                       ),
-                                      if (_hasSelectedAddOn(categoryType)) ...[
-                                        const SizedBox(height: 6),
-                                        TextButton(
-                                          onPressed: () => _removeAddOn(categoryType),
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 2,
-                                            ),
-                                            minimumSize: Size.zero,
-                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          ),
-                                          child: Text(
-                                            'Remove',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelSmall
-                                                ?.copyWith(
-                                                  color: AppColors.inkMuted,
-                                                  decoration: TextDecoration.underline,
-                                                ),
-                                          ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.background
+                                            .withValues(alpha: 0.5),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: AppColors.border,
+                                          width: 1,
                                         ),
-                                      ],
-                                    ],
-                                  ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            _categoryTitle(categoryType),
+                                            style: montserrat.copyWith(
+                                              fontSize: 14,
+                                              color: AppColors.inkMuted,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          SizedBox(
+                                            height: 132,
+                                            child: ofType.isEmpty
+                                                ? Center(
+                                                    child: Icon(
+                                                      Icons.card_giftcard,
+                                                      color: AppColors
+                                                          .inkMuted
+                                                          .withValues(alpha: 0.5),
+                                                      size: 32,
+                                                    ),
+                                                  )
+                                                : ListView.builder(
+                                                    scrollDirection:
+                                                        Axis.horizontal,
+                                                    itemCount: ofType.length,
+                                                    itemBuilder:
+                                                        (context, index) {
+                                                      final addOn =
+                                                          ofType[index];
+                                                      final selected =
+                                                          _isSelected(addOn);
+                                                      final name = addOn
+                                                          .nameForLocale(
+                                                              locale);
+                                                      return Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(right: 8),
+                                                        child: _AddOnModalCard(
+                                                          addOn: addOn,
+                                                          name: name,
+                                                          selected: selected,
+                                                          onTap: () =>
+                                                              _openVariantSelection(
+                                                            context,
+                                                            categoryType,
+                                                            ofType,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Center(
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                _CategoryCircleIndicator(
+                                                  isSelected: _hasSelectedAddOn(
+                                                      categoryType),
+                                                ),
+                                                if (_hasSelectedAddOn(
+                                                    categoryType)) ...[
+                                                  const SizedBox(height: 6),
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        _removeAddOn(
+                                                            categoryType),
+                                                    style: TextButton.styleFrom(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 2,
+                                                          ),
+                                                      minimumSize: Size.zero,
+                                                      tapTargetSize:
+                                                          MaterialTapTargetSize
+                                                              .shrinkWrap,
+                                                    ),
+                                                    child: Text(
+                                                      'Remove',
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                            color: AppColors
+                                                                .inkMuted,
+                                                            decoration:
+                                                                TextDecoration
+                                                                    .underline,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: -4,
+                                      right: 8,
+                                      child: _AvailabilityBadge(
+                                        isAvailable: isAvailable,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                ],
                               ),
                             ),
                           ),
@@ -479,6 +515,43 @@ class _AddOnPersonalizationSheetState
         ],
       ),
     ),
+    );
+  }
+}
+
+/// Small badge above/beside each add-on category tile showing availability.
+/// Green "Available" when the category has active items; orange "Not Available" otherwise.
+class _AvailabilityBadge extends StatelessWidget {
+  final bool isAvailable;
+
+  const _AvailabilityBadge({required this.isAvailable});
+
+  static const Color _availableColor = Color(0xFF4CAF50);
+  static const Color _notAvailableColor = Color(0xFFE67E22);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: isAvailable ? _availableColor : _notAvailableColor,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Text(
+        isAvailable ? 'Available' : 'Not Available',
+        style: GoogleFonts.montserrat(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+      ),
     );
   }
 }
