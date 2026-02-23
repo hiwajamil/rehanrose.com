@@ -51,15 +51,22 @@ class _RejectBouquetDialogState extends State<RejectBouquetDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ...rejectionReasons.map((reason) => RadioListTile<String>(
-                    value: reason,
-                    groupValue: _selectedReason,
-                    onChanged: (v) => setState(() => _selectedReason = v ?? _selectedReason),
-                    title: Text(reason, style: montserrat.copyWith(fontSize: 14, color: AppColors.ink)),
-                    activeColor: AppColors.rosePrimary,
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  )),
+              RadioGroup<String>(
+                groupValue: _selectedReason,
+                onChanged: (v) => setState(() => _selectedReason = v ?? _selectedReason),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: rejectionReasons
+                      .map((reason) => RadioListTile<String>(
+                            value: reason,
+                            title: Text(reason, style: montserrat.copyWith(fontSize: 14, color: AppColors.ink)),
+                            activeColor: AppColors.rosePrimary,
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ))
+                      .toList(),
+                ),
+              ),
               const SizedBox(height: 16),
               Text(
                 'Additional notes (optional)',

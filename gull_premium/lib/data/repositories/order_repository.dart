@@ -103,3 +103,101 @@ class OrderRepository {
     });
   }
 }
+
+// --- OMS (Order Management System) for WhatsApp checkout ---
+
+const String _omsCollection = 'oms_orders';
+
+/// Repository for OMS orders (admin-created, vendor-assigned).
+class OmsOrderRepository {
+  OmsOrderRepository({
+    FirebaseFirestore? firestore,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
+
+  static const Duration _timeout = Duration(seconds: 15);
+
+  /// Generates a unique OMS order ID (e.g. ORD-1730000000123).
+  String generateOrderId() {
+    return 'ORD-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  /// Creates an OMS order with status [pending]. Assigns to [vendorId].
+  Future<String> createOmsOrder({
+    required String orderId,
+    required CreateOmsOrderData data,
+  }) async {
+    final ref = _firestore.collection(_omsCollection).doc(orderId);
+    await ref.set({
+      'orderId': orderId,
+      'bouquetId': data.bouquetId,
+      'bouquetCode': data.bouquetCode,
+      'vendorId': data.vendorId,
+      'customerPhone': data.customerPhone,
+      'addons': data.addons,
+      'totalPrice': data.totalPrice,
+      'status': OmsOrderStatus.pending.value,
+      'createdAt': FieldValue.serverTimestamp(),
+      'bouquetName': data.bouquetName,
+      'vendorName': data.vendorName,
+      'bouquetImageUrl': data.bouquetImageUrl,
+    }).timeout(_timeout);
+    return orderId;
+  }
+
+  /// Stream of all OMS orders for admin (newest first).
+  Stream<List<OmsOrderModel>> watchOmsOrdersForAdmin({int limit = 200}) {
+    return _firestore
+        .collection(_omsCollection)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snap) {
+      final list = <OmsOrderModel>[];
+      for (final doc in snap.docs) {
+        final model = OmsOrderModel.fromFirestore(doc.id, doc.data());
+        if (model != null) list.add(model);
+      }
+      return list;
+    });
+  }
+
+  /// Stream of OMS orders for a vendor, optionally filtered by [status].
+  /// When [status] is set, filtering is done in Dart to avoid composite index.
+  /// Skips malformed docs so one bad document doesn't break the stream.
+  Stream<List<OmsOrderModel>> watchOmsOrdersForVendor({
+    required String vendorId,
+    OmsOrderStatus? status,
+    int limit = 100,
+  }) {
+    final query = _firestore
+        .collection(_omsCollection)
+        .where('vendorId', isEqualTo: vendorId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit);
+    return query.snapshots().map((snap) {
+      final list = <OmsOrderModel>[];
+      for (final doc in snap.docs) {
+        try {
+          final model = OmsOrderModel.fromFirestore(doc.id, doc.data());
+          if (model != null && (status == null || model.status == status)) {
+            list.add(model);
+          }
+        } catch (_) {
+          // Skip malformed doc; do not break the stream
+        }
+      }
+      return list;
+    });
+  }
+
+  /// Updates OMS order status (e.g. pending → preparing, preparing → ready).
+  Future<void> updateOmsOrderStatus({
+    required String orderId,
+    required OmsOrderStatus status,
+  }) async {
+    final ref = _firestore.collection(_omsCollection).doc(orderId);
+    await ref.update({'status': status.value}).timeout(_timeout);
+  }
+}

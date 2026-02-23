@@ -45,6 +45,7 @@ class MakeItPerfectSection extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: AppColors.ink,
               ),
+          textDirection: Directionality.of(context),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -72,6 +73,7 @@ class MakeItPerfectSection extends StatelessWidget {
                 color: AppColors.inkMuted,
                 fontWeight: FontWeight.w500,
               ),
+          textDirection: Directionality.of(context),
         ),
       ],
     );
@@ -144,12 +146,14 @@ class _AddOnChip extends StatelessWidget {
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                textDirection: Directionality.of(context),
               ),
               Text(
                 '${AppLocalizations.of(context)!.currencyIqd} ${formatPriceIqd(addOn.priceIqd)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.inkMuted,
                     ),
+                textDirection: Directionality.of(context),
               ),
             ],
           ),

@@ -131,6 +131,29 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // ─── oms_orders (Order Management System – WhatsApp checkout) ─────────
+    // Create: admin only (Super Admin creates order and assigns to vendor).
+    // Read: admin (all); vendor (only documents where vendorId == uid).
+    // Update: admin (any); vendor (own orders only, status field only, valid transitions).
+    // Vendor allowed transitions: pending→preparing, preparing→ready.
+    // Delete: admin only.
+    function vendorOmsUpdateAllowed() {
+      return isVendor()
+          && resource.data.vendorId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && (
+            (resource.data.status == 'pending' && request.resource.data.status == 'preparing')
+            || (resource.data.status == 'preparing' && request.resource.data.status == 'ready')
+          );
+    }
+    match /oms_orders/{orderId} {
+      allow create: if isAdmin();
+      allow read: if isAdmin()
+          || (isVendor() && resource.data.vendorId == request.auth.uid);
+      allow update: if isAdmin() || vendorOmsUpdateAllowed();
+      allow delete: if isAdmin();
+    }
+
     // Default: deny all other paths
     match /{document=**} {
       allow read, write: if false;

@@ -129,6 +129,17 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   }
 
   Widget _buildNotificationsDropdown(BuildContext context) {
+    final count = widget.unreadNotificationCount;
+    final hasNewOrders = count > 0;
+    final message = hasNewOrders
+        ? 'You have ${count == 1 ? '1' : count} new bouquet${count == 1 ? '' : 's'} to be prepared!'
+        : null;
+
+    void navigateToNewRequests() {
+      _closeOverlays();
+      context.go('/vendor/orders?tab=new');
+    }
+
     return Padding(
       padding: const EdgeInsets.only(top: 56 + 8, right: 16),
       child: Material(
@@ -143,12 +154,36 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.border),
           ),
-          child: Text(
-            AppLocalizations.of(context)!.noNewNotifications,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.inkMuted,
+          child: hasNewOrders
+              ? InkWell(
+                  onTap: navigateToNewRequests,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.local_florist, size: 20, color: AppColors.rosePrimary),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            message!,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.ink,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : Text(
+                  AppLocalizations.of(context)!.noNewNotifications,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.inkMuted,
+                      ),
                 ),
-          ),
         ),
       ),
     );

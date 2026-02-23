@@ -174,3 +174,157 @@ class CreateOrderData {
     this.extraFields,
   });
 }
+
+// --- OMS (Order Management System) for WhatsApp checkout flow ---
+
+/// OMS order status: pending → preparing → ready → delivered.
+enum OmsOrderStatus {
+  pending,
+  preparing,
+  ready,
+  delivered,
+}
+
+extension OmsOrderStatusExtension on OmsOrderStatus {
+  String get value {
+    switch (this) {
+      case OmsOrderStatus.pending:
+        return 'pending';
+      case OmsOrderStatus.preparing:
+        return 'preparing';
+      case OmsOrderStatus.ready:
+        return 'ready';
+      case OmsOrderStatus.delivered:
+        return 'delivered';
+    }
+  }
+}
+
+OmsOrderStatus? omsOrderStatusFromString(String? value) {
+  if (value == null || value.isEmpty) return null;
+  final normalized = value.trim().toLowerCase();
+  switch (normalized) {
+    case 'pending':
+      return OmsOrderStatus.pending;
+    case 'preparing':
+      return OmsOrderStatus.preparing;
+    case 'ready':
+      return OmsOrderStatus.ready;
+    case 'delivered':
+      return OmsOrderStatus.delivered;
+    default:
+      return null;
+  }
+}
+
+/// Full OMS order model for admin and vendor dashboards.
+/// Stored in Firestore collection [oms_orders].
+class OmsOrderModel {
+  final String orderId;
+  final String bouquetId;
+  final String bouquetCode;
+  final String vendorId;
+  final String customerPhone;
+  /// Add-ons or notes (stored as string; can be comma-separated or free text).
+  final String addons;
+  final num totalPrice;
+  final OmsOrderStatus status;
+  final DateTime? createdAt;
+  /// Denormalized for list views (optional).
+  final String? bouquetName;
+  final String? vendorName;
+  /// First image URL of the bouquet for cards (optional).
+  final String? bouquetImageUrl;
+
+  const OmsOrderModel({
+    required this.orderId,
+    required this.bouquetId,
+    required this.bouquetCode,
+    required this.vendorId,
+    required this.customerPhone,
+    required this.addons,
+    required this.totalPrice,
+    required this.status,
+    this.createdAt,
+    this.bouquetName,
+    this.vendorName,
+    this.bouquetImageUrl,
+  });
+
+  /// For local use only. Repository sets createdAt with serverTimestamp on create.
+  Map<String, dynamic> toMap() => {
+        'orderId': orderId,
+        'bouquetId': bouquetId,
+        'bouquetCode': bouquetCode,
+        'vendorId': vendorId,
+        'customerPhone': customerPhone,
+        'addons': addons,
+        'totalPrice': totalPrice,
+        'status': status.value,
+        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+        if (bouquetName != null) 'bouquetName': bouquetName!,
+        if (vendorName != null) 'vendorName': vendorName!,
+        if (bouquetImageUrl != null) 'bouquetImageUrl': bouquetImageUrl!,
+      };
+
+  static OmsOrderModel? fromFirestore(
+    String docId,
+    Map<String, dynamic>? data,
+  ) {
+    if (data == null) return null;
+    final status = omsOrderStatusFromString(data['status']?.toString());
+    if (status == null) return null;
+    DateTime? createdAt;
+    final ts = data['createdAt'];
+    if (ts is Timestamp) {
+      createdAt = ts.toDate();
+    } else if (ts is DateTime) {
+      createdAt = ts;
+    } else if (ts != null) {
+      createdAt = DateTime.tryParse(ts.toString());
+    }
+    final totalPrice = data['totalPrice'];
+    num price = 0;
+    if (totalPrice is num) price = totalPrice;
+    if (totalPrice is int) price = totalPrice;
+    return OmsOrderModel(
+      orderId: docId,
+      bouquetId: data['bouquetId']?.toString() ?? '',
+      bouquetCode: data['bouquetCode']?.toString() ?? '',
+      vendorId: data['vendorId']?.toString() ?? '',
+      customerPhone: data['customerPhone']?.toString() ?? '',
+      addons: data['addons']?.toString() ?? '',
+      totalPrice: price,
+      status: status,
+      createdAt: createdAt,
+      bouquetName: data['bouquetName']?.toString(),
+      vendorName: data['vendorName']?.toString(),
+      bouquetImageUrl: data['bouquetImageUrl']?.toString(),
+    );
+  }
+}
+
+/// Data required to create an OMS order (admin creates after WhatsApp request).
+class CreateOmsOrderData {
+  final String bouquetId;
+  final String bouquetCode;
+  final String vendorId;
+  final String customerPhone;
+  final String addons;
+  final num totalPrice;
+  final String bouquetName;
+  final String vendorName;
+  final String bouquetImageUrl;
+
+  const CreateOmsOrderData({
+    required this.bouquetId,
+    required this.bouquetCode,
+    required this.vendorId,
+    required this.customerPhone,
+    required this.addons,
+    required this.totalPrice,
+    required this.bouquetName,
+    required this.vendorName,
+    this.bouquetImageUrl = '',
+  });
+}

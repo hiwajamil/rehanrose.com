@@ -255,6 +255,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                   variant: PrimaryButtonVariant.outline,
                 ),
                 PrimaryButton(
+                  label: 'Orders',
+                  onPressed: () => context.go('/admin/orders'),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+                PrimaryButton(
                   label: l10n.adminSignOut,
                   onPressed: () => ref.read(authRepositoryProvider).signOut(),
                   variant: PrimaryButtonVariant.outline,
@@ -284,6 +289,12 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                 PrimaryButton(
                   label: l10n.adminManageAddOns,
                   onPressed: () => context.push('/admin/add-ons'),
+                  variant: PrimaryButtonVariant.outline,
+                ),
+                const SizedBox(width: 12),
+                PrimaryButton(
+                  label: 'Orders',
+                  onPressed: () => context.go('/admin/orders'),
                   variant: PrimaryButtonVariant.outline,
                 ),
                 const SizedBox(width: 12),

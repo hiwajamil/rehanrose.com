@@ -44,6 +44,32 @@ class BouquetRepository {
     }
   }
 
+  /// Normalizes bouquet code input: trim and remove leading # (e.g. #BQT-102 → BQT-102).
+  static String normalizeBouquetCode(String input) {
+    return input.trim().replaceFirst(RegExp(r'^#\s*'), '');
+  }
+
+  /// Fetches a single bouquet by bouquet code (e.g. BQT-102 or #BQT-102). Returns null if not found.
+  Future<FlowerModel?> getByBouquetCode(String code) async {
+    final normalized = normalizeBouquetCode(code);
+    if (normalized.isEmpty) return null;
+    final snap = await _bouquets
+        .where('bouquetCode', isEqualTo: normalized)
+        .limit(1)
+        .get()
+        .timeout(_queryTimeout);
+    if (snap.docs.isEmpty) return null;
+    final doc = snap.docs.first;
+    final data = doc.data();
+    try {
+      return FlowerModel.fromJson(doc.id, data);
+    } catch (e, st) {
+      debugPrint('Error parsing bouquet by code $normalized: $e');
+      debugPrintStack(stackTrace: st);
+      return null;
+    }
+  }
+
   /// Fetches all bouquets for admin analytics (summary totals, top by viewCount/orderCount).
   /// Uses a higher limit than [getBouquets]. Does not filter by occasion.
   Future<List<FlowerModel>> getAllBouquetsForAnalytics() async {

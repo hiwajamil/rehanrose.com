@@ -7,6 +7,7 @@ import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
+import '../vendor/vendor_new_order_sound_listener.dart';
 import 'vendor_dashboard_header.dart';
 
 /// Vendor dashboard shell: fixed header + left sidebar (desktop) or drawer (mobile) + content.
@@ -22,51 +23,55 @@ class VendorShellLayout extends ConsumerWidget {
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
 
     if (isMobile) {
-      return Scaffold(
-        drawer: _VendorDrawer(),
-        body: Column(
-          children: [
-            Builder(
-              builder: (ctx) => _HeaderInAppBar(
-                onMenuTap: () => Scaffold.maybeOf(ctx)?.openDrawer(),
-                ref: ref,
-              ),
-            ),
-            Expanded(
-              child: Material(
-                color: AppColors.background,
-                child: ClipRect(
-                  child: child,
+      return VendorNewOrderSoundListener(
+        child: Scaffold(
+          drawer: _VendorDrawer(),
+          body: Column(
+            children: [
+              Builder(
+                builder: (ctx) => _HeaderInAppBar(
+                  onMenuTap: () => Scaffold.maybeOf(ctx)?.openDrawer(),
+                  ref: ref,
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: Material(
+                  color: AppColors.background,
+                  child: ClipRect(
+                    child: child,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context, ref),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _VendorSidebar(width: _sidebarWidth.toDouble()),
-                Expanded(
-                  child: Material(
-                    color: AppColors.background,
-                    child: ClipRect(
-                      child: child,
+    return VendorNewOrderSoundListener(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Column(
+          children: [
+            _buildHeader(context, ref),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _VendorSidebar(width: _sidebarWidth.toDouble()),
+                  Expanded(
+                    child: Material(
+                      color: AppColors.background,
+                      child: ClipRect(
+                        child: child,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -78,10 +83,11 @@ class VendorShellLayout extends ConsumerWidget {
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : (user?.email ?? l10n.vendorDefaultName);
+    final pendingCount = ref.watch(vendorPendingOmsCountProvider);
     return VendorDashboardHeader(
       userEmail: email,
       vendorName: name,
-      unreadNotificationCount: 0,
+      unreadNotificationCount: pendingCount,
       onProfile: () => context.go('/vendor/profile'),
       onLogout: () async {
         await FirebaseAuth.instance.signOut();
@@ -106,6 +112,7 @@ class _HeaderInAppBar extends StatelessWidget {
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : (user?.email ?? l10n.vendorDefaultName);
+    final pendingCount = ref.watch(vendorPendingOmsCountProvider);
     return SafeArea(
       child: VendorDashboardHeader(
         leading: IconButton(
@@ -115,7 +122,7 @@ class _HeaderInAppBar extends StatelessWidget {
         ),
         userEmail: email,
         vendorName: name,
-        unreadNotificationCount: 0,
+        unreadNotificationCount: pendingCount,
         onProfile: () => context.go('/vendor/profile'),
         onLogout: () async {
           await FirebaseAuth.instance.signOut();

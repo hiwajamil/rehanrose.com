@@ -5,8 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/rtl_utils.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/add_on_model.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
 import 'add_on_category_inventory_page.dart';
@@ -80,6 +82,7 @@ class ManageAddOnsLandingPage extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, bool isMobile) {
+    final l10n = AppLocalizations.of(context)!;
     final playfair = GoogleFonts.playfairDisplay(
       fontWeight: FontWeight.w600,
       color: AppColors.ink,
@@ -91,7 +94,7 @@ class ManageAddOnsLandingPage extends ConsumerWidget {
         Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: directionalIcon(context, Icons.arrow_back),
               onPressed: () => context.pop(),
               tooltip: 'Back to dashboard',
               style: IconButton.styleFrom(
@@ -101,8 +104,9 @@ class ManageAddOnsLandingPage extends ConsumerWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Manage Add-ons',
+                l10n.adminManageAddOns,
                 style: playfair.copyWith(fontSize: isMobile ? 22 : 26),
+                textDirection: Directionality.of(context),
               ),
             ),
           ],
@@ -114,6 +118,7 @@ class ManageAddOnsLandingPage extends ConsumerWidget {
                 color: AppColors.inkMuted,
                 fontSize: 15,
               ),
+          textDirection: Directionality.of(context),
         ),
         SizedBox(height: isMobile ? 28 : 40),
         isMobile
@@ -230,6 +235,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                         color: AppColors.ink,
                       ),
                   textAlign: TextAlign.center,
+                  textDirection: Directionality.of(context),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -240,9 +246,11 @@ class _CategoryCardState extends State<_CategoryCard> {
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: AppColors.inkMuted,
                           ),
+                      textDirection: Directionality.of(context),
                     ),
                     const SizedBox(width: 6),
-                    Icon(
+                    directionalIcon(
+                      context,
                       Icons.arrow_forward_ios,
                       size: 12,
                       color: AppColors.inkMuted,

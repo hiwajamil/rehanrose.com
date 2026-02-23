@@ -156,7 +156,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+                  padding: const EdgeInsetsDirectional.fromSTEB(24, 24, 24, 120),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -272,7 +272,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
               ),
               // Bottom fixed bar
               Container(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                padding: const EdgeInsetsDirectional.fromSTEB(24, 16, 24, 24),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   boxShadow: [
@@ -296,6 +296,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                   color: AppColors.inkMuted,
                                   fontWeight: FontWeight.w600,
                                 ),
+                            textDirection: Directionality.of(context),
                           ),
                           Text(
                             '${l10n.currencyIqd} ${formatPriceIqd(total)}',
@@ -303,6 +304,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                   color: AppColors.ink,
                                   fontWeight: FontWeight.w700,
                                 ),
+                            textDirection: Directionality.of(context),
                           ),
                         ],
                       ),
@@ -420,6 +422,7 @@ class _AddOnCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
+                textDirection: Directionality.of(context),
               ),
               if (isSelected)
                 Text(
@@ -428,6 +431,7 @@ class _AddOnCard extends StatelessWidget {
                         color: AppColors.inkMuted,
                       ),
                   textAlign: TextAlign.center,
+                  textDirection: Directionality.of(context),
                 )
               else
                 Text(
@@ -436,6 +440,7 @@ class _AddOnCard extends StatelessWidget {
                         color: AppColors.inkMuted,
                       ),
                   textAlign: TextAlign.center,
+                  textDirection: Directionality.of(context),
                 ),
             ],
           ),
