@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -83,15 +82,23 @@ class VendorShellLayout extends ConsumerWidget {
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : (user?.email ?? l10n.vendorDefaultName);
-    final pendingCount = ref.watch(vendorPendingOmsCountProvider);
+    final badgeCount = ref.watch(vendorUnreadNotificationBadgeCountProvider);
     return VendorDashboardHeader(
       userEmail: email,
       vendorName: name,
-      unreadNotificationCount: pendingCount,
+      unreadNotificationCount: badgeCount,
       onProfile: () => context.go('/vendor/profile'),
       onLogout: () async {
-        await FirebaseAuth.instance.signOut();
-        if (context.mounted) context.go('/');
+        try {
+          await ref.read(authRepositoryProvider).signOut();
+        } finally {
+          if (context.mounted) context.go('/');
+        }
+      },
+      onNotificationsViewed: () {
+        ref.read(vendorLastSeenPendingCountProvider.notifier).setLastSeen(
+              ref.read(vendorPendingOmsCountProvider),
+            );
       },
     );
   }
@@ -112,7 +119,7 @@ class _HeaderInAppBar extends StatelessWidget {
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : (user?.email ?? l10n.vendorDefaultName);
-    final pendingCount = ref.watch(vendorPendingOmsCountProvider);
+    final badgeCount = ref.watch(vendorUnreadNotificationBadgeCountProvider);
     return SafeArea(
       child: VendorDashboardHeader(
         leading: IconButton(
@@ -122,11 +129,19 @@ class _HeaderInAppBar extends StatelessWidget {
         ),
         userEmail: email,
         vendorName: name,
-        unreadNotificationCount: pendingCount,
+        unreadNotificationCount: badgeCount,
         onProfile: () => context.go('/vendor/profile'),
         onLogout: () async {
-          await FirebaseAuth.instance.signOut();
-          if (context.mounted) context.go('/');
+          try {
+            await ref.read(authRepositoryProvider).signOut();
+          } finally {
+            if (context.mounted) context.go('/');
+          }
+        },
+        onNotificationsViewed: () {
+          ref.read(vendorLastSeenPendingCountProvider.notifier).setLastSeen(
+                ref.read(vendorPendingOmsCountProvider),
+              );
         },
       ),
     );

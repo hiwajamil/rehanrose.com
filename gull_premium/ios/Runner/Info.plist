@@ -51,5 +51,7 @@
 	<string>This app uses the camera to take photos of bouquets.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photos to select images for bouquets.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app uses your location to set the delivery address for your order.</string>
 </dict>
 </plist>

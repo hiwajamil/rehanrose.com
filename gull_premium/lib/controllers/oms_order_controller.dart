@@ -73,3 +73,27 @@ final vendorPendingOmsCountProvider = Provider<int>((ref) {
         )),
   );
 });
+
+/// Last-seen pending count: when the vendor opens the notification menu (or views orders),
+/// we set this to the current pending count so the red badge disappears.
+final vendorLastSeenPendingCountProvider =
+    NotifierProvider<VendorLastSeenPendingCountNotifier, int>(
+  VendorLastSeenPendingCountNotifier.new,
+);
+
+/// Unread badge count: max(0, pendingCount - lastSeen). Pass this to the header for the bell badge.
+final vendorUnreadNotificationBadgeCountProvider = Provider<int>((ref) {
+  final pending = ref.watch(vendorPendingOmsCountProvider);
+  final lastSeen = ref.watch(vendorLastSeenPendingCountProvider);
+  final diff = pending - lastSeen;
+  return diff > 0 ? diff : 0;
+});
+
+class VendorLastSeenPendingCountNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void setLastSeen(int value) {
+    state = value;
+  }
+}

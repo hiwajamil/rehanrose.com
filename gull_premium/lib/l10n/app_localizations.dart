@@ -268,6 +268,90 @@ abstract class AppLocalizations {
   /// **'Sign In'**
   String get signIn;
 
+  /// No description provided for @signInRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In / Register'**
+  String get signInRegister;
+
+  /// No description provided for @continueWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get continueWithGoogle;
+
+  /// No description provided for @signUpWithGmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up using Gmail'**
+  String get signUpWithGmail;
+
+  /// No description provided for @orSignUpWithDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Or sign up with your details'**
+  String get orSignUpWithDetails;
+
+  /// No description provided for @account.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get account;
+
+  /// No description provided for @signOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get signOut;
+
+  /// No description provided for @loginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get loginTitle;
+
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to save your preferences and track orders.'**
+  String get loginSubtitle;
+
+  /// No description provided for @emailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get emailLabel;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordLabel;
+
+  /// No description provided for @emailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'you@example.com'**
+  String get emailHint;
+
+  /// No description provided for @passwordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get passwordHint;
+
+  /// No description provided for @register.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get register;
+
+  /// No description provided for @orSignInWithEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Or sign in with email'**
+  String get orSignInWithEmail;
+
   /// No description provided for @heroTitlePart1.
   ///
   /// In en, this message translates to:
@@ -1383,6 +1467,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to reject application.'**
   String get adminUnableToReject;
+
+  /// No description provided for @profilePremiumMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Member'**
+  String get profilePremiumMember;
+
+  /// No description provided for @profileMyOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'My Orders'**
+  String get profileMyOrders;
+
+  /// No description provided for @profileSavedAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Addresses'**
+  String get profileSavedAddresses;
+
+  /// No description provided for @profileMySpecialOccasions.
+  ///
+  /// In en, this message translates to:
+  /// **'My Special Occasions'**
+  String get profileMySpecialOccasions;
+
+  /// No description provided for @profileAddOccasion.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Occasion'**
+  String get profileAddOccasion;
+
+  /// No description provided for @profileOccasionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll remind you to send flowers for birthdays, anniversaries & more.'**
+  String get profileOccasionsSubtitle;
+
+  /// No description provided for @profileContactSupportWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Support (WhatsApp)'**
+  String get profileContactSupportWhatsApp;
+
+  /// No description provided for @profileChangePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get profileChangePassword;
+
+  /// No description provided for @profileComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get profileComingSoon;
 }
 
 class _AppLocalizationsDelegate

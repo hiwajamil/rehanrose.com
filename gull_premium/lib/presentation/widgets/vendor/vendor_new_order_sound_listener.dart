@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../controllers/controllers.dart';
+import '../../../core/services/notification_sound_service.dart';
 import '../../../data/models/order_model.dart';
 
 /// Listens to vendor OMS orders and plays a sound when the number of pending (new) orders increases.
@@ -32,7 +32,7 @@ class VendorNewOrderSoundListener extends ConsumerWidget {
             if (prevCount == null || count <= prevCount) return;
             if (context.mounted &&
                 GoRouterState.of(context).uri.path != '/vendor/orders') {
-              SystemSound.play(SystemSoundType.alert);
+              playOrderNotificationSound();
             }
           },
           loading: () {},

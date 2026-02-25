@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../controllers/controllers.dart';
 import '../../core/services/whatsapp_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../pages/product/delivery_map_picker.dart';
 import '../../core/utils/price_format_utils.dart';
 import '../../data/models/add_on_model.dart';
 import '../../data/models/flower_model.dart';
@@ -50,6 +52,7 @@ class _AddOnPersonalizationSheetState
     extends ConsumerState<_AddOnPersonalizationSheet> {
   final List<AddOnModel> _selectedAddOns = [];
   String? _voiceMessageUrl;
+  LatLng? _deliveryLatLng;
   late final ScrollController _scrollController;
 
   @override
@@ -135,6 +138,13 @@ class _AddOnPersonalizationSheetState
     if (url != null && mounted) setState(() => _voiceMessageUrl = url);
   }
 
+  Future<void> _openDeliveryMapPicker() async {
+    final result = await showDeliveryMapPicker(context);
+    if (result != null && mounted) {
+      setState(() => _deliveryLatLng = result);
+    }
+  }
+
   void _orderViaWhatsApp(FlowerModel bouquet) {
     ref.read(bouquetRepositoryProvider).incrementOrderCount(bouquet.id);
     final l10n = AppLocalizations.of(context)!;
@@ -153,6 +163,9 @@ class _AddOnPersonalizationSheetState
       productUrl: productUrl,
       voiceMessageUrl: _voiceMessageUrl,
       freeDeliveryUnlocked: total >= freeDeliveryThreshold,
+      deliveryLocation: _deliveryLatLng != null
+          ? DeliveryLatLng(_deliveryLatLng!.latitude, _deliveryLatLng!.longitude)
+          : null,
     );
     Navigator.of(context).pop();
   }
@@ -242,12 +255,14 @@ class _AddOnPersonalizationSheetState
                             .where((a) => a.type == categoryType)
                             .toList();
                         final isAvailable = ofType.isNotEmpty;
+                        final isFirst = categoryType == _addOnCategoryOrder.first;
+                        final isLast = categoryType == _addOnCategoryOrder.last;
+                        const gap = 12.0;
                         return Expanded(
                           child: Padding(
                             padding: EdgeInsets.only(
-                              right: categoryType != _addOnCategoryOrder.last
-                                  ? 12
-                                  : 0,
+                              left: isFirst ? 0 : gap / 2,
+                              right: isLast ? 0 : gap / 2,
                             ),
                             child: Opacity(
                               opacity: isAvailable ? 1.0 : 0.6,
@@ -444,12 +459,85 @@ class _AddOnPersonalizationSheetState
                       l10n: l10n,
                     ),
                     const SizedBox(height: 20),
+                    Material(
+                      color: _deliveryLatLng != null
+                          ? const Color(0xFF4CAF50).withValues(alpha: 0.12)
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        onTap: _openDeliveryMapPicker,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _deliveryLatLng != null
+                                  ? const Color(0xFF4CAF50)
+                                  : AppColors.border,
+                              width: _deliveryLatLng != null ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _deliveryLatLng != null
+                                    ? Icons.check_circle
+                                    : Icons.location_on,
+                                size: 28,
+                                color: _deliveryLatLng != null
+                                    ? const Color(0xFF4CAF50)
+                                    : AppColors.inkMuted,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _deliveryLatLng != null
+                                      ? '✅ Location Selected (Tap to change)'
+                                      : '📍 Select Delivery Location',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.ink,
+                                      ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                color: AppColors.inkMuted,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: OrderViaWhatsAppButton(
                         label: l10n.orderViaWhatsApp,
                         valueProposition: '',
+                        appearsDisabled: _deliveryLatLng == null,
                         onPressed: () {
+                          if (_deliveryLatLng == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  '⚠️ Please select a delivery location first.',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
                           ref.read(analyticsServiceProvider).logClickWhatsApp(
                                 itemId: bouquet.id,
                                 itemName: bouquet.name,

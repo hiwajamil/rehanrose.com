@@ -181,7 +181,8 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
     final baseTheme = isMobile
         ? AppTheme.lightMobile(locale)
         : AppTheme.light(locale);
-    // Hybrid Font System: Rudaw (Kurdish) default; Playfair Display (headers); Montserrat (body/prices).
+    // Hybrid Font System: Rudaw (Kurdish) default; Playfair Display (headers); Montserrat (body/prices + all input fields).
+    final montserratBody = GoogleFonts.montserrat(fontSize: 14);
     final theme = baseTheme.copyWith(
       textTheme: baseTheme.textTheme.apply(fontFamily: 'Rudaw').copyWith(
         // Large Titles (Flower Names) -> Playfair Display (Luxury look)
@@ -190,7 +191,22 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
           fontWeight: FontWeight.bold,
         ),
         // Prices & Details -> Montserrat (Clean look)
-        bodyMedium: GoogleFonts.montserrat(fontSize: 14),
+        bodyMedium: montserratBody,
+        // Input field typed text -> Montserrat (all blank filling)
+        bodyLarge: GoogleFonts.montserrat(fontSize: 16),
+      ),
+      // All input decoration text (labels, hints, errors) -> Montserrat
+      inputDecorationTheme: InputDecorationTheme(
+        labelStyle: GoogleFonts.montserrat(fontSize: 16),
+        hintStyle: GoogleFonts.montserrat(fontSize: 16, color: Colors.grey),
+        errorStyle: GoogleFonts.montserrat(fontSize: 12),
+        floatingLabelStyle: GoogleFonts.montserrat(fontSize: 16),
+        prefixStyle: GoogleFonts.montserrat(fontSize: 16),
+        suffixStyle: GoogleFonts.montserrat(fontSize: 16),
+        counterStyle: GoogleFonts.montserrat(fontSize: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        filled: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
     final direction = textDirectionForLocale(locale);

@@ -69,10 +69,13 @@ const int _kOrderCardImageSize = 80;
 const int _kOrderCardImageCacheSize = 160;
 
 /// Reusable OMS order card for admin and vendor. Shows image, bouquet info, details, optional actions.
+/// When [preparedCount] is set (e.g. for Ready tab grouped view), shows how many of this bouquet are ready.
 class OmsOrderCard extends StatelessWidget {
   final OmsOrderModel order;
   final bool showVendorLine;
   final bool showOrderIdInSubtitle;
+  /// When non-null, shows "N prepared" for grouped Ready section so vendor sees quantity.
+  final int? preparedCount;
   final VoidCallback? onAccept;
   final VoidCallback? onReady;
 
@@ -81,6 +84,7 @@ class OmsOrderCard extends StatelessWidget {
     required this.order,
     this.showVendorLine = false,
     this.showOrderIdInSubtitle = false,
+    this.preparedCount,
     this.onAccept,
     this.onReady,
   });
@@ -101,6 +105,7 @@ class OmsOrderCard extends StatelessWidget {
         ? '#${order.bouquetCode} · ${order.orderId}'
         : '#${order.bouquetCode}';
     final hasImage = order.bouquetImageUrl != null && order.bouquetImageUrl!.isNotEmpty;
+    final showPreparedCount = preparedCount != null && preparedCount! > 0;
 
     return RepaintBoundary(
       child: Container(
@@ -162,12 +167,34 @@ class OmsOrderCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          order.bouquetName ?? 'Bouquet',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.ink,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                order.bouquetName ?? 'Bouquet',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.ink,
+                                    ),
                               ),
+                            ),
+                            if (showPreparedCount)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.rosePrimary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.rosePrimary.withValues(alpha: 0.4)),
+                                ),
+                                child: Text(
+                                  '×${preparedCount!} prepared',
+                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                        color: AppColors.rosePrimary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(

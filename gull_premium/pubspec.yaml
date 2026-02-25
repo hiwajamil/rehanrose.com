@@ -11,6 +11,7 @@ dependencies:
   firebase_analytics: ^12.1.1
   firebase_auth: ^6.1.4
   firebase_core: ^4.4.0
+  google_sign_in: ^6.2.2
   firebase_storage: ^13.0.6
   flutter:
     sdk: flutter
@@ -40,6 +41,8 @@ dependencies:
   uuid: ^4.5.1
   path_provider: ^2.1.5
   audioplayers: ^6.5.1
+  google_maps_flutter: ^2.9.0
+  geolocator: ^13.0.2
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +56,8 @@ flutter:
     - assets/main_page_01.mp4
     - assets/images/payments/
     - assets/fonts/
+    - assets/sounds/notification_sound.mp3
+    - assets/sounds/new-notification-2.mp3
   fonts:
     - family: Rudaw
       fonts:

@@ -15,12 +15,22 @@ const String kWhatsAppOrderGreetingKurdish =
 const String kWhatsAppOrderGreetingArabic =
     'مرحباً عزيزي، أريد طلب هذه الزهور.';
 
+/// Optional delivery location; when set, a Google Maps URL is appended to the message.
+class DeliveryLatLng {
+  const DeliveryLatLng(this.latitude, this.longitude);
+  final double latitude;
+  final double longitude;
+  String get googleMapsUrl =>
+      'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+}
+
 /// Opens WhatsApp with a pre-filled order message.
 /// [selectedAddOns] appear as "Add-on: [Name] - [Price]".
 /// [totalPriceIqd] is flower + add-ons when provided.
 /// [productUrl] optional link to product page (e.g. https://rehanrose.com/flower/123).
 /// [voiceMessageUrl] optional URL of the recorded voice message (for vendor to print QR).
 /// [freeDeliveryUnlocked] when true, adds "Delivery: FREE" to the message.
+/// [deliveryLocation] when set, appends "Delivery Location: &lt;Google Maps URL&gt;" to the message.
 Future<bool> launchOrderWhatsApp({
   required String flowerName,
   required String flowerPrice,
@@ -32,6 +42,7 @@ Future<bool> launchOrderWhatsApp({
   String? productUrl,
   String? voiceMessageUrl,
   bool freeDeliveryUnlocked = false,
+  DeliveryLatLng? deliveryLocation,
 }) async {
   final lines = <String>[
     'Hello, I would like to order:',
@@ -46,6 +57,8 @@ Future<bool> launchOrderWhatsApp({
     if (voiceMessageUrl != null && voiceMessageUrl.isNotEmpty)
       'Voice Message (QR): $voiceMessageUrl',
     if (productUrl != null && productUrl.isNotEmpty) 'Link: $productUrl',
+    if (deliveryLocation != null)
+      'Delivery Location: ${deliveryLocation.googleMapsUrl}',
   ];
   final body = lines.join('\n');
 

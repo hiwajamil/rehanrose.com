@@ -93,6 +93,49 @@ class AppLocalizationsKu extends AppLocalizations {
   String get signIn => 'چوونەژوورەوە';
 
   @override
+  String get signInRegister => 'چوونەژوورەوە / تۆمارکردن';
+
+  @override
+  String get continueWithGoogle => 'بەردەوامبوون لەگەڵ Google';
+
+  @override
+  String get signUpWithGmail => 'دروستکردنی هەژمار بە Gmail';
+
+  @override
+  String get orSignUpWithDetails => 'یان بە وردەکارییەکانت هەژمار دروست بکە';
+
+  @override
+  String get account => 'هەژمار';
+
+  @override
+  String get signOut => 'چوونەدەرەوە';
+
+  @override
+  String get loginTitle => 'بەخێربێیتەوە';
+
+  @override
+  String get loginSubtitle =>
+      'چوونەژوورەوە بکە بۆ هەڵگرتنی ڕێکخستنەکان و شوێنکەوتنی داواکارییەکان.';
+
+  @override
+  String get emailLabel => 'ئیمەیڵ';
+
+  @override
+  String get passwordLabel => 'وشەی نهێنی';
+
+  @override
+  String get emailHint => 'you@example.com';
+
+  @override
+  String get passwordHint => 'وشەی نهێنیت بنووسە';
+
+  @override
+  String get register => 'دروستکردنی هەژمار';
+
+  @override
+  String get orSignInWithEmail => 'یان چوونەژوورەوە بە ئیمەیڵ';
+
+  @override
   String get heroTitlePart1 => 'کاتێک وشەکان بێدەنگ دەبن...\n';
 
   @override
@@ -690,4 +733,32 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get adminUnableToReject => 'ڕەتکردنەوەی داواکاری سەرکەوتوو نەبوو.';
+
+  @override
+  String get profilePremiumMember => 'ئەندامی تایبەت';
+
+  @override
+  String get profileMyOrders => 'داواکارییەکانم';
+
+  @override
+  String get profileSavedAddresses => 'ناونیشانە پاشەکەوتکراوەکان';
+
+  @override
+  String get profileMySpecialOccasions => 'ڕوداوە تایبەتەکانم';
+
+  @override
+  String get profileAddOccasion => 'ڕوداو زیاد بکە';
+
+  @override
+  String get profileOccasionsSubtitle =>
+      'ئەم ئەپە ئەتەوەڵت دەکات گوڵ بکڕیت بۆ ڕۆژی لەدایکبوون، ساڵیادی و زیاتر.';
+
+  @override
+  String get profileContactSupportWhatsApp => 'پەیوەندی بە پشتگیری (واتسئاپ)';
+
+  @override
+  String get profileChangePassword => 'گۆڕینی تێپەڕەووشە';
+
+  @override
+  String get profileComingSoon => 'بەم زووانە';
 }

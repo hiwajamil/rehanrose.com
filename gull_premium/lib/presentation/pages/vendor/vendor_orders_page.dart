@@ -157,6 +157,34 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
           );
         }
         final repo = ref.read(omsOrderRepositoryProvider);
+
+        // Ready tab: group by bouquet so vendor sees how many of each bouquet are prepared.
+        if (widget.status == OmsOrderStatus.ready) {
+          final grouped = <String, List<OmsOrderModel>>{};
+          for (final o in orders) {
+            grouped.putIfAbsent(o.bouquetId, () => []).add(o);
+          }
+          final entries = grouped.entries.toList();
+          return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 24),
+            itemCount: entries.length,
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              final first = entry.value.first;
+              final count = entry.value.length;
+              return KeyedSubtree(
+                key: ValueKey('ready-${first.bouquetId}'),
+                child: OmsOrderCard(
+                  order: first,
+                  showVendorLine: false,
+                  showOrderIdInSubtitle: true,
+                  preparedCount: count,
+                ),
+              );
+            },
+          );
+        }
+
         return ListView.builder(
           padding: const EdgeInsets.only(bottom: 24),
           itemCount: orders.length,

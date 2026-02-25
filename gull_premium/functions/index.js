@@ -1,8 +1,16 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
+const functions = require('firebase-functions');
 
 initializeApp();
+
+// Google Places API key for server-side proxy (avoids CORS on web).
+// Set via: firebase functions:config:set google_maps.api_key="YOUR_KEY"
+const getPlacesApiKey = () =>
+  process.env.GOOGLE_PLACES_API_KEY ||
+  functions.config().google_maps?.api_key ||
+  'AIzaSyA56HwxP_2za24pqTKG9wfZ8MdeGt2GOqY';
 
 const COLLECTION = 'bouquets';
 
@@ -112,5 +120,86 @@ exports.getFlowerPreview = onRequest(
 
     res.set('Cache-Control', 'public, max-age=300');
     res.type('html').status(200).send(html);
+  }
+);
+
+const PLACES_REGION = 'europe-west1';
+
+/**
+ * Proxy for Google Places Autocomplete. Called from Flutter web to avoid CORS.
+ * GET ?input=...&lat=...&lng=...
+ */
+exports.placesAutocomplete = onRequest(
+  { region: PLACES_REGION, cors: true },
+  async (req, res) => {
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type');
+      res.status(204).send('');
+      return;
+    }
+    const input = req.query.input;
+    const lat = req.query.lat;
+    const lng = req.query.lng;
+    if (!input || input.trim() === '') {
+      res.status(400).json({ status: 'INVALID_REQUEST', error: 'Missing input' });
+      return;
+    }
+    const apiKey = getPlacesApiKey();
+    const url = new URL('https://maps.googleapis.com/maps/api/place/autocomplete/json');
+    url.searchParams.set('input', input.trim());
+    url.searchParams.set('key', apiKey);
+    if (lat != null && lng != null) {
+      url.searchParams.set('location', `${lat},${lng}`);
+      url.searchParams.set('radius', '50000');
+    }
+    try {
+      const r = await fetch(url.toString());
+      const data = await r.json();
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(200).json(data);
+    } catch (e) {
+      console.error('placesAutocomplete proxy error', e);
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(502).json({ status: 'ERROR', error: String(e.message || e) });
+    }
+  }
+);
+
+/**
+ * Proxy for Google Place Details. Called from Flutter web to avoid CORS.
+ * GET ?place_id=...
+ */
+exports.placeDetails = onRequest(
+  { region: PLACES_REGION, cors: true },
+  async (req, res) => {
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type');
+      res.status(204).send('');
+      return;
+    }
+    const placeId = req.query.place_id;
+    if (!placeId || placeId.trim() === '') {
+      res.status(400).json({ status: 'INVALID_REQUEST', error: 'Missing place_id' });
+      return;
+    }
+    const apiKey = getPlacesApiKey();
+    const url = new URL('https://maps.googleapis.com/maps/api/place/details/json');
+    url.searchParams.set('place_id', placeId.trim());
+    url.searchParams.set('fields', 'geometry,name');
+    url.searchParams.set('key', apiKey);
+    try {
+      const r = await fetch(url.toString());
+      const data = await r.json();
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(200).json(data);
+    } catch (e) {
+      console.error('placeDetails proxy error', e);
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(502).json({ status: 'ERROR', error: String(e.message || e) });
+    }
   }
 );

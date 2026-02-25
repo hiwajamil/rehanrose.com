@@ -1,0 +1,2 @@
+# For firebase_web_fix.py (Google Sign-In web config automation)
+playwright>=1.40.0

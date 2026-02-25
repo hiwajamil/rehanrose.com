@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1012920953592",
+    "project_id": "gull-48040",
+    "storage_bucket": "gull-48040.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012920953592:android:c6564efb109ac4b9b8a90d",
+        "android_client_info": {
+          "package_name": "com.example.rehan_rose"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1012920953592-q4g5b7u1a6bq1alj8ugi3fbmnpufjbab.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAs7xmddG8WtrevEg57EJFOWWmW59LOkc0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1012920953592-q4g5b7u1a6bq1alj8ugi3fbmnpufjbab.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

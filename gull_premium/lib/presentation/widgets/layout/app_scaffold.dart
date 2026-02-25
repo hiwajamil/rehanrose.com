@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,7 @@ import '../../../core/utils/emotion_category_l10n.dart';
 import '../../../core/utils/locale_provider.dart';
 import '../../../core/utils/rtl_utils.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../pages/auth/login_screen.dart';
 import '../common/primary_button.dart';
 import '../common/track_order_modal.dart';
 import 'app_footer.dart';
@@ -76,6 +78,29 @@ void showFaqDialog(BuildContext context) {
       ],
     ),
   );
+}
+
+/// Opens customer login: modal on mobile, push /login on desktop.
+void showLoginModalOrPush(BuildContext context) {
+  if (MediaQuery.sizeOf(context).width <= kMobileBreakpoint) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: const SafeArea(
+          top: false,
+          child: LoginScreen(showAsModal: true),
+        ),
+      ),
+    );
+  } else {
+    context.push('/login');
+  }
 }
 
 /// Wraps the app with a consistent layout. Shows the public website header
@@ -276,7 +301,7 @@ class _PublicHeaderState extends ConsumerState<_PublicHeader> {
                     onPressed: () => context.go('/vendor'),
                   ),
                   const SizedBox(width: 16),
-                  _SignInButton(),
+                  const _AuthHeaderAction(),
                 ],
                 if (isMobile)
                   IconButton(
@@ -330,7 +355,10 @@ class _OccasionsNavItemState extends State<_OccasionsNavItem> {
       },
       onExit: (_) {
         setState(() => _hovered = false);
-        widget.onLeaveMenu();
+        // Only schedule close when menu is not open. When the menu is open, the overlay
+        // covers the nav item so we get a spurious onExit; the menu's own MouseRegion
+        // handles scheduling close when the user actually leaves the menu panel.
+        if (!widget.isOpen) widget.onLeaveMenu();
       },
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -669,13 +697,90 @@ class _HeaderOutlinedButtonState extends State<_HeaderOutlinedButton> {
   }
 }
 
-/// Sign In text button; navigates to vendor (login). Hover: color only.
-class _SignInButton extends StatefulWidget {
+/// Header auth action: if logged in shows avatar (→ /account), else "Sign In / Register" (opens login).
+class _AuthHeaderAction extends ConsumerWidget {
+  const _AuthHeaderAction();
+
   @override
-  State<_SignInButton> createState() => _SignInButtonState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateProvider).value;
+    final l10n = AppLocalizations.of(context)!;
+
+    if (user != null) {
+      return _HeaderAccountAvatar(
+        photoUrl: user.photoURL,
+        displayName: user.displayName,
+        email: user.email,
+      );
+    }
+
+    return _SignInRegisterButton(label: l10n.signInRegister);
+  }
 }
 
-class _SignInButtonState extends State<_SignInButton> {
+class _HeaderAccountAvatar extends StatelessWidget {
+  final String? photoUrl;
+  final String? displayName;
+  final String? email;
+
+  const _HeaderAccountAvatar({
+    this.photoUrl,
+    this.displayName,
+    this.email,
+  });
+
+  String get _initial {
+    if (displayName != null && displayName!.isNotEmpty) return displayName![0];
+    if (email != null && email!.isNotEmpty) return email![0];
+    return '?';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
+    return GestureDetector(
+      onTap: () => context.go('/account'),
+      child: hasPhoto
+          ? CachedNetworkImage(
+              imageUrl: photoUrl!,
+              imageBuilder: (_, imageProvider) => CircleAvatar(
+                radius: 18,
+                backgroundImage: imageProvider,
+              ),
+              placeholder: (_, __) => _buildInitialAvatar(),
+              errorWidget: (_, __, ___) => _buildInitialAvatar(),
+            )
+          : _buildInitialAvatar(),
+    );
+  }
+
+  Widget _buildInitialAvatar() {
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: AppColors.border,
+      child: Text(
+        _initial.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.inkMuted,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+}
+
+/// Sign In / Register text button; opens customer login (modal or /login). Hover: color only.
+class _SignInRegisterButton extends StatefulWidget {
+  final String label;
+
+  const _SignInRegisterButton({required this.label});
+
+  @override
+  State<_SignInRegisterButton> createState() => _SignInRegisterButtonState();
+}
+
+class _SignInRegisterButtonState extends State<_SignInRegisterButton> {
   bool _hovered = false;
 
   @override
@@ -686,11 +791,11 @@ class _SignInButtonState extends State<_SignInButton> {
       onExit: (_) => setState(() => _hovered = false),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => context.go('/vendor'),
+        onTap: () => showLoginModalOrPush(context),
         child: Padding(
           padding: const EdgeInsetsDirectional.symmetric(horizontal: 8, vertical: 10),
           child: Text(
-            AppLocalizations.of(context)!.signIn,
+            widget.label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w500,
@@ -863,27 +968,117 @@ class _MobileNavDrawer extends ConsumerWidget {
               const SizedBox(height: 24),
               _LanguageSwitcher(),
               const SizedBox(height: 24),
-              // Sign In and Become a Vendor at top so they are visible on mobile without scrolling
-              SizedBox(
-                width: double.infinity,
-                child: PrimaryButton(
-                  label: l10n.signIn,
-                  onPressed: () {
-                    context.go('/vendor');
-                    onNavigate();
-                  },
+              // Auth and Become a Vendor at top so they are visible on mobile without scrolling
+              ref.watch(authStateProvider).when(
+                data: (user) {
+                  if (user != null) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        PrimaryButton(
+                          label: l10n.account,
+                          onPressed: () {
+                            context.go('/account');
+                            onNavigate();
+                          },
+                          variant: PrimaryButtonVariant.outline,
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: PrimaryButton(
+                            label: l10n.ctaBecomeVendor,
+                            onPressed: () {
+                              context.go('/vendor');
+                              onNavigate();
+                            },
+                            variant: PrimaryButtonVariant.outline,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: PrimaryButton(
+                          label: l10n.signInRegister,
+                          onPressed: () {
+                            onNavigate();
+                            showLoginModalOrPush(context);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: PrimaryButton(
+                          label: l10n.ctaBecomeVendor,
+                          onPressed: () {
+                            context.go('/vendor');
+                            onNavigate();
+                          },
+                          variant: PrimaryButtonVariant.outline,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: PrimaryButton(
+                        label: l10n.signInRegister,
+                        onPressed: () {
+                          onNavigate();
+                          showLoginModalOrPush(context);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: PrimaryButton(
+                        label: l10n.ctaBecomeVendor,
+                        onPressed: () {
+                          context.go('/vendor');
+                          onNavigate();
+                        },
+                        variant: PrimaryButtonVariant.outline,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: PrimaryButton(
-                  label: l10n.ctaBecomeVendor,
-                  onPressed: () {
-                    context.go('/vendor');
-                    onNavigate();
-                  },
-                  variant: PrimaryButtonVariant.outline,
+                error: (_, __) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: PrimaryButton(
+                        label: l10n.signInRegister,
+                        onPressed: () {
+                          onNavigate();
+                          showLoginModalOrPush(context);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: PrimaryButton(
+                        label: l10n.ctaBecomeVendor,
+                        onPressed: () {
+                          context.go('/vendor');
+                          onNavigate();
+                        },
+                        variant: PrimaryButtonVariant.outline,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 32),

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/vendor_list_model.dart';
 
@@ -16,11 +17,14 @@ class AuthRepository {
   AuthRepository({
     fa.FirebaseAuth? auth,
     FirebaseFirestore? firestore,
+    GoogleSignIn? googleSignIn,
   })  : _auth = auth ?? fa.FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+        _firestore = firestore ?? FirebaseFirestore.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   final fa.FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  final GoogleSignIn _googleSignIn;
 
   /// Current user or null if not signed in.
   fa.User? get currentUser => _auth.currentUser;
@@ -50,8 +54,71 @@ class AuthRepository {
     );
   }
 
-  /// Sign out.
-  Future<void> signOut() => _auth.signOut();
+  /// Sign out. Also signs out from Google so next sign-in is fresh.
+  /// If the user signed in with email/password, Google sign-out may throw on web;
+  /// we still sign out from Firebase so sign-out always succeeds.
+  Future<void> signOut() async {
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {
+      // Ignore: user may have signed in with email/password; still sign out from Firebase.
+    }
+    await _auth.signOut();
+  }
+
+  /// Sign in with Google. On success, ensures a document exists in [users]
+  /// with [uid], [email], [displayName], [photoURL], [createdAt], and
+  /// [role: 'customer'] (only if the user doc does not already exist).
+  /// Throws on failure (e.g. [fa.FirebaseAuthException], sign-in cancelled).
+  Future<fa.UserCredential> signInWithGoogle() async {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      throw Exception('sign_in_cancelled');
+    }
+    final googleAuth = await googleUser.authentication;
+    final idToken = googleAuth.idToken;
+    final accessToken = googleAuth.accessToken;
+    if (idToken == null && accessToken == null) {
+      throw Exception(
+        'Google Sign-In failed: no credentials. Ensure GOOGLE_WEB_CLIENT_ID is set (Firebase Console → Authentication → Google → Web client ID).',
+      );
+    }
+    final credential = fa.GoogleAuthProvider.credential(
+      accessToken: accessToken,
+      idToken: idToken,
+    );
+    final userCredential = await _auth.signInWithCredential(credential);
+    final user = userCredential.user;
+    if (user != null) {
+      await ensureCustomerUserDocIfNeeded(user);
+    }
+    return userCredential;
+  }
+
+  /// Ensures a document exists in [users] for the given Firebase [user].
+  /// If the doc does not exist, creates it with uid, email, displayName,
+  /// photoURL, createdAt, and role: 'customer'. If it exists, merges only
+  /// profile fields so existing role/vendorStatus are preserved.
+  Future<void> ensureCustomerUserDocIfNeeded(fa.User user) async {
+    final ref = _firestore.collection('users').doc(user.uid);
+    final existing = await ref.get();
+    if (existing.exists) {
+      await ref.set({
+        'email': user.email,
+        'displayName': user.displayName,
+        'photoURL': user.photoURL,
+      }, SetOptions(merge: true));
+      return;
+    }
+    await ref.set({
+      'uid': user.uid,
+      'email': user.email,
+      'displayName': user.displayName,
+      'photoURL': user.photoURL,
+      'createdAt': FieldValue.serverTimestamp(),
+      'role': 'customer',
+    });
+  }
 
   /// Vendor status for the given user id: 'pending' | 'approved' | 'rejected'.
   Future<String> getVendorStatus(String uid) async {
@@ -81,6 +148,29 @@ class AuthRepository {
       {'role': 'admin'},
       SetOptions(merge: true),
     );
+  }
+
+  /// Fetches the current user's profile from Firestore [users] collection.
+  /// Returns a map with fullName (or displayName), email, phone (phoneNumber), city, photoURL.
+  /// Returns null if the document does not exist.
+  Future<Map<String, String>?> getUserProfile(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    final data = doc.data();
+    if (data == null) return null;
+    final fullName = data['fullName']?.toString().trim() ??
+        data['displayName']?.toString().trim() ??
+        '';
+    final email = data['email']?.toString().trim() ?? '';
+    final phone = data['phoneNumber']?.toString().trim() ?? '';
+    final city = data['city']?.toString().trim() ?? '';
+    final photoURL = data['photoURL']?.toString();
+    return {
+      'fullName': fullName,
+      'email': email,
+      'phone': phone,
+      'city': city,
+      if (photoURL != null && photoURL.isNotEmpty) 'photoURL': photoURL,
+    };
   }
 
   /// Get stored language preference for user. Returns null if not set.

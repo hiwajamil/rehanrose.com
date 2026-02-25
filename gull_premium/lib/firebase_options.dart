@@ -1,6 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
+import 'env/google_client_id.dart';
+
 /// App domain for Firebase Hosting and Auth authorized domains.
 /// Ensure rehanrose.com is added in Firebase Console:
 /// - Hosting → Add custom domain
@@ -9,6 +11,13 @@ const String appDomain = 'rehanrose.com';
 const String appBaseUrl = 'https://rehanrose.com';
 
 class DefaultFirebaseOptions {
+  /// Google OAuth 2.0 Web client ID (required for "Continue with Google").
+  /// Uses [kGoogleWebClientId] from lib/env/google_client_id.dart if set,
+  /// otherwise --dart-define=GOOGLE_WEB_CLIENT_ID=...
+  static String get googleWebClientId =>
+      kGoogleWebClientId.isNotEmpty
+          ? kGoogleWebClientId
+          : String.fromEnvironment('GOOGLE_WEB_CLIENT_ID', defaultValue: '');
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -35,11 +44,10 @@ class DefaultFirebaseOptions {
     measurementId: 'G-3FSH29H6XS',
   );
 
-  /// iOS config. Run `dart run flutterfire_cli:flutterfire configure` to generate
-  /// platform-specific keys after adding the iOS app in Firebase Console.
+  /// iOS config (from GoogleService-Info.plist after adding iOS app in Firebase Console).
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDluGYifxWX1FRc9GnMwratL_mru1i9GH4',
-    appId: '1:1012920953592:ios:placeholder',
+    apiKey: 'AIzaSyBN1pDGlcg05BqyrAfan6Ehuksys_I2Nag',
+    appId: '1:1012920953592:ios:824784a0e434369cb8a90d',
     messagingSenderId: '1012920953592',
     projectId: 'gull-48040',
     authDomain: 'gull-48040.firebaseapp.com',

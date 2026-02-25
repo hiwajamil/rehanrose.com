@@ -93,6 +93,48 @@ class AppLocalizationsAr extends AppLocalizations {
   String get signIn => 'تسجيل الدخول';
 
   @override
+  String get signInRegister => 'تسجيل الدخول / إنشاء حساب';
+
+  @override
+  String get continueWithGoogle => 'المتابعة مع Google';
+
+  @override
+  String get signUpWithGmail => 'إنشاء حساب باستخدام Gmail';
+
+  @override
+  String get orSignUpWithDetails => 'أو أنشئ حساباً ببياناتك';
+
+  @override
+  String get account => 'الحساب';
+
+  @override
+  String get signOut => 'تسجيل الخروج';
+
+  @override
+  String get loginTitle => 'مرحباً بعودتك';
+
+  @override
+  String get loginSubtitle => 'سجّل الدخول لحفظ تفضيلاتك وتتبع الطلبات.';
+
+  @override
+  String get emailLabel => 'البريد الإلكتروني';
+
+  @override
+  String get passwordLabel => 'كلمة المرور';
+
+  @override
+  String get emailHint => 'you@example.com';
+
+  @override
+  String get passwordHint => 'أدخل كلمة المرور';
+
+  @override
+  String get register => 'إنشاء حساب';
+
+  @override
+  String get orSignInWithEmail => 'أو سجّل الدخول بالبريد الإلكتروني';
+
+  @override
   String get heroTitlePart1 => 'عندما تعجز الكلمات…\n';
 
   @override
@@ -681,4 +723,32 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get adminUnableToReject => 'تعذّر رفض الطلب.';
+
+  @override
+  String get profilePremiumMember => 'عضو مميز';
+
+  @override
+  String get profileMyOrders => 'طلباتي';
+
+  @override
+  String get profileSavedAddresses => 'العناوين المحفوظة';
+
+  @override
+  String get profileMySpecialOccasions => 'مناسباتي الخاصة';
+
+  @override
+  String get profileAddOccasion => 'إضافة مناسبة';
+
+  @override
+  String get profileOccasionsSubtitle =>
+      'سنذكرك بإرسال الزهور في أعياد الميلاد والذكرى والمزيد.';
+
+  @override
+  String get profileContactSupportWhatsApp => 'تواصل مع الدعم (واتساب)';
+
+  @override
+  String get profileChangePassword => 'تغيير كلمة المرور';
+
+  @override
+  String get profileComingSoon => 'قريباً';
 }

@@ -21,6 +21,11 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
+  <!-- Google Sign-In for web: must match lib/env/google_client_id.dart (Firebase Console → Authentication → Google → Web SDK configuration). -->
+  <meta name="google-signin-client_id" content="1012920953592-q4g5b7u1a6bq1alj8ugi3fbmnpufjbab.apps.googleusercontent.com">
+  <!-- Google Identity Services (GIS) – required for google_sign_in_web. Load synchronously so it's ready before Flutter. -->
+  <script src="https://accounts.google.com/gsi/client"></script>
+
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -101,6 +106,8 @@
       button { padding: 14px 16px; border-radius: 12px; }
     }
   </style>
+  <!-- Google Maps JavaScript API for Flutter web (delivery map picker) -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA56HwxP_2za24pqTKG9wfZ8MdeGt2GOqY"></script>
 </head>
 <body>
   <div id="loading">

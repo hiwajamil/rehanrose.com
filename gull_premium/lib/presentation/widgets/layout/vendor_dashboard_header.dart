@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
+import '../../../core/services/notification_sound_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -15,6 +16,8 @@ class VendorDashboardHeader extends StatefulWidget {
   final VoidCallback? onProfile;
   final VoidCallback? onLogout;
   final ValueChanged<bool>? onShopStatusChanged;
+  /// Called when the vendor opens the notification (bell) menu. Used to clear the red badge.
+  final VoidCallback? onNotificationsViewed;
   /// Optional leading widget (e.g. menu icon for drawer). Shown before brand on small screens.
   final Widget? leading;
 
@@ -26,6 +29,7 @@ class VendorDashboardHeader extends StatefulWidget {
     this.onProfile,
     this.onLogout,
     this.onShopStatusChanged,
+    this.onNotificationsViewed,
     this.leading,
   });
 
@@ -36,7 +40,6 @@ class VendorDashboardHeader extends StatefulWidget {
 class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   bool _isOnline = false;
   bool _searchExpanded = false;
-  bool _showNotificationsMenu = false;
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
 
@@ -48,17 +51,14 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   }
 
   void _closeOverlays() {
-    setState(() {
-      _searchExpanded = false;
-      _showNotificationsMenu = false;
-    });
+    setState(() => _searchExpanded = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final horizontalPadding = isMobile ? 16.0 : 32.0;
-    final showOverlay = _showNotificationsMenu;
+    final showOverlay = _searchExpanded;
     // Fixed height so overlay doesn't expand the header and jam the content area.
     final headerHeight = isMobile && _searchExpanded ? 116.0 : 56.0;
 
@@ -103,13 +103,13 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
               ],
             ),
           ),
-          if (showOverlay) _buildOverlay(context),
+          if (showOverlay) _buildSearchOverlay(context),
         ],
       ),
     );
   }
 
-  Widget _buildOverlay(BuildContext context) {
+  Widget _buildSearchOverlay(BuildContext context) {
     return Positioned(
       left: 0,
       right: 0,
@@ -118,73 +118,6 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
       child: GestureDetector(
         onTap: _closeOverlays,
         behavior: HitTestBehavior.opaque,
-          child: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            if (_showNotificationsMenu) _buildNotificationsDropdown(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotificationsDropdown(BuildContext context) {
-    final count = widget.unreadNotificationCount;
-    final hasNewOrders = count > 0;
-    final message = hasNewOrders
-        ? 'You have ${count == 1 ? '1' : count} new bouquet${count == 1 ? '' : 's'} to be prepared!'
-        : null;
-
-    void navigateToNewRequests() {
-      _closeOverlays();
-      context.go('/vendor/orders?tab=new');
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 56 + 8, right: 16),
-      child: Material(
-        elevation: 8,
-        shadowColor: AppColors.shadow,
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-        child: Container(
-          width: 280,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: hasNewOrders
-              ? InkWell(
-                  onTap: navigateToNewRequests,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.local_florist, size: 20, color: AppColors.rosePrimary),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            message!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.ink,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Text(
-                  AppLocalizations.of(context)!.noNewNotifications,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.inkMuted,
-                      ),
-                ),
-        ),
       ),
     );
   }
@@ -391,44 +324,140 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   }
 
   Widget _buildNotificationBell(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          onPressed: () {
-            setState(() => _showNotificationsMenu = !_showNotificationsMenu);
-          },
-          icon: Icon(Icons.notifications_none, color: AppColors.inkMuted, size: 22),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            foregroundColor: AppColors.inkMuted,
-          ),
-          tooltip: AppLocalizations.of(context)!.notifications,
-        ),
-        if (widget.unreadNotificationCount > 0)
-          Positioned(
-            top: 6,
-            right: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              constraints: const BoxConstraints(minWidth: 16),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(10),
+    final count = widget.unreadNotificationCount;
+    final hasNewOrders = count > 0;
+    final l10n = AppLocalizations.of(context)!;
+    const textStyle = TextStyle(
+      color: AppColors.ink,
+      fontWeight: FontWeight.w500,
+      fontSize: 14,
+    );
+    const mutedStyle = TextStyle(
+      color: AppColors.inkMuted,
+      fontSize: 13,
+    );
+
+    return Tooltip(
+      message: l10n.notifications,
+      child: PopupMenuButton<String?>(
+        offset: const Offset(-8, 44),
+        onOpened: () {
+        widget.onNotificationsViewed?.call();
+        if (hasNewOrders) playOrderNotificationSound();
+      },
+      onSelected: (String? value) {
+        if (value == null) return;
+        switch (value) {
+          case 'new':
+            context.go('/vendor/orders?tab=new');
+            break;
+          case 'all':
+            context.go('/vendor/orders');
+            break;
+          case 'notifications':
+            context.go('/vendor/notifications');
+            break;
+        }
+      },
+      itemBuilder: (BuildContext context) {
+        final items = <PopupMenuEntry<String?>>[];
+        if (hasNewOrders) {
+          final message = 'You have ${count == 1 ? '1' : count} new bouquet${count == 1 ? '' : 's'} to be prepared!';
+          items.add(
+            PopupMenuItem<String?>(
+              value: 'new',
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.local_florist, size: 22, color: AppColors.rosePrimary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('New orders', style: textStyle.copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(message, style: mutedStyle),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              child: Text(
-                widget.unreadNotificationCount > 99
-                    ? '99+'
-                    : '${widget.unreadNotificationCount}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
+            ),
+          );
+          items.add(const PopupMenuDivider());
+        } else {
+          items.add(
+            PopupMenuItem<String?>(
+              value: null,
+              enabled: false,
+              child: Row(
+                children: [
+                  Icon(Icons.notifications_none, size: 20, color: AppColors.inkMuted),
+                  const SizedBox(width: 12),
+                  Text(l10n.noNewNotifications, style: mutedStyle),
+                ],
+              ),
+            ),
+          );
+          items.add(const PopupMenuDivider());
+        }
+        items.addAll([
+          PopupMenuItem<String?>(
+            value: 'all',
+            child: Row(
+              children: [
+                Icon(Icons.receipt_long_outlined, size: 20, color: AppColors.ink),
+                const SizedBox(width: 12),
+                const Text('View all orders', style: textStyle),
+              ],
+            ),
+          ),
+          PopupMenuItem<String?>(
+            value: 'notifications',
+            child: Row(
+              children: [
+                Icon(Icons.notifications_outlined, size: 20, color: AppColors.ink),
+                const SizedBox(width: 12),
+                Text(l10n.notifications, style: textStyle),
+              ],
+            ),
+          ),
+        ]);
+        return items;
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Icon(Icons.notifications_none, color: AppColors.inkMuted, size: 22),
+          ),
+          if (count > 0)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                constraints: const BoxConstraints(minWidth: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
+    ),
     );
   }
 

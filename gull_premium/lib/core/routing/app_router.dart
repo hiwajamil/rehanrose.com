@@ -32,6 +32,9 @@ import '../../data/models/add_on_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../features/dashboard/dashboard_resolver_page.dart';
 import '../../presentation/pages/voice/voice_playback_page.dart';
+import '../../presentation/pages/auth/login_screen.dart';
+import '../../presentation/pages/auth/registration_screen.dart';
+import '../../presentation/pages/auth/account_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -66,6 +69,18 @@ class AppRouter {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) => const DashboardResolverPage(),
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegistrationScreen(),
+      ),
+      GoRoute(
+        path: '/account',
+        builder: (context, state) => const AccountPage(),
       ),
       GoRoute(
         path: '/offers',

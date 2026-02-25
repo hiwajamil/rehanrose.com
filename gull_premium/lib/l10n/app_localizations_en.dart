@@ -93,6 +93,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signIn => 'Sign In';
 
   @override
+  String get signInRegister => 'Sign In / Register';
+
+  @override
+  String get continueWithGoogle => 'Continue with Google';
+
+  @override
+  String get signUpWithGmail => 'Sign up using Gmail';
+
+  @override
+  String get orSignUpWithDetails => 'Or sign up with your details';
+
+  @override
+  String get account => 'Account';
+
+  @override
+  String get signOut => 'Sign Out';
+
+  @override
+  String get loginTitle => 'Welcome back';
+
+  @override
+  String get loginSubtitle =>
+      'Sign in to save your preferences and track orders.';
+
+  @override
+  String get emailLabel => 'Email';
+
+  @override
+  String get passwordLabel => 'Password';
+
+  @override
+  String get emailHint => 'you@example.com';
+
+  @override
+  String get passwordHint => 'Enter your password';
+
+  @override
+  String get register => 'Create account';
+
+  @override
+  String get orSignInWithEmail => 'Or sign in with email';
+
+  @override
   String get heroTitlePart1 => 'When words can\'t…\n';
 
   @override
@@ -687,4 +730,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminUnableToReject => 'Unable to reject application.';
+
+  @override
+  String get profilePremiumMember => 'Premium Member';
+
+  @override
+  String get profileMyOrders => 'My Orders';
+
+  @override
+  String get profileSavedAddresses => 'Saved Addresses';
+
+  @override
+  String get profileMySpecialOccasions => 'My Special Occasions';
+
+  @override
+  String get profileAddOccasion => 'Add Occasion';
+
+  @override
+  String get profileOccasionsSubtitle =>
+      'We\'ll remind you to send flowers for birthdays, anniversaries & more.';
+
+  @override
+  String get profileContactSupportWhatsApp => 'Contact Support (WhatsApp)';
+
+  @override
+  String get profileChangePassword => 'Change Password';
+
+  @override
+  String get profileComingSoon => 'Coming soon';
 }

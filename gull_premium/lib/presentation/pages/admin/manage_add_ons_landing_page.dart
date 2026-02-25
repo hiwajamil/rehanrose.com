@@ -46,7 +46,12 @@ class ManageAddOnsLandingPage extends ConsumerWidget {
           data: (user) {
             if (user == null) return _buildAccessDenied(context);
             return FutureBuilder<bool>(
-              future: ref.read(authRepositoryProvider).isAdmin(user.uid),
+              future: () async {
+                final authRepo = ref.read(authRepositoryProvider);
+                final ok = await authRepo.isAdmin(user.uid);
+                if (ok) await authRepo.ensureSuperAdminUserDoc(user.uid);
+                return ok;
+              }(),
               builder: (context, adminSnapshot) {
                 if (adminSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

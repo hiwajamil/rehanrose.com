@@ -10,6 +10,8 @@ class OrderViaWhatsAppButton extends StatelessWidget {
   final String label;
   /// When false, button is disabled (e.g. when offline). Defaults to true.
   final bool enabled;
+  /// When true, button looks disabled (opacity/grey) but onTap still fires (e.g. to show a SnackBar). Defaults to false.
+  final bool appearsDisabled;
   /// Value proposition shown below the button. Set to empty string to hide. When null, uses localized "Includes Free Voice Message QR Code".
   final String? valueProposition;
 
@@ -18,6 +20,7 @@ class OrderViaWhatsAppButton extends StatelessWidget {
     required this.onPressed,
     this.label = 'Order via WhatsApp',
     this.enabled = true,
+    this.appearsDisabled = false,
     this.valueProposition,
   });
 
@@ -61,11 +64,14 @@ class OrderViaWhatsAppButton extends StatelessWidget {
     );
 
     final effectiveOnPressed = enabled ? onPressed : null;
+    final showDisabledStyle = !enabled || appearsDisabled;
 
     final button = Opacity(
-      opacity: enabled ? 1.0 : 0.5,
+      opacity: showDisabledStyle ? 0.5 : 1.0,
       child: Material(
-        color: _buttonColor,
+        color: showDisabledStyle && appearsDisabled
+            ? const Color(0xFF9E9E9E)
+            : _buttonColor,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           onTap: effectiveOnPressed,
