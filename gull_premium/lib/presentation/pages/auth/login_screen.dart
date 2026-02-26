@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -11,15 +10,20 @@ import '../../../core/utils/auth_error_utils.dart';
 import '../../../firebase_options.dart';
 import '../../../l10n/app_localizations.dart';
 
-// Reused input borders to avoid allocations on every build.
+// Premium input styling: soft fill, no heavy outline, rounded corners (matches Registration).
 final _inputBorderRadius = BorderRadius.circular(12);
+const _inputFillColor = Color(0xFFF5F5F4);
 final _inputEnabledBorder = OutlineInputBorder(
   borderRadius: _inputBorderRadius,
-  borderSide: const BorderSide(color: AppColors.border),
+  borderSide: BorderSide(color: Colors.grey.shade200),
 );
 final _inputFocusedBorder = OutlineInputBorder(
   borderRadius: _inputBorderRadius,
-  borderSide: const BorderSide(color: AppColors.rose, width: 1.5),
+  borderSide: const BorderSide(color: AppColors.rose, width: 1.2),
+);
+final _inputErrorBorder = OutlineInputBorder(
+  borderRadius: _inputBorderRadius,
+  borderSide: BorderSide(color: Colors.red.shade300),
 );
 
 /// Elegant login screen for customers. Primary CTA: Continue with Google.
@@ -128,8 +132,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final content = SingleChildScrollView(
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 24 : 40,
-        vertical: isMobile ? 24 : 40,
+        horizontal: isMobile ? 28 : 48,
+        vertical: isMobile ? 28 : 48,
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: maxWidth),
@@ -140,17 +144,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (!widget.showAsModal) const SizedBox(height: 24),
+                if (!widget.showAsModal) const SizedBox(height: 8),
                 Text(
                   l10n.loginTitle,
                   style: _loginTitleStyle,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   l10n.loginSubtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.inkMuted,
-                        height: 1.4,
+                        color: Colors.grey.shade600,
+                        fontSize: 15,
+                        height: 1.5,
                       ),
                 ),
                 const SizedBox(height: 32),
@@ -159,9 +164,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: _isLoading ? null : _signInWithGoogle,
                   isLoading: _isLoading,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 _OrDivider(label: l10n.orSignInWithEmail),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -170,10 +175,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   decoration: _inputDecoration(
                     label: l10n.emailLabel,
                     hint: l10n.emailHint,
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
                   validator: _validateEmail,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
@@ -185,10 +191,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   decoration: _inputDecoration(
                     label: l10n.passwordLabel,
                     hint: l10n.passwordHint,
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
                   ),
                   validator: (v) => _validatePassword(v, _isRegisterMode),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 _SubmitButton(
                   isRegisterMode: _isRegisterMode,
                   isLoading: _isLoading,
@@ -196,7 +203,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   signInLabel: l10n.signIn,
                   registerLabel: l10n.register,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 TextButton(
                   onPressed: _isLoading
                       ? null
@@ -207,13 +214,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             context.push('/register');
                           }
                         },
-                  child: Text(
-                    _isRegisterMode
-                        ? 'Already have an account? Sign in'
-                        : "Don't have an account? Create one",
-                    style: const TextStyle(
-                      color: AppColors.rose,
-                      fontWeight: FontWeight.w500,
+                  child: RichText(
+                    text: TextSpan(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey.shade600,
+                            fontSize: 15,
+                          ),
+                      children: [
+                        TextSpan(
+                          text: _isRegisterMode
+                              ? 'Already have an account? '
+                              : "Don't have an account? ",
+                        ),
+                        TextSpan(
+                          text: _isRegisterMode ? 'Sign in' : 'Create one',
+                          style: const TextStyle(
+                            color: AppColors.rose,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -240,13 +261,47 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  static InputDecoration _inputDecoration({required String label, required String hint}) {
+  static InputDecoration _inputDecoration({
+    required String label,
+    required String hint,
+    Widget? prefixIcon,
+  }) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
+      labelStyle: TextStyle(
+        color: Colors.grey.shade600,
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+      ),
+      hintStyle: TextStyle(
+        color: Colors.grey.shade500,
+        fontSize: 14,
+      ),
+      filled: true,
+      fillColor: _inputFillColor,
+      prefixIcon: prefixIcon != null
+          ? Padding(
+              padding: const EdgeInsets.only(left: 14, right: 12),
+              child: IconTheme.merge(
+                data: IconThemeData(
+                  size: 20,
+                  color: Colors.grey.shade600,
+                ),
+                child: prefixIcon,
+              ),
+            )
+          : null,
+      prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
       border: OutlineInputBorder(borderRadius: _inputBorderRadius),
       enabledBorder: _inputEnabledBorder,
       focusedBorder: _inputFocusedBorder,
+      errorBorder: _inputErrorBorder,
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: _inputBorderRadius,
+        borderSide: BorderSide(color: Colors.red.shade400, width: 1.2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 
@@ -263,11 +318,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-// Cached once to avoid GoogleFonts lookup on every build.
+// Cached once to avoid GoogleFonts lookup on every build (matches Registration).
 final _loginTitleStyle = GoogleFonts.playfairDisplay(
-  fontSize: 28,
-  fontWeight: FontWeight.bold,
+  fontSize: 30,
+  fontWeight: FontWeight.w600,
   color: AppColors.inkCharcoal,
+  letterSpacing: -0.5,
 );
 
 class _OrDivider extends StatelessWidget {
@@ -279,17 +335,31 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: AppColors.border, height: 1)),
+        Expanded(
+          child: Divider(
+            color: Colors.grey.shade300,
+            height: 1,
+            thickness: 1,
+          ),
+        ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.inkMuted,
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
           ),
         ),
-        const Expanded(child: Divider(color: AppColors.border, height: 1)),
+        Expanded(
+          child: Divider(
+            color: Colors.grey.shade300,
+            height: 1,
+            thickness: 1,
+          ),
+        ),
       ],
     );
   }
@@ -313,15 +383,16 @@ class _SubmitButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 54,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.rose,
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.rose.withValues(alpha: 0.5),
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(27),
           ),
         ),
         child: isLoading
@@ -338,6 +409,7 @@ class _SubmitButton extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
+                  letterSpacing: 0.2,
                 ),
               ),
       ),
@@ -375,29 +447,32 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
         color: Colors.transparent,
         child: InkWell(
           onTap: enabled ? widget.onPressed : null,
-          borderRadius: BorderRadius.circular(isMobile ? 12 : 14),
+          borderRadius: BorderRadius.circular(14),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: EdgeInsets.symmetric(
-              vertical: isMobile ? 16 : 18,
-              horizontal: isMobile ? 20 : 24,
+              vertical: isMobile ? 18 : 20,
+              horizontal: isMobile ? 24 : 28,
             ),
             decoration: BoxDecoration(
-              color: _hovered && enabled
-                  ? AppColors.surface
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(isMobile ? 12 : 14),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: _hovered && enabled
-                    ? AppColors.rose.withValues(alpha: 0.4)
-                    : AppColors.border,
-                width: 1.5,
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade300,
+                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow.withValues(alpha: 0.06),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  offset: const Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
                 ),
               ],
             ),
@@ -411,17 +486,26 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
-                  FaIcon(
-                    FontAwesomeIcons.google,
-                    color: const Color(0xFF4285F4),
-                    size: 22,
+                  Image.network(
+                    'https://img.icons8.com/color/48/000000/google-logo.png',
+                    width: 24,
+                    height: 24,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.g_mobiledata_rounded,
+                      size: 24,
+                      color: Colors.grey.shade700,
+                    ),
                   ),
                 const SizedBox(width: 14),
                 Text(
                   widget.label,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: enabled ? AppColors.inkCharcoal : AppColors.inkMuted,
-                        fontWeight: FontWeight.w600,
+                        color: enabled
+                            ? const Color(0xFF1A1A1A)
+                            : AppColors.inkMuted,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
                       ),
                 ),
               ],

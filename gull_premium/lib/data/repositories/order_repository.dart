@@ -102,6 +102,38 @@ class OrderRepository {
       return list;
     });
   }
+
+  /// Lists orders for a specific customer (userId). Newest first.
+  /// Returns [CustomerOrderItem] with optional bouquet fields for CRM order history.
+  Future<List<CustomerOrderItem>> listOrdersByUserId(
+    String userId, {
+    int limit = 50,
+  }) async {
+    final snap = await _firestore
+        .collection(_collection)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get()
+        .timeout(_timeout);
+    final list = <CustomerOrderItem>[];
+    for (final doc in snap.docs) {
+      final model = CustomerOrderItem.fromFirestore(doc.id, doc.data());
+      if (model != null) list.add(model);
+    }
+    return list;
+  }
+
+  /// Stream of order count for a customer (for "Total Orders" on member card).
+  /// Uses a snapshot and returns docs.length; for exact count use listOrdersByUserId once.
+  Future<int> countOrdersByUserId(String userId) async {
+    final snap = await _firestore
+        .collection(_collection)
+        .where('userId', isEqualTo: userId)
+        .get()
+        .timeout(_timeout);
+    return snap.docs.length;
+  }
 }
 
 // --- OMS (Order Management System) for WhatsApp checkout ---

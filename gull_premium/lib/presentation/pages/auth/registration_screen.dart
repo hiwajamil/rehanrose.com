@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -26,15 +25,20 @@ const List<String> kRegistrationCities = [
   'Other',
 ];
 
-// Reused input borders to match login screen.
+// Premium input styling: soft fill, no heavy outline, rounded corners.
 final _inputBorderRadius = BorderRadius.circular(12);
+const _inputFillColor = Color(0xFFF5F5F4); // soft light grey
 final _inputEnabledBorder = OutlineInputBorder(
   borderRadius: _inputBorderRadius,
-  borderSide: const BorderSide(color: AppColors.border),
+  borderSide: BorderSide(color: Colors.grey.shade200),
 );
 final _inputFocusedBorder = OutlineInputBorder(
   borderRadius: _inputBorderRadius,
-  borderSide: const BorderSide(color: AppColors.rose, width: 1.5),
+  borderSide: const BorderSide(color: AppColors.rose, width: 1.2),
+);
+final _inputErrorBorder = OutlineInputBorder(
+  borderRadius: _inputBorderRadius,
+  borderSide: BorderSide(color: Colors.red.shade300),
 );
 
 /// Registration screen with email/password and phone OTP verification.
@@ -176,6 +180,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
   Future<void> _signUpWithGoogle() async {
     if (_isGoogleLoading) return;
+    if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
     if (DefaultFirebaseOptions.googleWebClientId.isEmpty) {
       _showSnackBar(
         'Google sign-in is not set up. Add the Web client ID from Firebase Console (Authentication → Google) or use email/password below.',
@@ -265,13 +270,44 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   static InputDecoration _inputDecoration({
     required String label,
     String? hint,
+    Widget? prefixIcon,
   }) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
+      labelStyle: TextStyle(
+        color: Colors.grey.shade600,
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+      ),
+      hintStyle: TextStyle(
+        color: Colors.grey.shade500,
+        fontSize: 14,
+      ),
+      filled: true,
+      fillColor: _inputFillColor,
+      prefixIcon: prefixIcon != null
+          ? Padding(
+              padding: const EdgeInsets.only(left: 14, right: 12),
+              child: IconTheme.merge(
+                data: IconThemeData(
+                  size: 20,
+                  color: Colors.grey.shade600,
+                ),
+                child: prefixIcon,
+              ),
+            )
+          : null,
+      prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
       border: OutlineInputBorder(borderRadius: _inputBorderRadius),
       enabledBorder: _inputEnabledBorder,
       focusedBorder: _inputFocusedBorder,
+      errorBorder: _inputErrorBorder,
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: _inputBorderRadius,
+        borderSide: BorderSide(color: Colors.red.shade400, width: 1.2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 
@@ -309,8 +345,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 24 : 40,
-          vertical: isMobile ? 24 : 40,
+          horizontal: isMobile ? 28 : 48,
+          vertical: isMobile ? 28 : 48,
         ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: maxWidth),
@@ -321,33 +357,36 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const SizedBox(height: 8),
                   Text(
                     'Create account',
                     style: GoogleFonts.playfairDisplay(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.inkCharcoal,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     'Sign up with your details and verify your phone.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.inkMuted,
-                          height: 1.4,
+                          color: Colors.grey.shade600,
+                          fontSize: 15,
+                          height: 1.5,
                         ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 32),
                   _SignUpWithGmailButton(
                     label: AppLocalizations.of(context)!.signUpWithGmail,
                     onPressed: (_isRegistering || _isSendingCode) ? null : _signUpWithGoogle,
                     isLoading: _isGoogleLoading,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   _OrDivider(
                     label: AppLocalizations.of(context)!.orSignUpWithDetails,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   TextFormField(
                     controller: _fullNameController,
                     textInputAction: TextInputAction.next,
@@ -355,10 +394,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     decoration: _inputDecoration(
                       label: 'Full Name',
                       hint: 'e.g. Ahmed Hassan',
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
                     ),
                     validator: (v) => _validateRequired(v, 'your full name'),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -367,10 +407,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     decoration: _inputDecoration(
                       label: 'Email',
                       hint: 'you@example.com',
+                      prefixIcon: const Icon(Icons.email_outlined),
                     ),
                     validator: _validateEmail,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
@@ -379,13 +420,18 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     decoration: _inputDecoration(
                       label: 'Password',
                       hint: 'At least 6 characters',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
                     ),
                     validator: _validatePassword,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
-                    value: _selectedCity,
-                    decoration: _inputDecoration(label: 'City', hint: 'Select city'),
+                    initialValue: _selectedCity,
+                    decoration: _inputDecoration(
+                      label: 'City',
+                      hint: 'Select city',
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                    ),
                     borderRadius: _inputBorderRadius,
                     items: kRegistrationCities
                         .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -396,7 +442,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
@@ -404,39 +450,45 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     decoration: _inputDecoration(
                       label: 'Phone Number',
                       hint: '+964 7XX XXX XXXX',
+                      prefixIcon: const Icon(Icons.phone_outlined),
                     ),
                     validator: (v) => _validateRequired(v, 'your phone number'),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   SizedBox(
-                    height: 52,
+                    height: 54,
                     child: ElevatedButton(
                       onPressed: _isSendingCode ? null : _sendCode,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.sage,
-                        foregroundColor: AppColors.ink,
-                        disabledBackgroundColor: AppColors.sage.withValues(alpha: 0.6),
+                        backgroundColor: AppColors.rose,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.rose.withValues(alpha: 0.5),
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(27),
                         ),
                       ),
                       child: _isSendingCode
                           ? const SizedBox(
                               height: 24,
                               width: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                           : const Text(
                               'Send the Code',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                letterSpacing: 0.2,
                               ),
                             ),
                     ),
                   ),
                   if (_codeSent) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: _otpController,
                       keyboardType: TextInputType.number,
@@ -445,6 +497,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       decoration: _inputDecoration(
                         label: 'Verification Code',
                         hint: 'Enter 6-digit code',
+                        prefixIcon: const Icon(Icons.pin_outlined),
                       ),
                       validator: (v) {
                         if (!_codeSent) return null;
@@ -454,17 +507,18 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       },
                     ),
                   ],
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 32),
                   SizedBox(
-                    height: 52,
+                    height: 54,
                     child: ElevatedButton(
                       onPressed: _isRegistering ? null : _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.rose,
                         foregroundColor: Colors.white,
                         disabledBackgroundColor: AppColors.rose.withValues(alpha: 0.5),
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(27),
                         ),
                       ),
                       child: _isRegistering
@@ -481,18 +535,20 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                letterSpacing: 0.2,
                               ),
                             ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'Already have an account? ',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.inkMuted,
+                              color: Colors.grey.shade600,
+                              fontSize: 15,
                             ),
                       ),
                       TextButton(
@@ -507,6 +563,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           style: TextStyle(
                             color: AppColors.rose,
                             fontWeight: FontWeight.w600,
+                            fontSize: 15,
                           ),
                         ),
                       ),
@@ -531,17 +588,31 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: AppColors.border, height: 1)),
+        Expanded(
+          child: Divider(
+            color: Colors.grey.shade300,
+            height: 1,
+            thickness: 1,
+          ),
+        ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.inkMuted,
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
           ),
         ),
-        const Expanded(child: Divider(color: AppColors.border, height: 1)),
+        Expanded(
+          child: Divider(
+            color: Colors.grey.shade300,
+            height: 1,
+            thickness: 1,
+          ),
+        ),
       ],
     );
   }
@@ -576,27 +647,32 @@ class _SignUpWithGmailButtonState extends State<_SignUpWithGmailButton> {
         color: Colors.transparent,
         child: InkWell(
           onTap: enabled ? widget.onPressed : null,
-          borderRadius: BorderRadius.circular(isMobile ? 12 : 14),
+          borderRadius: BorderRadius.circular(14),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: EdgeInsets.symmetric(
-              vertical: isMobile ? 16 : 18,
-              horizontal: isMobile ? 20 : 24,
+              vertical: isMobile ? 18 : 20,
+              horizontal: isMobile ? 24 : 28,
             ),
             decoration: BoxDecoration(
-              color: _hovered && enabled ? AppColors.surface : Colors.white,
-              borderRadius: BorderRadius.circular(isMobile ? 12 : 14),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: _hovered && enabled
-                    ? AppColors.rose.withValues(alpha: 0.4)
-                    : AppColors.border,
-                width: 1.5,
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade300,
+                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow.withValues(alpha: 0.06),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  offset: const Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
                 ),
               ],
             ),
@@ -610,17 +686,26 @@ class _SignUpWithGmailButtonState extends State<_SignUpWithGmailButton> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
-                  const FaIcon(
-                    FontAwesomeIcons.google,
-                    color: Color(0xFF4285F4),
-                    size: 22,
+                  Image.network(
+                    'https://img.icons8.com/color/48/000000/google-logo.png',
+                    width: 24,
+                    height: 24,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.g_mobiledata_rounded,
+                      size: 24,
+                      color: Colors.grey.shade700,
+                    ),
                   ),
                 const SizedBox(width: 14),
                 Text(
                   widget.label,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: enabled ? AppColors.inkCharcoal : AppColors.inkMuted,
-                        fontWeight: FontWeight.w600,
+                        color: enabled
+                            ? const Color(0xFF1A1A1A)
+                            : AppColors.inkMuted,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
                       ),
                 ),
               ],

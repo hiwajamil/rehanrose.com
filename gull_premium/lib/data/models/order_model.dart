@@ -175,6 +175,52 @@ class CreateOrderData {
   });
 }
 
+/// Single order row for CRM "Order History" modal (orders by userId).
+/// Includes optional bouquet name/code/image from order document extraFields.
+class CustomerOrderItem {
+  final String orderId;
+  final OrderTrackingStatus status;
+  final DateTime? createdAt;
+  final String? bouquetName;
+  final String? bouquetCode;
+  final String? bouquetImageUrl;
+
+  const CustomerOrderItem({
+    required this.orderId,
+    required this.status,
+    this.createdAt,
+    this.bouquetName,
+    this.bouquetCode,
+    this.bouquetImageUrl,
+  });
+
+  static CustomerOrderItem? fromFirestore(
+    String docId,
+    Map<String, dynamic>? data,
+  ) {
+    if (data == null) return null;
+    final status = orderStatusFromString(data['status']?.toString());
+    if (status == null) return null;
+    DateTime? createdAt;
+    final ts = data['createdAt'];
+    if (ts is Timestamp) {
+      createdAt = ts.toDate();
+    } else if (ts is DateTime) {
+      createdAt = ts;
+    } else if (ts != null) {
+      createdAt = DateTime.tryParse(ts.toString());
+    }
+    return CustomerOrderItem(
+      orderId: docId,
+      status: status,
+      createdAt: createdAt,
+      bouquetName: data['bouquetName']?.toString(),
+      bouquetCode: data['bouquetCode']?.toString(),
+      bouquetImageUrl: data['bouquetImageUrl']?.toString(),
+    );
+  }
+}
+
 // --- OMS (Order Management System) for WhatsApp checkout flow ---
 
 /// OMS order status: pending → preparing → ready → delivered.

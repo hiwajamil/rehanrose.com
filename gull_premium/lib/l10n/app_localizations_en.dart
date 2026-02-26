@@ -307,6 +307,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get home_question => 'What do you want to say today?';
 
   @override
+  String occasionsCuratedFor(String label) {
+    return 'Discover our curated collection crafted perfectly for $label.';
+  }
+
+  @override
+  String get what_do_you_want_to_say => 'What do you want to say today?';
+
+  @override
+  String get say_love => 'Say \'I love you\'...';
+
+  @override
+  String get say_sorry => 'Say \'I\'m sorry\'...';
+
+  @override
+  String get say_congrats => 'Say \'Congratulations\'...';
+
+  @override
+  String get say_thanks => 'Say \'Thank you\'...';
+
+  @override
+  String get collection_crafted_for =>
+      'Discover our curated collection crafted perfectly for ';
+
+  @override
   String get makeItPerfectSectionTitle => 'Make it Perfect?';
 
   @override
@@ -329,6 +353,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderViaWhatsApp => 'Order via WhatsApp';
+
+  @override
+  String get locationRequiredSubtitle => '* Required before ordering';
+
+  @override
+  String get locationRequiredSnackbar =>
+      'Please select a delivery location to complete your order.';
 
   @override
   String get includesFreeVoiceMessageQRCode =>
@@ -757,5 +788,163 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileChangePassword => 'Change Password';
 
   @override
+  String get profileSettings => 'Settings';
+
+  @override
   String get profileComingSoon => 'Coming soon';
+
+  @override
+  String get vendorPleaseCompleteEveryField => 'Please complete every field.';
+
+  @override
+  String get vendorApplicationSubmittedMessage =>
+      'Application submitted. It has been sent to the super admin for approval. You can sign in once your application is approved.';
+
+  @override
+  String get vendorUnableToSubmitApplication => 'Unable to submit application.';
+
+  @override
+  String get vendorUnableToSubmitApplicationRetry =>
+      'Unable to submit application. Please try again.';
+
+  @override
+  String get vendorEnterEmailPassword => 'Enter your email and password.';
+
+  @override
+  String get vendorApplicationRejectedMessage =>
+      'Your application was rejected. Contact support for details.';
+
+  @override
+  String get vendorApplicationUnderReviewMessage =>
+      'Your application is still under review. Only approved vendors can sign in.';
+
+  @override
+  String get vendorUnableToSignIn => 'Unable to sign in.';
+
+  @override
+  String get vendorCouldNotSignInFallback =>
+      'Could not sign in. Please check your email and password, or try again later.';
+
+  @override
+  String get vendorBackToSignIn => 'Back to sign in';
+
+  @override
+  String get vendorAdminLink => 'Admin';
+
+  @override
+  String get vendorSignInTitle => 'Vendor sign in';
+
+  @override
+  String get vendorStartApplicationTitle => 'Start your vendor application';
+
+  @override
+  String get vendorSignInSubtitle =>
+      'Welcome back. Access your storefront and orders.';
+
+  @override
+  String get vendorStartApplicationSubtitle =>
+      'Tell us about your studio so we can review your application.';
+
+  @override
+  String get vendorLabelBusinessEmail => 'Business email';
+
+  @override
+  String get vendorLabelPassword => 'Password';
+
+  @override
+  String get vendorSigningIn => 'Signing in...';
+
+  @override
+  String get vendorForgotPasswordContactSupport =>
+      'Forgot your password? Contact vendor support.';
+
+  @override
+  String get vendorStudioName => 'Studio name';
+
+  @override
+  String get vendorOwnerName => 'Owner name';
+
+  @override
+  String get vendorOwnerNameHint => 'Full name';
+
+  @override
+  String get vendorPhoneNumber => 'Phone number';
+
+  @override
+  String get vendorStudioLocation => 'Studio location';
+
+  @override
+  String get vendorStudioLocationHint => 'city';
+
+  @override
+  String get vendorCreatePassword => 'Create a password';
+
+  @override
+  String get vendorCreatePasswordHint => 'at least 8 characters';
+
+  @override
+  String get vendorSubmitting => 'Submitting...';
+
+  @override
+  String get vendorSubmitApplication => 'Submit application';
+
+  @override
+  String get vendorTermsAgreement =>
+      'By submitting, you agree to our vendor terms and review process.';
+
+  @override
+  String get vendorShowcaseCopy =>
+      'Showcase your studio, manage orders, and connect with clients who value artisanal florals.';
+
+  @override
+  String get vendorBenefitWeeklyPayouts => 'Weekly payouts';
+
+  @override
+  String get vendorBenefitCuratedClientBase => 'Curated client base';
+
+  @override
+  String get vendorBenefitDedicatedConcierge => 'Dedicated concierge';
+
+  @override
+  String get vendorSuccessToolkitTitle => 'Vendor success toolkit';
+
+  @override
+  String get vendorSuccessToolkitSubtitle =>
+      'Everything you need to run a premium floral studio, in one place.';
+
+  @override
+  String get vendorToolkitOrderManagement => 'Order management';
+
+  @override
+  String get vendorToolkitOrderManagementDesc =>
+      'Track inbound orders, confirm delivery windows, and chat with concierge support.';
+
+  @override
+  String get vendorToolkitMerchandising => 'Merchandising tools';
+
+  @override
+  String get vendorToolkitMerchandisingDesc =>
+      'Curate collections, schedule seasonal launches, and highlight your signature style.';
+
+  @override
+  String get vendorToolkitInsightsPayouts => 'Insights & payouts';
+
+  @override
+  String get vendorToolkitInsightsPayoutsDesc =>
+      'Review weekly performance and receive reliable payouts every Friday.';
+
+  @override
+  String get vendorToggleSignIn => 'Sign in';
+
+  @override
+  String get vendorToggleCreateAccount => 'Create account';
+
+  @override
+  String get vendorStatSatisfaction => 'Vendor satisfaction';
+
+  @override
+  String get vendorStatAvgRevenue => 'Avg. weekly revenue';
+
+  @override
+  String get vendorStatFastOnboarding => 'Fast onboarding';
 }

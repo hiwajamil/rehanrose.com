@@ -676,6 +676,48 @@ abstract class AppLocalizations {
   /// **'What do you want to say today?'**
   String get home_question;
 
+  /// No description provided for @occasionsCuratedFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover our curated collection crafted perfectly for {label}.'**
+  String occasionsCuratedFor(String label);
+
+  /// No description provided for @what_do_you_want_to_say.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to say today?'**
+  String get what_do_you_want_to_say;
+
+  /// No description provided for @say_love.
+  ///
+  /// In en, this message translates to:
+  /// **'Say \'I love you\'...'**
+  String get say_love;
+
+  /// No description provided for @say_sorry.
+  ///
+  /// In en, this message translates to:
+  /// **'Say \'I\'m sorry\'...'**
+  String get say_sorry;
+
+  /// No description provided for @say_congrats.
+  ///
+  /// In en, this message translates to:
+  /// **'Say \'Congratulations\'...'**
+  String get say_congrats;
+
+  /// No description provided for @say_thanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Say \'Thank you\'...'**
+  String get say_thanks;
+
+  /// No description provided for @collection_crafted_for.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover our curated collection crafted perfectly for '**
+  String get collection_crafted_for;
+
   /// No description provided for @makeItPerfectSectionTitle.
   ///
   /// In en, this message translates to:
@@ -723,6 +765,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Order via WhatsApp'**
   String get orderViaWhatsApp;
+
+  /// No description provided for @locationRequiredSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'* Required before ordering'**
+  String get locationRequiredSubtitle;
+
+  /// No description provided for @locationRequiredSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a delivery location to complete your order.'**
+  String get locationRequiredSnackbar;
 
   /// No description provided for @includesFreeVoiceMessageQRCode.
   ///
@@ -1516,11 +1570,299 @@ abstract class AppLocalizations {
   /// **'Change Password'**
   String get profileChangePassword;
 
+  /// No description provided for @profileSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get profileSettings;
+
   /// No description provided for @profileComingSoon.
   ///
   /// In en, this message translates to:
   /// **'Coming soon'**
   String get profileComingSoon;
+
+  /// No description provided for @vendorPleaseCompleteEveryField.
+  ///
+  /// In en, this message translates to:
+  /// **'Please complete every field.'**
+  String get vendorPleaseCompleteEveryField;
+
+  /// No description provided for @vendorApplicationSubmittedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Application submitted. It has been sent to the super admin for approval. You can sign in once your application is approved.'**
+  String get vendorApplicationSubmittedMessage;
+
+  /// No description provided for @vendorUnableToSubmitApplication.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to submit application.'**
+  String get vendorUnableToSubmitApplication;
+
+  /// No description provided for @vendorUnableToSubmitApplicationRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to submit application. Please try again.'**
+  String get vendorUnableToSubmitApplicationRetry;
+
+  /// No description provided for @vendorEnterEmailPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and password.'**
+  String get vendorEnterEmailPassword;
+
+  /// No description provided for @vendorApplicationRejectedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your application was rejected. Contact support for details.'**
+  String get vendorApplicationRejectedMessage;
+
+  /// No description provided for @vendorApplicationUnderReviewMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your application is still under review. Only approved vendors can sign in.'**
+  String get vendorApplicationUnderReviewMessage;
+
+  /// No description provided for @vendorUnableToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to sign in.'**
+  String get vendorUnableToSignIn;
+
+  /// No description provided for @vendorCouldNotSignInFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not sign in. Please check your email and password, or try again later.'**
+  String get vendorCouldNotSignInFallback;
+
+  /// No description provided for @vendorBackToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get vendorBackToSignIn;
+
+  /// No description provided for @vendorAdminLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get vendorAdminLink;
+
+  /// No description provided for @vendorSignInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vendor sign in'**
+  String get vendorSignInTitle;
+
+  /// No description provided for @vendorStartApplicationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start your vendor application'**
+  String get vendorStartApplicationTitle;
+
+  /// No description provided for @vendorSignInSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back. Access your storefront and orders.'**
+  String get vendorSignInSubtitle;
+
+  /// No description provided for @vendorStartApplicationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us about your studio so we can review your application.'**
+  String get vendorStartApplicationSubtitle;
+
+  /// No description provided for @vendorLabelBusinessEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Business email'**
+  String get vendorLabelBusinessEmail;
+
+  /// No description provided for @vendorLabelPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get vendorLabelPassword;
+
+  /// No description provided for @vendorSigningIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in...'**
+  String get vendorSigningIn;
+
+  /// No description provided for @vendorForgotPasswordContactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password? Contact vendor support.'**
+  String get vendorForgotPasswordContactSupport;
+
+  /// No description provided for @vendorStudioName.
+  ///
+  /// In en, this message translates to:
+  /// **'Studio name'**
+  String get vendorStudioName;
+
+  /// No description provided for @vendorOwnerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner name'**
+  String get vendorOwnerName;
+
+  /// No description provided for @vendorOwnerNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Full name'**
+  String get vendorOwnerNameHint;
+
+  /// No description provided for @vendorPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get vendorPhoneNumber;
+
+  /// No description provided for @vendorStudioLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Studio location'**
+  String get vendorStudioLocation;
+
+  /// No description provided for @vendorStudioLocationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'city'**
+  String get vendorStudioLocationHint;
+
+  /// No description provided for @vendorCreatePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a password'**
+  String get vendorCreatePassword;
+
+  /// No description provided for @vendorCreatePasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'at least 8 characters'**
+  String get vendorCreatePasswordHint;
+
+  /// No description provided for @vendorSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitting...'**
+  String get vendorSubmitting;
+
+  /// No description provided for @vendorSubmitApplication.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit application'**
+  String get vendorSubmitApplication;
+
+  /// No description provided for @vendorTermsAgreement.
+  ///
+  /// In en, this message translates to:
+  /// **'By submitting, you agree to our vendor terms and review process.'**
+  String get vendorTermsAgreement;
+
+  /// No description provided for @vendorShowcaseCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Showcase your studio, manage orders, and connect with clients who value artisanal florals.'**
+  String get vendorShowcaseCopy;
+
+  /// No description provided for @vendorBenefitWeeklyPayouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly payouts'**
+  String get vendorBenefitWeeklyPayouts;
+
+  /// No description provided for @vendorBenefitCuratedClientBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Curated client base'**
+  String get vendorBenefitCuratedClientBase;
+
+  /// No description provided for @vendorBenefitDedicatedConcierge.
+  ///
+  /// In en, this message translates to:
+  /// **'Dedicated concierge'**
+  String get vendorBenefitDedicatedConcierge;
+
+  /// No description provided for @vendorSuccessToolkitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vendor success toolkit'**
+  String get vendorSuccessToolkitTitle;
+
+  /// No description provided for @vendorSuccessToolkitSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything you need to run a premium floral studio, in one place.'**
+  String get vendorSuccessToolkitSubtitle;
+
+  /// No description provided for @vendorToolkitOrderManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Order management'**
+  String get vendorToolkitOrderManagement;
+
+  /// No description provided for @vendorToolkitOrderManagementDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Track inbound orders, confirm delivery windows, and chat with concierge support.'**
+  String get vendorToolkitOrderManagementDesc;
+
+  /// No description provided for @vendorToolkitMerchandising.
+  ///
+  /// In en, this message translates to:
+  /// **'Merchandising tools'**
+  String get vendorToolkitMerchandising;
+
+  /// No description provided for @vendorToolkitMerchandisingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Curate collections, schedule seasonal launches, and highlight your signature style.'**
+  String get vendorToolkitMerchandisingDesc;
+
+  /// No description provided for @vendorToolkitInsightsPayouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights & payouts'**
+  String get vendorToolkitInsightsPayouts;
+
+  /// No description provided for @vendorToolkitInsightsPayoutsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Review weekly performance and receive reliable payouts every Friday.'**
+  String get vendorToolkitInsightsPayoutsDesc;
+
+  /// No description provided for @vendorToggleSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get vendorToggleSignIn;
+
+  /// No description provided for @vendorToggleCreateAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get vendorToggleCreateAccount;
+
+  /// No description provided for @vendorStatSatisfaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Vendor satisfaction'**
+  String get vendorStatSatisfaction;
+
+  /// No description provided for @vendorStatAvgRevenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg. weekly revenue'**
+  String get vendorStatAvgRevenue;
+
+  /// No description provided for @vendorStatFastOnboarding.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast onboarding'**
+  String get vendorStatFastOnboarding;
 }
 
 class _AppLocalizationsDelegate

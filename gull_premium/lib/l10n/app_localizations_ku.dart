@@ -308,6 +308,30 @@ class AppLocalizationsKu extends AppLocalizations {
   String get home_question => 'دەتەوێت ئەمڕۆ چی بڵێیت؟';
 
   @override
+  String occasionsCuratedFor(String label) {
+    return 'کۆکراوەیەکی هەڵبژێردراو بۆ $label دۆزینەوە بکە.';
+  }
+
+  @override
+  String get what_do_you_want_to_say => 'دەتەوێت چی بڵێیت ئەمڕۆ؟';
+
+  @override
+  String get say_love => 'بڵێ \'خۆشم دەوێیت\'...';
+
+  @override
+  String get say_sorry => 'بڵێ \'لێم ببورە\'...';
+
+  @override
+  String get say_congrats => 'بڵێ \'پیرۆزە\'...';
+
+  @override
+  String get say_thanks => 'بڵێ \'سوپاس\'...';
+
+  @override
+  String get collection_crafted_for =>
+      'ئەم چەپکە گوڵانە تایبەت ئامادەکراون بۆ ';
+
+  @override
   String get makeItPerfectSectionTitle => 'دیارییەکەت تەواو بکە';
 
   @override
@@ -330,6 +354,13 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get orderViaWhatsApp => 'داواکردن بە واتساپ';
+
+  @override
+  String get locationRequiredSubtitle => '* پێویستە پێش داواکردن';
+
+  @override
+  String get locationRequiredSnackbar =>
+      'تکایە ناونیشانی گەیاندن دیاری بکە بۆ تەواوکردنی داواکارییەکەت.';
 
   @override
   String get includesFreeVoiceMessageQRCode =>
@@ -760,5 +791,165 @@ class AppLocalizationsKu extends AppLocalizations {
   String get profileChangePassword => 'گۆڕینی تێپەڕەووشە';
 
   @override
+  String get profileSettings => 'ڕێکخستنەکان';
+
+  @override
   String get profileComingSoon => 'بەم زووانە';
+
+  @override
+  String get vendorPleaseCompleteEveryField =>
+      'تکایە هەموو خانەکان پڕ بکەرەوە.';
+
+  @override
+  String get vendorApplicationSubmittedMessage =>
+      'داواکاریەکەت نێردرا. نێردرا بۆ بەڕێوەبەری سەرەکی بۆ پەسەندکردن. دەتوانیت چوونەژوورەوە بکەیت کاتێک داواکاریەکەت پەسەند کرا.';
+
+  @override
+  String get vendorUnableToSubmitApplication =>
+      'ناردنی داواکاری سەرکەوتوو نەبوو.';
+
+  @override
+  String get vendorUnableToSubmitApplicationRetry =>
+      'ناردنی داواکاری سەرکەوتوو نەبوو. تکایە دووبارە هەوڵ بدەرەوە.';
+
+  @override
+  String get vendorEnterEmailPassword => 'ئیمەیڵ و وشەی نهێنیت بنووسە.';
+
+  @override
+  String get vendorApplicationRejectedMessage =>
+      'داواکاریەکەت ڕەتکرایەوە. بۆ وردەکاری پەیوەندی بە پشتگیری بکە.';
+
+  @override
+  String get vendorApplicationUnderReviewMessage =>
+      'داواکاریەکەت لەژێر پشکنینە. تەنها فرۆشیارە پەسەندکراوەکان دەتوانن چوونەژوورەوە بکەن.';
+
+  @override
+  String get vendorUnableToSignIn => 'چوونەژوورەوە سەرکەوتوو نەبوو.';
+
+  @override
+  String get vendorCouldNotSignInFallback =>
+      'چوونەژوورەوە سەرکەوتوو نەبوو. ئیمەیڵ و وشەی نهێنی بپشکنە، یان دواتر دووبارە هەوڵ بدەرەوە.';
+
+  @override
+  String get vendorBackToSignIn => 'گەڕانەوە بۆ چوونەژوورەوە';
+
+  @override
+  String get vendorAdminLink => 'بەڕێوەبەر';
+
+  @override
+  String get vendorSignInTitle => 'چوونەژوورەوەی فرۆشیار';
+
+  @override
+  String get vendorStartApplicationTitle => 'دەستپێکردنی داواکاری فرۆشیاری';
+
+  @override
+  String get vendorSignInSubtitle =>
+      'بەخێربێیتەوە. دەستڕاگەیشتن بە فرۆشگا و داواکارییەکان.';
+
+  @override
+  String get vendorStartApplicationSubtitle =>
+      'پێمان بڵێ دەربارەی ئستۆدیۆکەت تا پشکنینی داواکاریەکەت بکەین.';
+
+  @override
+  String get vendorLabelBusinessEmail => 'ئیمەیڵی بازرگانی';
+
+  @override
+  String get vendorLabelPassword => 'وشەی نهێنی';
+
+  @override
+  String get vendorSigningIn => 'چوونەژوورەوە…';
+
+  @override
+  String get vendorForgotPasswordContactSupport =>
+      'وشەی نهێنیت لەبیرچووە؟ پەیوەندی بە پشتگیری فرۆشیاران بکە.';
+
+  @override
+  String get vendorStudioName => 'ناوی ئستۆدیۆ';
+
+  @override
+  String get vendorOwnerName => 'ناوی خاوەن';
+
+  @override
+  String get vendorOwnerNameHint => 'ناوی تەواو';
+
+  @override
+  String get vendorPhoneNumber => 'ژمارەی تەلەفۆن';
+
+  @override
+  String get vendorStudioLocation => 'شوێنی ئستۆدیۆ';
+
+  @override
+  String get vendorStudioLocationHint => 'شار';
+
+  @override
+  String get vendorCreatePassword => 'وشەی نهێنی دروست بکە';
+
+  @override
+  String get vendorCreatePasswordHint => 'لانیکەم 8 پیت';
+
+  @override
+  String get vendorSubmitting => 'ناردن…';
+
+  @override
+  String get vendorSubmitApplication => 'ناردنی داواکاری';
+
+  @override
+  String get vendorTermsAgreement =>
+      'بە ناردن، ڕازیت بە مەرجەکانی فرۆشیار و پرۆسەی پشکنین.';
+
+  @override
+  String get vendorShowcaseCopy =>
+      'ئستۆدیۆکەت پیشان بدە، داواکارییەکان بەڕێوەببە، و پەیوەندی لەگەڵ کڕیارانی بەنرخ بکە.';
+
+  @override
+  String get vendorBenefitWeeklyPayouts => 'پارەدانانی هەفتانە';
+
+  @override
+  String get vendorBenefitCuratedClientBase => 'قەبارەی کڕیاری هەڵبژێردراو';
+
+  @override
+  String get vendorBenefitDedicatedConcierge => 'پشتگیری تایبەت';
+
+  @override
+  String get vendorSuccessToolkitTitle => 'ئامرازی سەرکەوتنی فرۆشیار';
+
+  @override
+  String get vendorSuccessToolkitSubtitle =>
+      'هەموو ئەوەی پێویستە بۆ بەڕێوەبردنی ئستۆدیۆیەکی گوڵی تایبەت، لە شوێنێک.';
+
+  @override
+  String get vendorToolkitOrderManagement => 'بەڕێوەبردنی داواکاری';
+
+  @override
+  String get vendorToolkitOrderManagementDesc =>
+      'شوێنکەوتنی داواکارییە دەرگەیشتووەکان، دڵنیاکردن لە کاتەکانی گەیاندن، و چات لەگەڵ پشتگیری.';
+
+  @override
+  String get vendorToolkitMerchandising => 'ئامرازەکانی فرۆشتن';
+
+  @override
+  String get vendorToolkitMerchandisingDesc =>
+      'کۆکراوە دروست بکە، ڕێکخستنی وەزنییەکان ڕێکبخە، و ستایلی تایبەتت هایلایت بکە.';
+
+  @override
+  String get vendorToolkitInsightsPayouts => 'شیکاری و پارەدانان';
+
+  @override
+  String get vendorToolkitInsightsPayoutsDesc =>
+      'کارایی هەفتانە پشکنینەوە بکە و پارەدانی متمانەپێکراو وەربگرە هەموو هەینی.';
+
+  @override
+  String get vendorToggleSignIn => 'چوونەژوورەوە';
+
+  @override
+  String get vendorToggleCreateAccount => 'دروستکردنی هەژمار';
+
+  @override
+  String get vendorStatSatisfaction => 'ڕازیکردنی فرۆشیاران';
+
+  @override
+  String get vendorStatAvgRevenue => 'ناوەندی داهاتی هەفتانە';
+
+  @override
+  String get vendorStatFastOnboarding => 'چوونەنێوەکردنی خێرا';
 }

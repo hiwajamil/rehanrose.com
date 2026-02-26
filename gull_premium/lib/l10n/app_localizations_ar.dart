@@ -302,6 +302,29 @@ class AppLocalizationsAr extends AppLocalizations {
   String get home_question => 'ماذا تريد أن تقول اليوم؟';
 
   @override
+  String occasionsCuratedFor(String label) {
+    return 'اكتشف مجموعتنا المختارة المصنوعة بدقة من أجل $label.';
+  }
+
+  @override
+  String get what_do_you_want_to_say => 'ماذا تريد أن تقول اليوم؟';
+
+  @override
+  String get say_love => 'قل \'أنا أحبك\'...';
+
+  @override
+  String get say_sorry => 'قل \'أنا آسف\'...';
+
+  @override
+  String get say_congrats => 'قل \'مبارك\'...';
+
+  @override
+  String get say_thanks => 'قل \'شكراً لك\'...';
+
+  @override
+  String get collection_crafted_for => 'اكتشف مجموعتنا المنسقة خصيصاً لـ ';
+
+  @override
   String get makeItPerfectSectionTitle => 'أكمل هديتك';
 
   @override
@@ -324,6 +347,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get orderViaWhatsApp => 'طلب عبر واتساب';
+
+  @override
+  String get locationRequiredSubtitle => '* مطلوب قبل الطلب';
+
+  @override
+  String get locationRequiredSnackbar => 'يرجى تحديد موقع التوصيل لإكمال طلبك.';
 
   @override
   String get includesFreeVoiceMessageQRCode =>
@@ -750,5 +779,162 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileChangePassword => 'تغيير كلمة المرور';
 
   @override
+  String get profileSettings => 'الإعدادات';
+
+  @override
   String get profileComingSoon => 'قريباً';
+
+  @override
+  String get vendorPleaseCompleteEveryField => 'يرجى إكمال جميع الحقول.';
+
+  @override
+  String get vendorApplicationSubmittedMessage =>
+      'تم إرسال طلبك. تم إرساله إلى المدير الرئيسي للموافقة. يمكنك تسجيل الدخول بعد الموافقة على طلبك.';
+
+  @override
+  String get vendorUnableToSubmitApplication => 'تعذّر إرسال الطلب.';
+
+  @override
+  String get vendorUnableToSubmitApplicationRetry =>
+      'تعذّر إرسال الطلب. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get vendorEnterEmailPassword => 'أدخل بريدك الإلكتروني وكلمة المرور.';
+
+  @override
+  String get vendorApplicationRejectedMessage =>
+      'تم رفض طلبك. تواصل مع الدعم للتفاصيل.';
+
+  @override
+  String get vendorApplicationUnderReviewMessage =>
+      'طلبك قيد المراجعة. فقط البائعون المعتمدون يمكنهم تسجيل الدخول.';
+
+  @override
+  String get vendorUnableToSignIn => 'تعذّر تسجيل الدخول.';
+
+  @override
+  String get vendorCouldNotSignInFallback =>
+      'تعذّر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور، أو حاول لاحقاً.';
+
+  @override
+  String get vendorBackToSignIn => 'العودة لتسجيل الدخول';
+
+  @override
+  String get vendorAdminLink => 'المدير';
+
+  @override
+  String get vendorSignInTitle => 'تسجيل دخول البائع';
+
+  @override
+  String get vendorStartApplicationTitle => 'ابدأ طلب الانضمام كبائع';
+
+  @override
+  String get vendorSignInSubtitle => 'مرحباً بعودتك. ادخل إلى متجرك والطلبات.';
+
+  @override
+  String get vendorStartApplicationSubtitle =>
+      'أخبرنا عن استوديوك لنتمكن من مراجعة طلبك.';
+
+  @override
+  String get vendorLabelBusinessEmail => 'البريد الإلكتروني للعمل';
+
+  @override
+  String get vendorLabelPassword => 'كلمة المرور';
+
+  @override
+  String get vendorSigningIn => 'جاري تسجيل الدخول…';
+
+  @override
+  String get vendorForgotPasswordContactSupport =>
+      'نسيت كلمة المرور؟ تواصل مع دعم البائعين.';
+
+  @override
+  String get vendorStudioName => 'اسم الاستوديو';
+
+  @override
+  String get vendorOwnerName => 'اسم المالك';
+
+  @override
+  String get vendorOwnerNameHint => 'الاسم الكامل';
+
+  @override
+  String get vendorPhoneNumber => 'رقم الهاتف';
+
+  @override
+  String get vendorStudioLocation => 'موقع الاستوديو';
+
+  @override
+  String get vendorStudioLocationHint => 'المدينة';
+
+  @override
+  String get vendorCreatePassword => 'إنشاء كلمة مرور';
+
+  @override
+  String get vendorCreatePasswordHint => '8 أحرف على الأقل';
+
+  @override
+  String get vendorSubmitting => 'جاري الإرسال…';
+
+  @override
+  String get vendorSubmitApplication => 'إرسال الطلب';
+
+  @override
+  String get vendorTermsAgreement =>
+      'بالإرسال، فإنك توافق على شروط البائعين وعملية المراجعة.';
+
+  @override
+  String get vendorShowcaseCopy =>
+      'اعرض استوديوك، أدر الطلبات، وتواصل مع عملاء يقدرون الورود الحرفية.';
+
+  @override
+  String get vendorBenefitWeeklyPayouts => 'دفعات أسبوعية';
+
+  @override
+  String get vendorBenefitCuratedClientBase => 'قاعدة عملاء منتقاة';
+
+  @override
+  String get vendorBenefitDedicatedConcierge => 'دعم مخصص';
+
+  @override
+  String get vendorSuccessToolkitTitle => 'أدوات نجاح البائع';
+
+  @override
+  String get vendorSuccessToolkitSubtitle =>
+      'كل ما تحتاجه لإدارة استوديو ورود مميز، في مكان واحد.';
+
+  @override
+  String get vendorToolkitOrderManagement => 'إدارة الطلبات';
+
+  @override
+  String get vendorToolkitOrderManagementDesc =>
+      'تتبع الطلبات الواردة، أكد أوقات التوصيل، وتواصل مع دعم الكونسيرج.';
+
+  @override
+  String get vendorToolkitMerchandising => 'أدوات العرض';
+
+  @override
+  String get vendorToolkitMerchandisingDesc =>
+      'اصنع مجموعات، حدد إطلاقات موسمية، وبرز أسلوبك المميز.';
+
+  @override
+  String get vendorToolkitInsightsPayouts => 'الإحصاءات والدفعات';
+
+  @override
+  String get vendorToolkitInsightsPayoutsDesc =>
+      'راجع الأداء الأسبوعي واستلم دفعات موثوقة كل جمعة.';
+
+  @override
+  String get vendorToggleSignIn => 'تسجيل الدخول';
+
+  @override
+  String get vendorToggleCreateAccount => 'إنشاء حساب';
+
+  @override
+  String get vendorStatSatisfaction => 'رضا البائعين';
+
+  @override
+  String get vendorStatAvgRevenue => 'متوسط الإيراد الأسبوعي';
+
+  @override
+  String get vendorStatFastOnboarding => 'انضمام سريع';
 }

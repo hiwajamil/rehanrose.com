@@ -306,6 +306,16 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               ],
             ),
           const SizedBox(height: 20),
+          Consumer(
+            builder: (context, ref, _) {
+              final countAsync = ref.watch(customerCountStreamProvider);
+              return _TotalMembersCard(
+                countAsync: countAsync,
+                onTap: () => context.push('/admin/members'),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
           applicationsAsync.when(
           loading: () => Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -560,6 +570,99 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Tappable card showing live customer count. Navigates to MembersListScreen.
+class _TotalMembersCard extends StatelessWidget {
+  final AsyncValue<int> countAsync;
+  final VoidCallback onTap;
+
+  const _TotalMembersCard({
+    required this.countAsync,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.shadow,
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.rose.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.people_outline,
+                  size: 28,
+                  color: AppColors.rosePrimary,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total Members',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.ink,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    countAsync.when(
+                      data: (count) => Text(
+                        '$count',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.rosePrimary,
+                            ),
+                      ),
+                      loading: () => SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.rose,
+                        ),
+                      ),
+                      error: (_, __) => Text(
+                        '—',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: AppColors.inkMuted,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.inkMuted),
+            ],
+          ),
+        ),
       ),
     );
   }

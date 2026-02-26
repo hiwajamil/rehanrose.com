@@ -495,18 +495,51 @@ class _AddOnPersonalizationSheetState
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: Text(
-                                  _deliveryLatLng != null
-                                      ? '✅ Location Selected (Tap to change)'
-                                      : '📍 Select Delivery Location',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.ink,
+                                child: _deliveryLatLng != null
+                                    ? Text(
+                                        '✅ Location Selected (Tap to change)',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.ink,
+                                            ),
+                                      )
+                                    : Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Select Delivery Location',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.ink,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            l10n.locationRequiredSubtitle,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.orange.shade700,
+                                                ) ??
+                                                TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.orange.shade700,
+                                                ),
+                                          ),
+                                        ],
                                       ),
-                                ),
                               ),
                               Icon(
                                 Icons.chevron_right,
@@ -523,17 +556,41 @@ class _AddOnPersonalizationSheetState
                       child: OrderViaWhatsAppButton(
                         label: l10n.orderViaWhatsApp,
                         valueProposition: '',
-                        appearsDisabled: _deliveryLatLng == null,
                         onPressed: () {
                           if (_deliveryLatLng == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: const Text(
-                                  '⚠️ Please select a delivery location first.',
-                                  style: TextStyle(color: Colors.white),
+                                content: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on_outlined,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        l10n.locationRequiredSnackbar,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ) ??
+                                            const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                backgroundColor: Colors.red,
+                                backgroundColor: Colors.red.shade400,
                                 behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             );
                             return;

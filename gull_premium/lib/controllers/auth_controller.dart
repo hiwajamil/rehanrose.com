@@ -18,8 +18,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final GoogleSignIn? googleSignIn = (webClientId.isEmpty && !kIsWeb)
       ? null
       : GoogleSignIn(
-          serverClientId: webClientId.isNotEmpty ? webClientId : null,
+          serverClientId: kIsWeb ? null : (webClientId.isNotEmpty ? webClientId : null),
           clientId: kIsWeb ? effectiveWebClientId : null,
+          scopes: const ['email', 'profile', 'openid'],
         );
   return AuthRepository(googleSignIn: googleSignIn);
 });

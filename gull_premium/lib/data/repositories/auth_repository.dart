@@ -71,6 +71,7 @@ class AuthRepository {
   /// [role: 'customer'] (only if the user doc does not already exist).
   /// Throws on failure (e.g. [fa.FirebaseAuthException], sign-in cancelled).
   Future<fa.UserCredential> signInWithGoogle() async {
+    await _googleSignIn.signOut();
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
       throw Exception('sign_in_cancelled');

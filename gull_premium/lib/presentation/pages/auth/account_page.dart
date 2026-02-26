@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -217,37 +218,40 @@ class _DashboardContentState extends State<_DashboardContent> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    const cardRadius = 20.0;
-    const sectionSpacing = 24.0;
+    const cardRadius = 16.0;
+    const sectionSpacing = 28.0;
+    final softGrey = Colors.grey.shade600;
+    final borderColor = Colors.grey.withValues(alpha: 0.1);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ——— Section A: User Identity & VIP Status ———
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(cardRadius),
+              border: Border.all(color: borderColor),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow,
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
-              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               children: [
                 Stack(
-                  alignment: Alignment.topRight,
+                  alignment: Alignment.topCenter,
+                  clipBehavior: Clip.none,
                   children: [
                     CircleAvatar(
-                      radius: 44,
-                      backgroundColor: AppColors.border,
+                      radius: 40,
+                      backgroundColor: Colors.grey.shade100,
                       backgroundImage: widget.photoUrl != null &&
                               widget.photoUrl!.isNotEmpty
                           ? CachedNetworkImageProvider(widget.photoUrl!)
@@ -258,62 +262,52 @@ class _DashboardContentState extends State<_DashboardContent> {
                                   ? widget.fullName[0].toUpperCase()
                                   : '?',
                               style: GoogleFonts.playfairDisplay(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.inkMuted,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w600,
+                                color: softGrey,
                               ),
                             )
                           : null,
                     ),
-                    // Loyalty badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Color.lerp(AppColors.rose, Colors.amber.shade700, 0.3)!,
-                            Colors.amber.shade200,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                    Positioned(
+                      bottom: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2B2724),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.12),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+                        child: Text(
+                          l10n.profilePremiumMember,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0.3,
                           ),
-                        ],
-                      ),
-                      child: Text(
-                        l10n.profilePremiumMember,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.ink,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 28),
                 Text(
                   widget.fullName,
                   style: GoogleFonts.playfairDisplay(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.inkCharcoal,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 if (widget.phone.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     widget.phone,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.inkMuted,
+                          color: softGrey,
+                          fontSize: 14,
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -323,7 +317,8 @@ class _DashboardContentState extends State<_DashboardContent> {
                   Text(
                     widget.email,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.inkMuted,
+                          color: softGrey,
+                          fontSize: 13,
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -333,7 +328,8 @@ class _DashboardContentState extends State<_DashboardContent> {
                   Text(
                     widget.city,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.inkMuted,
+                          color: softGrey,
+                          fontSize: 13,
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -348,15 +344,15 @@ class _DashboardContentState extends State<_DashboardContent> {
             children: [
               Expanded(
                 child: _QuickActionCard(
-                  icon: Icons.receipt_long_rounded,
+                  icon: CupertinoIcons.doc_text,
                   label: l10n.profileMyOrders,
                   onTap: () => _showComingSoon(),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: _QuickActionCard(
-                  icon: Icons.location_on_outlined,
+                  icon: CupertinoIcons.location,
                   label: l10n.profileSavedAddresses,
                   onTap: () => _showComingSoon(),
                 ),
@@ -365,20 +361,20 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
           const SizedBox(height: sectionSpacing),
 
-          // ——— Section C: Special Occasions ———
+          // ——— Section C: Special Occasions (invitation card) ———
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.rose.withValues(alpha: 0.08),
-                  AppColors.sage.withValues(alpha: 0.12),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(cardRadius),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -386,39 +382,50 @@ class _DashboardContentState extends State<_DashboardContent> {
                 Row(
                   children: [
                     Icon(
-                      Icons.celebration_outlined,
+                      CupertinoIcons.gift,
                       color: AppColors.rose,
-                      size: 24,
+                      size: 22,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Text(
                       l10n.profileMySpecialOccasions,
                       style: GoogleFonts.playfairDisplay(
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: AppColors.inkCharcoal,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   l10n.profileOccasionsSubtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.inkMuted,
+                        color: softGrey,
+                        fontSize: 13,
+                        height: 1.4,
                       ),
                 ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
+                const SizedBox(height: 20),
+                TextButton.icon(
                   onPressed: _showComingSoon,
-                  icon: const Icon(Icons.add_rounded, size: 20),
-                  label: Text(l10n.profileAddOccasion),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.rose,
-                    side: const BorderSide(color: AppColors.rose),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  icon: Icon(
+                    CupertinoIcons.add,
+                    size: 18,
+                    color: AppColors.rose,
+                  ),
+                  label: Text(
+                    l10n.profileAddOccasion,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.rose,
                     ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ),
               ],
@@ -426,72 +433,70 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
           const SizedBox(height: sectionSpacing),
 
-          // ——— Section D: Settings & Support ———
+          // ——— Section D: Settings list ———
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(cardRadius),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: borderColor),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow,
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
                 ),
               ],
             ),
             child: Column(
               children: [
-                ListTile(
-                  leading: Icon(Icons.support_agent_outlined, color: AppColors.inkMuted),
-                  title: Text(
-                    l10n.profileContactSupportWhatsApp,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.inkMuted),
+                _SettingsTile(
+                  icon: CupertinoIcons.chat_bubble_2,
+                  label: l10n.profileContactSupportWhatsApp,
                   onTap: _openWhatsAppSupport,
                 ),
-                Divider(height: 1, color: AppColors.border),
-                ListTile(
-                  leading: Icon(Icons.lock_outline, color: AppColors.inkMuted),
-                  title: Text(
-                    l10n.profileChangePassword,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.inkMuted),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.08)),
+                _SettingsTile(
+                  icon: CupertinoIcons.settings,
+                  label: l10n.profileSettings,
+                  onTap: _showComingSoon,
+                ),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.08)),
+                _SettingsTile(
+                  icon: CupertinoIcons.lock_open,
+                  label: l10n.profileChangePassword,
                   onTap: _showComingSoon,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
           SizedBox(
             width: double.infinity,
             height: 52,
-            child: ElevatedButton(
+            child: OutlinedButton(
               onPressed: _isSigningOut ? null : _handleSignOut,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade700,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.red.shade300,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade400,
+                side: BorderSide(color: Colors.red.shade300),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(cardRadius),
                 ),
               ),
               child: _isSigningOut
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
+                  ? SizedBox(
+                      height: 22,
+                      width: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: Colors.red.shade400,
                       ),
                     )
                   : Text(
                       l10n.signOut,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                      style: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
+                        color: Colors.red.shade400,
                       ),
                     ),
             ),
@@ -519,11 +524,11 @@ class _QuickActionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -535,18 +540,19 @@ class _QuickActionCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 32, color: AppColors.rose),
-                const SizedBox(height: 10),
+                Icon(icon, size: 28, color: AppColors.rose),
+                const SizedBox(height: 12),
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.inkCharcoal,
-                      ),
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.inkCharcoal,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -554,6 +560,40 @@ class _QuickActionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Icon(icon, size: 22, color: Colors.grey.shade600),
+      title: Text(
+        label,
+        style: GoogleFonts.montserrat(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: AppColors.inkCharcoal,
+        ),
+      ),
+      trailing: Icon(
+        CupertinoIcons.chevron_right,
+        size: 16,
+        color: Colors.grey.shade400,
+      ),
+      onTap: onTap,
     );
   }
 }

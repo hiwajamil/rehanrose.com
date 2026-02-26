@@ -16,6 +16,7 @@ import '../../presentation/pages/admin/analytics_overview_page.dart';
 import '../../presentation/pages/admin/add_on_category_inventory_page.dart';
 import '../../presentation/pages/admin/admin_orders_page.dart';
 import '../../presentation/pages/admin/manage_add_ons_landing_page.dart';
+import '../../presentation/pages/admin/members/members_list_screen.dart';
 import '../../presentation/pages/product/order_customization_page.dart';
 import '../../presentation/pages/product/product_detail_page.dart';
 import '../../presentation/pages/product/product_listing_page.dart';
@@ -225,6 +226,10 @@ class AppRouter {
           GoRoute(
             path: 'orders',
             builder: (_, __) => const AdminOrdersPage(),
+          ),
+          GoRoute(
+            path: 'members',
+            builder: (_, __) => const MembersListScreen(),
           ),
         ],
       ),
