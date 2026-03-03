@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../controllers/controllers.dart';
@@ -9,9 +7,8 @@ import '../../../data/models/flower_model.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/vendor_list_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/primary_button.dart';
-import '../../widgets/layout/app_scaffold.dart';
-import '../../widgets/layout/section_container.dart';
 import '../../widgets/oms/oms_order_card.dart';
 
 /// Shared input decoration for admin order form fields.
@@ -184,28 +181,22 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final vendorsAsync = ref.watch(vendorsListProvider);
-    return AppScaffold(
-      child: DefaultTabController(
-        length: 2,
-        child: SectionContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Order Management',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const Spacer(),
-                PrimaryButton(
-                  label: 'Back to Dashboard',
-                  onPressed: () => context.go('/admin'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-              ],
-            ),
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Order Management',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
+              ),
+            ],
+          ),
             const SizedBox(height: 8),
             Text(
               'Create orders from WhatsApp requests and track status.',
@@ -250,8 +241,6 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
             ),
           ],
         ),
-        ),
-      ),
     );
   }
 }
@@ -734,19 +723,14 @@ class _BouquetCard extends StatelessWidget {
           if (imageUrl.isNotEmpty)
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                imageUrl,
+              child: AppCachedImage(
+                imageUrl: imageUrl,
                 width: 120,
                 height: 120,
                 fit: BoxFit.cover,
-                cacheWidth: 240,
-                cacheHeight: 240,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 120,
-                  height: 120,
-                  color: AppColors.border,
-                  child: const Icon(Icons.local_florist, size: 48, color: AppColors.inkMuted),
-                ),
+                memCacheWidth: 240,
+                memCacheHeight: 240,
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           if (imageUrl.isNotEmpty) const SizedBox(width: 20),
@@ -792,11 +776,24 @@ class _BouquetCard extends StatelessWidget {
   }
 }
 
-class _OrderTrackingTab extends ConsumerWidget {
+class _OrderTrackingTab extends ConsumerStatefulWidget {
   const _OrderTrackingTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_OrderTrackingTab> createState() => _OrderTrackingTabState();
+}
+
+class _OrderTrackingTabState extends ConsumerState<_OrderTrackingTab> {
+  bool _didInitialLoad = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_didInitialLoad) {
+      _didInitialLoad = true;
+      Future.microtask(() {
+        ref.read(paginatedOmsOrdersForAdminProvider.notifier).loadInitial();
+      });
+    }
     return DefaultTabController(
       length: 4,
       child: Column(
@@ -831,64 +828,114 @@ class _OrderTrackingTab extends ConsumerWidget {
   }
 }
 
-class _AdminOrderListByStatus extends ConsumerWidget {
+class _AdminOrderListByStatus extends ConsumerStatefulWidget {
   final OmsOrderStatus status;
 
   const _AdminOrderListByStatus({required this.status});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ordersAsync = ref.watch(omsOrdersForAdminStreamProvider);
-    return ordersAsync.when(
-      loading: () => const Center(
+  ConsumerState<_AdminOrderListByStatus> createState() => _AdminOrderListByStatusState();
+}
+
+class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final notifier = ref.read(paginatedOmsOrdersForAdminProvider.notifier);
+    final state = ref.read(paginatedOmsOrdersForAdminProvider);
+    if (!state.hasMore || state.isLoadingMore) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      notifier.loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(paginatedOmsOrdersForAdminProvider);
+    final orders = state.list.where((o) => o.status == widget.status).toList();
+    final showBottomLoader = state.hasMore && state.isLoadingMore;
+
+    if (state.isLoading && state.list.isEmpty) {
+      return const Center(
         child: CircularProgressIndicator(color: AppColors.rose),
-      ),
-      error: (e, _) => Center(
+      );
+    }
+    if (state.error != null && state.list.isEmpty) {
+      return Center(
         child: Text(
           'Unable to load orders.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppColors.inkMuted,
               ),
         ),
-      ),
-      data: (allOrders) {
-        final orders = allOrders.where((o) => o.status == status).toList();
-        if (orders.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: 48,
-                  color: AppColors.inkMuted,
+      );
+    }
+    if (orders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inbox_outlined,
+              size: 48,
+              color: AppColors.inkMuted,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _emptyLabel(widget.status),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.inkMuted,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: orders.length + (showBottomLoader ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= orders.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.rose,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  _emptyLabel(status),
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.inkMuted,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              ),
             ),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 24),
-          itemCount: orders.length,
-          itemBuilder: (context, index) => OmsOrderCard(
-            order: orders[index],
-            showVendorLine: true,
-            showOrderIdInSubtitle: true,
-          ),
+        return OmsOrderCard(
+          order: orders[index],
+          showVendorLine: true,
+          showOrderIdInSubtitle: true,
         );
       },
     );
   }
 
-  String _emptyLabel(OmsOrderStatus s) {
+  static String _emptyLabel(OmsOrderStatus s) {
     switch (s) {
       case OmsOrderStatus.pending:
         return 'No pending orders.';

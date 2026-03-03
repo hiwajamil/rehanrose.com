@@ -3,14 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../core/env/app_env.dart';
 import '../models/vendor_list_model.dart';
-
-/// Super admin email — always has admin access without admins collection.
-/// Set via --dart-define=SUPER_ADMIN_EMAIL=... for different environments.
-const String kSuperAdminEmail = String.fromEnvironment(
-  'SUPER_ADMIN_EMAIL',
-  defaultValue: 'hiwa.constructions@gmail.com',
-);
 
 /// Repository for authentication and user/vendor/admin status.
 class AuthRepository {
@@ -52,6 +46,13 @@ class AuthRepository {
       email: email.trim(),
       password: password.trim(),
     );
+  }
+
+  /// Sends a password reset email to the given address. Does not reveal whether
+  /// the email is registered (caller should show a generic success message).
+  /// Throws [fa.FirebaseAuthException] on failure (e.g. invalid-email).
+  Future<void> sendPasswordResetEmail({required String email}) {
+    return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
   /// Sign out. Also signs out from Google so next sign-in is fresh.
@@ -135,9 +136,12 @@ class AuthRepository {
 
   /// Whether the user is an admin (exists in admins collection or is super admin email).
   Future<bool> isAdmin(String uid) async {
-    final user = _auth.currentUser;
-    if (user?.email?.trim().toLowerCase() == kSuperAdminEmail.trim().toLowerCase()) {
-      return true;
+    final superEmail = AppEnv.superAdminEmail.trim();
+    if (superEmail.isNotEmpty) {
+      final user = _auth.currentUser;
+      if (user?.email?.trim().toLowerCase() == superEmail.toLowerCase()) {
+        return true;
+      }
     }
     final doc = await _firestore.collection('admins').doc(uid).get();
     return doc.exists;
@@ -269,13 +273,14 @@ class AuthRepository {
     return _firestore
         .collection('vendor_applications')
         .where('status', isEqualTo: 'pending')
+        .limit(100)
         .snapshots();
   }
 
   /// Fetches all approved vendors (designers/florists) from the [vendors] collection.
   /// Each document represents one approved vendor; doc id is the vendor uid.
   Future<List<VendorListModel>> getVendors() async {
-    final snap = await _firestore.collection('vendors').get();
+    final snap = await _firestore.collection('vendors').limit(500).get();
     final list = <VendorListModel>[];
     for (final doc in snap.docs) {
       try {

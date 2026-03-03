@@ -140,6 +140,19 @@ class OrderRepository {
 
 const String _omsCollection = 'oms_orders';
 
+/// Result of a paginated OMS orders fetch (cursor-based).
+class PaginatedOmsOrdersResult {
+  final List<OmsOrderModel> items;
+  final DocumentSnapshot? lastDocument;
+  final bool hasMore;
+
+  const PaginatedOmsOrdersResult({
+    required this.items,
+    this.lastDocument,
+    this.hasMore = false,
+  });
+}
+
 /// Repository for OMS orders (admin-created, vendor-assigned).
 class OmsOrderRepository {
   OmsOrderRepository({
@@ -176,6 +189,41 @@ class OmsOrderRepository {
       'bouquetImageUrl': data.bouquetImageUrl,
     }).timeout(_timeout);
     return orderId;
+  }
+
+  /// Fetches a page of OMS orders for admin (newest first). Use [startAfter] for the next page.
+  static const int _adminOrdersPageSize = 20;
+
+  Future<PaginatedOmsOrdersResult> getOmsOrdersPage({
+    DocumentSnapshot? startAfter,
+    int limit = _adminOrdersPageSize,
+  }) async {
+    var query = _firestore
+        .collection(_omsCollection)
+        .orderBy('createdAt', descending: true)
+        .limit(limit + 1);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    final snap = await query.get().timeout(_timeout);
+    final docs = snap.docs;
+    final hasMore = docs.length > limit;
+    final pageDocs = hasMore ? docs.sublist(0, limit) : docs;
+    final lastDoc = pageDocs.isNotEmpty ? pageDocs.last : null;
+
+    final list = <OmsOrderModel>[];
+    for (final doc in pageDocs) {
+      final model = OmsOrderModel.fromFirestore(doc.id, doc.data());
+      if (model != null) list.add(model);
+    }
+
+    return PaginatedOmsOrdersResult(
+      items: list,
+      lastDocument: lastDoc,
+      hasMore: hasMore,
+    );
   }
 
   /// Stream of all OMS orders for admin (newest first).

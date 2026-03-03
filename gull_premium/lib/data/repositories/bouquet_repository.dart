@@ -285,6 +285,7 @@ class BouquetRepository {
   Stream<List<FlowerModel>> watchBouquetsByVendor(String vendorId) {
     return _bouquets
         .where('vendorId', isEqualTo: vendorId)
+        .limit(100)
         .snapshots()
         .timeout(_queryTimeout)
         .map((snap) {

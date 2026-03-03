@@ -36,6 +36,10 @@ class AuthService {
     return cred;
   }
 
+  /// Send password reset email. Use for "Forgot password?" flow.
+  Future<void> sendPasswordResetEmail({required String email}) =>
+      _repo.sendPasswordResetEmail(email: email);
+
   /// Sign out (Firebase and Google).
   Future<void> signOut() => _repo.signOut();
 }

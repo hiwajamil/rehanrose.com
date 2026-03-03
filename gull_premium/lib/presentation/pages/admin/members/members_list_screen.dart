@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -8,80 +7,86 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../controllers/controllers.dart';
 import '../../../../data/models/customer_member_model.dart';
 import '../../../../data/models/order_model.dart';
+import '../../../widgets/common/app_cached_image.dart';
 import '../../../widgets/common/primary_button.dart';
-import '../../../widgets/layout/app_scaffold.dart';
-import '../../../widgets/layout/section_container.dart';
 
 /// Super Admin CRM: list of all registered customers (role == 'customer').
-class MembersListScreen extends ConsumerWidget {
+/// Uses cursor-based pagination (20 per page) with infinite scroll.
+class MembersListScreen extends ConsumerStatefulWidget {
   const MembersListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final customersAsync = ref.watch(customersStreamProvider);
+  ConsumerState<MembersListScreen> createState() => _MembersListScreenState();
+}
 
-    return AppScaffold(
-      child: SectionContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => context.go('/admin'),
-                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                  style: IconButton.styleFrom(
-                    foregroundColor: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Customer Base',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Registered members (customers)',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.inkMuted,
-                  ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: customersAsync.when(
-                loading: () => const _MembersListShimmer(),
-                error: (e, _) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 48, color: AppColors.inkMuted),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Unable to load members.',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppColors.inkMuted,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                data: (customers) {
-                  if (customers.isEmpty) {
-                    return Center(
+class _MembersListScreenState extends ConsumerState<MembersListScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _didInitialLoad = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final notifier = ref.read(paginatedCustomersProvider.notifier);
+    final state = ref.read(paginatedCustomersProvider);
+    if (!state.hasMore || state.isLoadingMore) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      notifier.loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(paginatedCustomersProvider);
+
+    if (!_didInitialLoad) {
+      _didInitialLoad = true;
+      Future.microtask(() {
+        ref.read(paginatedCustomersProvider.notifier).loadInitial();
+      });
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Customer Base',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.ink,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Registered members (customers)',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.inkMuted,
+              ),
+        ),
+        const SizedBox(height: 24),
+        Expanded(
+          child: state.isLoading && state.list.isEmpty
+              ? const _MembersListShimmer()
+              : state.error != null && state.list.isEmpty
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.people_outline, size: 64, color: AppColors.inkMuted),
+                          Icon(Icons.error_outline, size: 48, color: AppColors.inkMuted),
                           const SizedBox(height: 16),
                           Text(
-                            'No members yet.',
+                            'Unable to load members.',
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   color: AppColors.inkMuted,
                                 ),
@@ -89,29 +94,63 @@ class MembersListScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                    );
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 32),
-                    itemCount: customers.length,
-                    itemBuilder: (context, index) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _MemberCard(
-                        member: customers[index],
-                        onOrderHistory: () => _showOrderHistoryBottomSheet(
-                          context,
-                          ref,
-                          customers[index],
+                    )
+                  : state.list.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.people_outline, size: 64, color: AppColors.inkMuted),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No members yet.',
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: AppColors.inkMuted,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.only(bottom: 32),
+                          itemCount: state.list.length + (state.hasMore && state.isLoadingMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index >= state.list.length) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 28,
+                                    height: 28,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.rosePrimary,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                            final member = state.list[index];
+                            return RepaintBoundary(
+                              key: ValueKey(member.uid),
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _MemberCard(
+                                  member: member,
+                                  onOrderHistory: () => _showOrderHistoryBottomSheet(
+                                    context,
+                                    ref,
+                                    member,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
         ),
-      ),
+      ],
     );
   }
 
@@ -356,10 +395,12 @@ class _MemberCard extends ConsumerWidget {
                         color: AppColors.ink,
                       ),
                 ),
-                loading: () => const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                loading: () => Text(
+                  '—',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.inkMuted,
+                      ),
                 ),
                 error: (_, __) => Text(
                   '—',
@@ -426,12 +467,12 @@ class _OrderHistoryTile extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
+                ? AppCachedImage(
+                    imageUrl: imageUrl,
                     width: 64,
                     height: 64,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholderThumb(context),
+                    borderRadius: BorderRadius.circular(12),
                   )
                 : _placeholderThumb(context),
           ),

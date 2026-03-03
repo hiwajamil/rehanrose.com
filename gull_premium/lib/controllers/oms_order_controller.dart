@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +12,92 @@ import '../data/repositories/repositories.dart';
 final omsOrderRepositoryProvider = Provider<OmsOrderRepository>((ref) {
   return OmsOrderRepository();
 });
+
+/// Paginated OMS orders state for admin Order Tracking tab (cursor-based, 20 per page).
+class PaginatedOmsOrdersState {
+  final List<OmsOrderModel> list;
+  final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
+  final String? error;
+  final DocumentSnapshot? lastDocument;
+
+  const PaginatedOmsOrdersState({
+    this.list = const [],
+    this.isLoading = true,
+    this.isLoadingMore = false,
+    this.hasMore = true,
+    this.error,
+    this.lastDocument,
+  });
+
+  PaginatedOmsOrdersState copyWith({
+    List<OmsOrderModel>? list,
+    bool? isLoading,
+    bool? isLoadingMore,
+    bool? hasMore,
+    String? error,
+    Object? lastDocument = _unchangedOms,
+  }) {
+    return PaginatedOmsOrdersState(
+      list: list ?? this.list,
+      isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasMore: hasMore ?? this.hasMore,
+      error: error,
+      lastDocument: identical(lastDocument, _unchangedOms) ? this.lastDocument : lastDocument as DocumentSnapshot?,
+    );
+  }
+}
+
+const _unchangedOms = Object();
+
+class PaginatedOmsOrdersNotifier extends Notifier<PaginatedOmsOrdersState> {
+  @override
+  PaginatedOmsOrdersState build() => const PaginatedOmsOrdersState();
+
+  Future<void> loadInitial() async {
+    state = const PaginatedOmsOrdersState(isLoading: true);
+    try {
+      final result = await ref.read(omsOrderRepositoryProvider).getOmsOrdersPage();
+      state = state.copyWith(
+        list: result.items,
+        hasMore: result.hasMore,
+        isLoading: false,
+        lastDocument: result.lastDocument,
+      );
+    } catch (e, _) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (state.isLoadingMore || !state.hasMore || state.lastDocument == null) return;
+    state = state.copyWith(isLoadingMore: true);
+    try {
+      final result = await ref.read(omsOrderRepositoryProvider).getOmsOrdersPage(
+            startAfter: state.lastDocument,
+          );
+      state = state.copyWith(
+        list: [...state.list, ...result.items],
+        hasMore: result.hasMore,
+        isLoadingMore: false,
+        lastDocument: result.lastDocument,
+      );
+    } catch (e, _) {
+      state = state.copyWith(isLoadingMore: false);
+    }
+  }
+}
+
+/// Paginated OMS orders for admin Order Tracking (infinite scroll).
+final paginatedOmsOrdersForAdminProvider =
+    NotifierProvider.autoDispose<PaginatedOmsOrdersNotifier, PaginatedOmsOrdersState>(
+  PaginatedOmsOrdersNotifier.new,
+);
 
 /// Stream of all OMS orders for admin (real-time).
 final omsOrdersForAdminStreamProvider =

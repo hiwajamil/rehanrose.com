@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/env/app_env.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../firebase_options.dart';
 
@@ -26,7 +27,8 @@ String? get _placesProxyBaseUrl {
 }
 
 /// Google Places API key (used on mobile; on web we use the proxy).
-const String _placesApiKey = 'AIzaSyA56HwxP_2za24pqTKG9wfZ8MdeGt2GOqY';
+/// Set via env.json / --dart-define (see ENV_SETUP.md).
+String get _placesApiKey => AppEnv.placesApiKey;
 
 /// Debounce delay (ms) before calling Places Autocomplete.
 const int _autocompleteDebounceMs = 400;

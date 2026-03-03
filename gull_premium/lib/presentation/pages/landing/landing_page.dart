@@ -68,10 +68,10 @@ class _LandingPageState extends ConsumerState<LandingPage> {
     final saleOnly = widget.saleOnly;
     return AppScaffold(
       scrollController: _scrollController,
+      minimalHeader: !saleOnly,
       child: Column(
         children: [
-          if (!saleOnly) const _HeroSection(),
-          if (!saleOnly) _OccasionsHeroSection(onCategorySelected: _scrollToProducts),
+          if (!saleOnly) _HeroSection(onCategorySelected: _scrollToProducts),
           if (!saleOnly) const SizedBox(height: 48),
           if (saleOnly) const SizedBox(height: 32),
           _ProductsSection(
@@ -87,18 +87,26 @@ class _LandingPageState extends ConsumerState<LandingPage> {
   }
 }
 
-/// Full-width hero with video background, emotion-driven copy — Blue Ocean strategy.
-class _HeroSection extends StatefulWidget {
-  const _HeroSection();
+/// Full-width hero with video background, dark overlay, minimal typography, and occasion pill at bottom.
+class _HeroSection extends ConsumerStatefulWidget {
+  const _HeroSection({this.onCategorySelected});
+
+  final VoidCallback? onCategorySelected;
 
   @override
-  State<_HeroSection> createState() => _HeroSectionState();
+  ConsumerState<_HeroSection> createState() => _HeroSectionState();
 }
 
-class _HeroSectionState extends State<_HeroSection> {
+class _HeroSectionState extends ConsumerState<_HeroSection> {
   late VideoPlayerController _videoController;
 
   static const _videoAsset = 'assets/main_page_01.mp4';
+
+  // Occasion pill animated hints
+  static const _hintCount = 4;
+  static const _hintDuration = Duration(milliseconds: 2500);
+  int _hintIndex = 0;
+  Timer? _hintTimer;
 
   @override
   void initState() {
@@ -113,156 +121,8 @@ class _HeroSectionState extends State<_HeroSection> {
           setState(() {});
         }
       }).catchError((_) {
-        // Fallback if asset path differs or video fails
         if (mounted) setState(() {});
       });
-  }
-
-  @override
-  void dispose() {
-    _videoController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final headlineSize = isMobile ? 40.0 : 80.0;
-    final locale = Localizations.localeOf(context);
-    final isRTL = locale.languageCode == 'ar' || locale.languageCode == 'ku';
-    final headlineFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.cormorantGaramond;
-    final bodyFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.manrope;
-
-    return SizedBox(
-      width: double.infinity,
-      height: isMobile ? 520 : 620,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_videoController.value.isInitialized)
-            ClipRRect(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _videoController.value.size.width,
-                  height: _videoController.value.size.height,
-                  child: VideoPlayer(_videoController),
-                ),
-              ),
-            )
-          else
-            Container(color: AppColors.background),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.ink.withValues(alpha: 0.4),
-                  AppColors.ink.withValues(alpha: 0.6),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsetsDirectional.only(
-              start: isMobile ? 20 : 48,
-              end: isMobile ? 20 : 48,
-              top: isMobile ? 48 : 72,
-              bottom: isMobile ? 48 : 72,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Seo.text(
-                  text: '${l10n.heroTitlePart1} ${l10n.heroTitlePart2}',
-                  style: TextTagStyle.h1,
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    textDirection: Directionality.of(context),
-                    text: TextSpan(
-                      style: headlineFont(
-                        fontSize: headlineSize,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 0.2,
-                        color: Colors.white,
-                        height: 1.2,
-                      ),
-                      children: [
-                        TextSpan(text: l10n.heroTitlePart1),
-                        TextSpan(
-                          text: l10n.heroTitlePart2,
-                          style: headlineFont(
-                            fontSize: headlineSize,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.2,
-                            color: AppColors.rosePrimary,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: isMobile ? 20 : 28),
-                Seo.text(
-                  text: l10n.heroSubtitle,
-                  child: Text(
-                    l10n.heroSubtitle,
-                    textAlign: TextAlign.center,
-                    textDirection: Directionality.of(context),
-                    style: bodyFont(
-                      fontSize: isMobile ? 16 : 20,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.94),
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-                Seo.text(
-                  text: l10n.heroTagline,
-                  child: Text(
-                    l10n.heroTagline,
-                    textDirection: Directionality.of(context),
-                    style: bodyFont(
-                      fontSize: isMobile ? 13 : 15,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.82),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Ultra-premium occasions hero: single elegant bar, animated hint, modal picker, poetic subtitle.
-class _OccasionsHeroSection extends ConsumerStatefulWidget {
-  final VoidCallback? onCategorySelected;
-
-  const _OccasionsHeroSection({this.onCategorySelected});
-
-  @override
-  ConsumerState<_OccasionsHeroSection> createState() => _OccasionsHeroSectionState();
-}
-
-class _OccasionsHeroSectionState extends ConsumerState<_OccasionsHeroSection> {
-  static const _hintCount = 4;
-  static const _hintDuration = Duration(milliseconds: 2500);
-
-  int _hintIndex = 0;
-  Timer? _hintTimer;
-
-  @override
-  void initState() {
-    super.initState();
     _startHintTimer();
   }
 
@@ -281,6 +141,7 @@ class _OccasionsHeroSectionState extends ConsumerState<_OccasionsHeroSection> {
   @override
   void dispose() {
     _hintTimer?.cancel();
+    _videoController.dispose();
     super.dispose();
   }
 
@@ -389,15 +250,22 @@ class _OccasionsHeroSectionState extends ConsumerState<_OccasionsHeroSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final heroHeight = viewportHeight * 0.65;
+
+    final locale = Localizations.localeOf(context);
+    final isRTL = locale.languageCode == 'ar' || locale.languageCode == 'ku';
+    final headlineFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.cormorantGaramond;
+    final bodyFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.manrope;
+
     final selectedOccasion = ref.watch(selectedOccasionProvider);
     if (selectedOccasion != 'All') {
       _stopHintTimer();
     } else {
       if (_hintTimer == null) _startHintTimer();
     }
-    final l10n = AppLocalizations.of(context)!;
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final serifFont = GoogleFonts.cormorantGaramond;
     final selectedCategory = getEmotionCategoryById(selectedOccasion);
     final selectedLabel = selectedCategory != null
         ? localizedEmotionCategoryTitle(l10n, selectedCategory.titleKey)
@@ -411,134 +279,158 @@ class _OccasionsHeroSectionState extends ConsumerState<_OccasionsHeroSection> {
     ];
     final currentHint = hintPhrases[_hintIndex % hintPhrases.length];
 
-    return SectionContainer(
-      padding: EdgeInsetsDirectional.only(
-        start: isMobile ? 24 : 56,
-        end: isMobile ? 24 : 56,
-        top: 40,
-        bottom: 32,
-      ),
-      child: Column(
+    return SizedBox(
+      width: double.infinity,
+      height: heroHeight,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          const SizedBox(height: 24),
-          Seo.text(
-            text: l10n.what_do_you_want_to_say,
-            style: TextTagStyle.h2,
-            child: Text(
-              l10n.what_do_you_want_to_say,
-              textAlign: TextAlign.center,
-              textDirection: Directionality.of(context),
-              style: serifFont(
-                fontSize: isMobile ? 28 : 36,
-                fontWeight: FontWeight.w600,
-                color: AppColors.ink,
-                letterSpacing: 0.2,
-                height: 1.25,
+          // 1. Video background — full cover
+          if (_videoController.value.isInitialized)
+            Positioned.fill(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoController.value.size.width,
+                  height: _videoController.value.size.height,
+                  child: VideoPlayer(_videoController),
+                ),
+              ),
+            )
+          else
+            Positioned.fill(child: Container(color: AppColors.background)),
+          // 2. Dark overlay — black gradient for text readability (0.2 top → 0.6 bottom)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.2),
+                    Colors.black.withValues(alpha: 0.6),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 28),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _openOccasionPicker(context),
-              borderRadius: BorderRadius.circular(30),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 24 : 32,
-                  vertical: isMobile ? 20 : 24,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: hasSelection
-                            ? Text(
-                                selectedLabel,
-                                textAlign: TextAlign.center,
-                                textDirection: Directionality.of(context),
-                                style: serifFont(
-                                  fontSize: isMobile ? 20 : 24,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.inkCharcoal,
-                                ),
-                              )
-                            : AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 400),
-                                switchInCurve: Curves.easeOut,
-                                switchOutCurve: Curves.easeIn,
-                                transitionBuilder: (child, animation) =>
-                                    FadeTransition(
-                                  opacity: animation,
-                                  child: child,
-                                ),
-                                child: Text(
-                                  currentHint,
-                                  key: ValueKey<int>(_hintIndex),
-                                  textAlign: TextAlign.center,
-                                  textDirection: Directionality.of(context),
-                                  style: serifFont(
-                                    fontSize: isMobile ? 18 : 20,
-                                    fontWeight: FontWeight.w400,
-                                    fontStyle: FontStyle.italic,
-                                    color: AppColors.inkMuted.withValues(alpha: 0.9),
-                                  ),
-                                ),
-                              ),
+          // 3. Centered headline + subtitle only
+          Center(
+            child: Padding(
+              padding: EdgeInsetsDirectional.symmetric(horizontal: isMobile ? 24 : 48),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Seo.text(
+                    text: '${l10n.heroTitlePart1} ${l10n.heroTitlePart2}',
+                    style: TextTagStyle.h1,
+                    child: Text(
+                      '${l10n.heroTitlePart1}${l10n.heroTitlePart2}',
+                      textAlign: TextAlign.center,
+                      textDirection: Directionality.of(context),
+                      style: headlineFont(
+                        fontSize: isMobile ? 32 : 36,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.2,
+                        color: Colors.white,
+                        height: 1.25,
                       ),
                     ),
-                    Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 28,
-                      color: AppColors.inkMuted.withValues(alpha: 0.75),
+                  ),
+                  SizedBox(height: isMobile ? 16 : 20),
+                  Seo.text(
+                    text: l10n.heroSubtitle,
+                    child: Text(
+                      l10n.heroSubtitle,
+                      textAlign: TextAlign.center,
+                      textDirection: Directionality.of(context),
+                      style: bodyFont(
+                        fontSize: isMobile ? 14 : 16,
+                        fontWeight: FontWeight.w300,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        height: 1.5,
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
           ),
-          if (hasSelection) ...[
-            const SizedBox(height: 20),
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) => Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 12 * (1 - value)),
-                  child: child,
-                ),
-              ),
-              child: Seo.text(
-                text: l10n.collection_crafted_for + selectedLabel,
-                child: Text(
-                  l10n.collection_crafted_for + selectedLabel,
-                  textAlign: TextAlign.center,
-                  textDirection: Directionality.of(context),
-                  style: serifFont(
-                    fontSize: isMobile ? 15 : 17,
-                    fontWeight: FontWeight.w400,
-                    fontStyle: FontStyle.italic,
-                    color: AppColors.inkMuted,
-                    height: 1.5,
+          // 4. Occasion pill at bottom edge of video section
+          Positioned(
+            left: isMobile ? 24 : 56,
+            right: isMobile ? 24 : 56,
+            bottom: 28,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _openOccasionPicker(context),
+                borderRadius: BorderRadius.circular(30),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 24 : 32,
+                    vertical: isMobile ? 18 : 22,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: hasSelection
+                              ? Text(
+                                  selectedLabel,
+                                  textAlign: TextAlign.center,
+                                  textDirection: Directionality.of(context),
+                                  style: headlineFont(
+                                    fontSize: isMobile ? 20 : 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.inkCharcoal,
+                                  ),
+                                )
+                              : AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 400),
+                                  switchInCurve: Curves.easeOut,
+                                  switchOutCurve: Curves.easeIn,
+                                  transitionBuilder: (child, animation) =>
+                                      FadeTransition(opacity: animation, child: child),
+                                  child: Text(
+                                    currentHint,
+                                    key: ValueKey<int>(_hintIndex),
+                                    textAlign: TextAlign.center,
+                                    textDirection: Directionality.of(context),
+                                    style: headlineFont(
+                                      fontSize: isMobile ? 18 : 20,
+                                      fontWeight: FontWeight.w400,
+                                      fontStyle: FontStyle.italic,
+                                      color: AppColors.inkMuted.withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 28,
+                        color: AppColors.inkMuted.withValues(alpha: 0.75),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ],
       ),
     );

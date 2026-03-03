@@ -28,6 +28,7 @@ import '../../presentation/pages/vendor/vendor_earnings_page.dart';
 import '../../presentation/pages/vendor/vendor_notifications_page.dart';
 import '../../presentation/pages/vendor/vendor_shop_settings_page.dart';
 import '../../presentation/pages/vendor/vendor_support_page.dart';
+import '../../presentation/widgets/layout/admin_shell_layout.dart';
 import '../../presentation/widgets/layout/vendor_shell_layout.dart';
 import '../../data/models/add_on_model.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -44,6 +45,23 @@ class AppRouter {
         : [],
     redirect: (context, state) async {
       final location = state.matchedLocation;
+
+      // Admin routes: allow unauthenticated access so /admin shows its own admin
+      // sign-in form; only redirect non-admin authenticated users away.
+      if (location.startsWith('/admin')) {
+        final user = fa.FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          return null; // Let AdminDashboardPage show admin sign-in screen
+        }
+        final authRepo = AuthRepository();
+        final isAdmin = await authRepo.isAdmin(user.uid);
+        if (!isAdmin) {
+          return '/';
+        }
+        return null;
+      }
+
+      // Vendor routes: if user is admin, send them to admin dashboard.
       if (location.startsWith('/vendor')) {
         final user = fa.FirebaseAuth.instance.currentUser;
         if (user != null) {
@@ -187,49 +205,54 @@ class AppRouter {
           ),
         ],
       ),
-      GoRoute(
-        path: '/admin',
-        builder: (context, state) => const AdminDashboardPage(),
+      ShellRoute(
+        builder: (context, state, child) => AdminShellLayout(child: child),
         routes: [
           GoRoute(
-            path: 'add-ons',
-            builder: (_, __) => const ManageAddOnsLandingPage(),
+            path: '/admin',
+            builder: (context, state) => const AdminDashboardPage(),
             routes: [
               GoRoute(
-                path: 'vases',
-                builder: (_, __) => const AddOnCategoryInventoryPage(
-                  categoryType: AddOnType.vase,
-                ),
+                path: 'add-ons',
+                builder: (_, __) => const ManageAddOnsLandingPage(),
+                routes: [
+                  GoRoute(
+                    path: 'vases',
+                    builder: (_, __) => const AddOnCategoryInventoryPage(
+                      categoryType: AddOnType.vase,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'chocolates',
+                    builder: (_, __) => const AddOnCategoryInventoryPage(
+                      categoryType: AddOnType.chocolate,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'cards',
+                    builder: (_, __) => const AddOnCategoryInventoryPage(
+                      categoryType: AddOnType.card,
+                    ),
+                  ),
+                ],
               ),
               GoRoute(
-                path: 'chocolates',
-                builder: (_, __) => const AddOnCategoryInventoryPage(
-                  categoryType: AddOnType.chocolate,
-                ),
+                path: 'analytics',
+                builder: (_, __) => const AnalyticsOverviewPage(),
               ),
               GoRoute(
-                path: 'cards',
-                builder: (_, __) => const AddOnCategoryInventoryPage(
-                  categoryType: AddOnType.card,
-                ),
+                path: 'approvals',
+                builder: (_, __) => const BouquetApprovalPage(),
+              ),
+              GoRoute(
+                path: 'orders',
+                builder: (_, __) => const AdminOrdersPage(),
+              ),
+              GoRoute(
+                path: 'members',
+                builder: (_, __) => const MembersListScreen(),
               ),
             ],
-          ),
-          GoRoute(
-            path: 'analytics',
-            builder: (_, __) => const AnalyticsOverviewPage(),
-          ),
-          GoRoute(
-            path: 'approvals',
-            builder: (_, __) => const BouquetApprovalPage(),
-          ),
-          GoRoute(
-            path: 'orders',
-            builder: (_, __) => const AdminOrdersPage(),
-          ),
-          GoRoute(
-            path: 'members',
-            builder: (_, __) => const MembersListScreen(),
           ),
         ],
       ),

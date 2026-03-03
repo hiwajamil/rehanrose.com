@@ -5,15 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/env/app_env.dart';
 import '../../../core/constants/breakpoints.dart';
-import '../../../data/repositories/auth_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/flower_model.dart';
 import '../../widgets/admin/bouquet_approval/bouquet_approval.dart';
 import '../../widgets/common/primary_button.dart';
-import '../../widgets/layout/app_scaffold.dart';
-import '../../widgets/layout/section_container.dart';
 
 /// Admin page for Bouquet Approval System. Tab-based UI: Pending, Approved, Rejected.
 class BouquetApprovalPage extends ConsumerStatefulWidget {
@@ -50,8 +48,10 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
           loading: () => null,
           error: (_, __) => null,
         );
+    final superEmail = AppEnv.superAdminEmail.trim();
     if (user != null &&
-        user.email?.trim().toLowerCase() == kSuperAdminEmail.trim().toLowerCase()) {
+        superEmail.isNotEmpty &&
+        user.email?.trim().toLowerCase() == superEmail.toLowerCase()) {
       await ref.read(authRepositoryProvider).ensureSuperAdminUserDoc(user.uid);
     }
   }
@@ -147,31 +147,22 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
   @override
   Widget build(BuildContext context) {
     final authAsync = ref.watch(authStateProvider);
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    return AppScaffold(
-      child: SectionContainer(
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 16 : 48,
-          vertical: isMobile ? 20 : 32,
-        ),
-        child: authAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => _buildAccessDenied(context),
-          data: (user) {
-            if (user == null) return _buildAccessDenied(context);
-            return FutureBuilder<bool>(
-              future: ref.read(authRepositoryProvider).isAdmin(user.uid),
-              builder: (context, adminSnapshot) {
-                if (adminSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (adminSnapshot.data != true) return _buildAccessDenied(context);
-                return _buildContent(context);
-              },
-            );
+    return authAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => _buildAccessDenied(context),
+      data: (user) {
+        if (user == null) return _buildAccessDenied(context);
+        return FutureBuilder<bool>(
+          future: ref.read(authRepositoryProvider).isAdmin(user.uid),
+          builder: (context, adminSnapshot) {
+            if (adminSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (adminSnapshot.data != true) return _buildAccessDenied(context);
+            return _buildContent(context);
           },
-        ),
-      ),
+        );
+      },
     );
   }
 

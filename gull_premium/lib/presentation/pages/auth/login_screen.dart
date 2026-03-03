@@ -5,10 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/auth_error_utils.dart';
 import '../../../firebase_options.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/common/app_cached_image.dart';
 
 // Premium input styling: soft fill, no heavy outline, rounded corners (matches Registration).
 final _inputBorderRadius = BorderRadius.circular(12);
@@ -69,6 +71,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  void _showSuccess(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: AppColors.inkCharcoal),
+        ),
+        backgroundColor: AppColors.surface,
+        behavior: SnackBarBehavior.floating,
+        elevation: 2,
+      ),
+    );
+  }
+
+  void _openForgotPassword() {
+    try {
+      final l10n = AppLocalizations.of(context);
+      if (l10n == null) {
+        _showError('Unable to load translations.');
+        return;
+      }
+      final authService = ref.read(authServiceProvider);
+      final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+      if (isMobile) {
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => _ResetPasswordSheet(
+            l10n: l10n,
+            onCancel: () => Navigator.of(ctx).pop(),
+            onSent: () {
+              Navigator.of(ctx).pop();
+              _showSuccess(l10n.resetPasswordSuccessMessage);
+            },
+            onError: _showError,
+            authService: authService,
+          ),
+        );
+      } else {
+        showDialog<void>(
+          context: context,
+          builder: (ctx) => _ResetPasswordDialog(
+            l10n: l10n,
+            onCancel: () => Navigator.of(ctx).pop(),
+            onSent: () {
+              Navigator.of(ctx).pop();
+              _showSuccess(l10n.resetPasswordSuccessMessage);
+            },
+            onError: _showError,
+            authService: authService,
+          ),
+        );
+      }
+    } catch (e, st) {
+      debugPrint('Forgot password open error: $e');
+      debugPrintStack(stackTrace: st);
+      if (mounted) _showError('Something went wrong. Please try again.');
+    }
   }
 
   void _closeAfterSuccess() {
@@ -195,6 +259,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   validator: (v) => _validatePassword(v, _isRegisterMode),
                 ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _isLoading || _isRegisterMode
+                        ? null
+                        : _openForgotPassword,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey.shade600,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      l10n.forgotPassword,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: _isLoading || _isRegisterMode
+                            ? Colors.grey.shade400
+                            : AppColors.rose,
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 28),
                 _SubmitButton(
                   isRegisterMode: _isRegisterMode,
@@ -315,6 +404,252 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (v == null || v.isEmpty) return 'Please enter your password';
     if (isRegisterMode && v.length < 6) return 'Use at least 6 characters';
     return null;
+  }
+}
+
+/// Reset password dialog for desktop/web. Uses premium styling.
+class _ResetPasswordDialog extends StatefulWidget {
+  const _ResetPasswordDialog({
+    required this.l10n,
+    required this.onCancel,
+    required this.onSent,
+    required this.onError,
+    required this.authService,
+  });
+
+  final AppLocalizations l10n;
+  final VoidCallback onCancel;
+  final VoidCallback onSent;
+  final void Function(String message) onError;
+  final AuthService authService;
+
+  @override
+  State<_ResetPasswordDialog> createState() => _ResetPasswordDialogState();
+}
+
+class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
+  final _emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendLink() async {
+    if (_isLoading) return;
+    if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim();
+    setState(() => _isLoading = true);
+    try {
+      await widget.authService.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      widget.onSent();
+    } catch (e) {
+      if (mounted) widget.onError(authErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(
+        widget.l10n.resetPasswordTitle,
+        style: GoogleFonts.playfairDisplay(
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          color: AppColors.inkCharcoal,
+        ),
+      ),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              widget.l10n.resetPasswordSubtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                    height: 1.45,
+                  ),
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: _LoginScreenState._inputDecoration(
+                label: widget.l10n.emailLabel,
+                hint: widget.l10n.emailHint,
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+              validator: _LoginScreenState._validateEmail,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : widget.onCancel,
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+          ),
+        ),
+        FilledButton(
+          onPressed: _isLoading ? null : _sendLink,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.rose,
+            foregroundColor: Colors.white,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : Text(widget.l10n.resetPasswordSendLink),
+        ),
+      ],
+    );
+  }
+}
+
+/// Reset password bottom sheet for mobile. Same logic, premium styling.
+class _ResetPasswordSheet extends StatefulWidget {
+  const _ResetPasswordSheet({
+    required this.l10n,
+    required this.onCancel,
+    required this.onSent,
+    required this.onError,
+    required this.authService,
+  });
+
+  final AppLocalizations l10n;
+  final VoidCallback onCancel;
+  final VoidCallback onSent;
+  final void Function(String message) onError;
+  final AuthService authService;
+
+  @override
+  State<_ResetPasswordSheet> createState() => _ResetPasswordSheetState();
+}
+
+class _ResetPasswordSheetState extends State<_ResetPasswordSheet> {
+  final _emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendLink() async {
+    if (_isLoading) return;
+    if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim();
+    setState(() => _isLoading = true);
+    try {
+      await widget.authService.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      widget.onSent();
+    } catch (e) {
+      if (mounted) widget.onError(authErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.paddingOf(context).bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.l10n.resetPasswordTitle,
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: AppColors.inkCharcoal,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.l10n.resetPasswordSubtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 24),
+          Form(
+            key: _formKey,
+            child: TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: _LoginScreenState._inputDecoration(
+                label: widget.l10n.emailLabel,
+                hint: widget.l10n.emailHint,
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+              validator: _LoginScreenState._validateEmail,
+            ),
+          ),
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              TextButton(
+                onPressed: _isLoading ? null : widget.onCancel,
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _isLoading ? null : _sendLink,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.rose,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(widget.l10n.resetPasswordSendLink),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -486,16 +821,13 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
-                  Image.network(
-                    'https://img.icons8.com/color/48/000000/google-logo.png',
+                  AppCachedImage(
+                    imageUrl: 'https://img.icons8.com/color/48/000000/google-logo.png',
                     width: 24,
                     height: 24,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.g_mobiledata_rounded,
-                      size: 24,
-                      color: Colors.grey.shade700,
-                    ),
+                    errorIcon: Icons.g_mobiledata_rounded,
+                    errorIconSize: 24,
                   ),
                 const SizedBox(width: 14),
                 Text(

@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/order_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../common/app_cached_image.dart';
 import '../common/primary_button.dart';
 
 /// Formats order date: "Today HH:mm" for same day, else "dd/mm/yyyy HH:mm".
@@ -133,32 +134,15 @@ class OmsOrderCard extends StatelessWidget {
                   if (hasImage) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        order.bouquetImageUrl!,
+                      child: AppCachedImage(
                         key: ValueKey<String>(order.bouquetImageUrl!),
+                        imageUrl: order.bouquetImageUrl!,
                         width: _kOrderCardImageSize.toDouble(),
                         height: _kOrderCardImageSize.toDouble(),
                         fit: BoxFit.cover,
-                        cacheWidth: _kOrderCardImageCacheSize,
-                        cacheHeight: _kOrderCardImageCacheSize,
-                        gaplessPlayback: true,
-                        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                          if (wasSynchronouslyLoaded || frame != null) return child;
-                          return SizedBox(
-                            width: _kOrderCardImageSize.toDouble(),
-                            height: _kOrderCardImageSize.toDouble(),
-                            child: _placeholderBox(),
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return SizedBox(
-                            width: _kOrderCardImageSize.toDouble(),
-                            height: _kOrderCardImageSize.toDouble(),
-                            child: _placeholderBox(),
-                          );
-                        },
-                        errorBuilder: (_, __, ___) => _placeholderBox(),
+                        memCacheWidth: _kOrderCardImageCacheSize,
+                        memCacheHeight: _kOrderCardImageCacheSize,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -245,15 +229,6 @@ class OmsOrderCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _placeholderBox() {
-    return Container(
-      width: _kOrderCardImageSize.toDouble(),
-      height: _kOrderCardImageSize.toDouble(),
-      color: AppColors.border,
-      child: const Icon(Icons.local_florist, color: AppColors.inkMuted),
     );
   }
 }

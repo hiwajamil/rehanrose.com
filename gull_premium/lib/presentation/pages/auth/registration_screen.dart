@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/auth_error_utils.dart';
 import '../../../firebase_options.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/common/app_cached_image.dart';
 
 /// City options for the registration form.
 const List<String> kRegistrationCities = [
@@ -686,16 +687,13 @@ class _SignUpWithGmailButtonState extends State<_SignUpWithGmailButton> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
-                  Image.network(
-                    'https://img.icons8.com/color/48/000000/google-logo.png',
+                  AppCachedImage(
+                    imageUrl: 'https://img.icons8.com/color/48/000000/google-logo.png',
                     width: 24,
                     height: 24,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.g_mobiledata_rounded,
-                      size: 24,
-                      color: Colors.grey.shade700,
-                    ),
+                    errorIcon: Icons.g_mobiledata_rounded,
+                    errorIconSize: 24,
                   ),
                 const SizedBox(width: 14),
                 Text(

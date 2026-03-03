@@ -135,6 +135,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orSignInWithEmail => 'أو سجّل الدخول بالبريد الإلكتروني';
 
   @override
+  String get forgotPassword => 'نسيت كلمة المرور؟';
+
+  @override
+  String get resetPasswordTitle => 'إعادة تعيين كلمة المرور';
+
+  @override
+  String get resetPasswordSubtitle =>
+      'أدخل بريدك الإلكتروني المسجّل لاستلام رابط إعادة تعيين كلمة المرور.';
+
+  @override
+  String get resetPasswordSendLink => 'إرسال الرابط';
+
+  @override
+  String get resetPasswordSuccessMessage =>
+      'إذا كان هذا البريد مسجّلاً، تم إرسال رابط إعادة التعيين.';
+
+  @override
   String get heroTitlePart1 => 'عندما تعجز الكلمات…\n';
 
   @override
@@ -310,16 +327,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get what_do_you_want_to_say => 'ماذا تريد أن تقول اليوم؟';
 
   @override
-  String get say_love => 'قل \'أنا أحبك\'...';
+  String get say_love => 'أحبك...';
 
   @override
-  String get say_sorry => 'قل \'أنا آسف\'...';
+  String get say_sorry => 'أنا آسف...';
 
   @override
-  String get say_congrats => 'قل \'مبارك\'...';
+  String get say_congrats => 'مبارك...';
 
   @override
-  String get say_thanks => 'قل \'شكراً لك\'...';
+  String get say_thanks => 'شكراً لك...';
 
   @override
   String get collection_crafted_for => 'اكتشف مجموعتنا المنسقة خصيصاً لـ ';

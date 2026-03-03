@@ -136,6 +136,23 @@ class AppLocalizationsKu extends AppLocalizations {
   String get orSignInWithEmail => 'یان چوونەژوورەوە بە ئیمەیڵ';
 
   @override
+  String get forgotPassword => 'وشەی نهێنیت لەبیرچووەتەوە؟';
+
+  @override
+  String get resetPasswordTitle => 'ڕێکخستنەوەی وشەی نهێنی';
+
+  @override
+  String get resetPasswordSubtitle =>
+      'ئیمەیڵی تۆمارکراوت بنووسە بۆ وەرگرتنی بەستەری ڕێکخستنەوەی وشەی نهێنی.';
+
+  @override
+  String get resetPasswordSendLink => 'ناردنی بەستەر';
+
+  @override
+  String get resetPasswordSuccessMessage =>
+      'ئەگەر ئەم ئیمەیڵە تۆمار کرابێت، بەستەری ڕێکخستنەوە نێردرا.';
+
+  @override
   String get heroTitlePart1 => 'کاتێک وشەکان بێدەنگ دەبن...\n';
 
   @override
@@ -316,16 +333,16 @@ class AppLocalizationsKu extends AppLocalizations {
   String get what_do_you_want_to_say => 'دەتەوێت چی بڵێیت ئەمڕۆ؟';
 
   @override
-  String get say_love => 'بڵێ \'خۆشم دەوێیت\'...';
+  String get say_love => 'خۆشم دەوێیت...';
 
   @override
-  String get say_sorry => 'بڵێ \'لێم ببورە\'...';
+  String get say_sorry => 'لێم ببورە...';
 
   @override
-  String get say_congrats => 'بڵێ \'پیرۆزە\'...';
+  String get say_congrats => 'پیرۆزە...';
 
   @override
-  String get say_thanks => 'بڵێ \'سوپاس\'...';
+  String get say_thanks => 'سوپاس...';
 
   @override
   String get collection_crafted_for =>

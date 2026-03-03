@@ -8,13 +8,19 @@
       "program": "lib/main.dart"
     },
     {
+      "name": "Flutter (with env)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}/gull_premium",
+      "args": ["--dart-define-from-file=env.json"]
+    },
+    {
       "name": "Flutter (with Google Sign-In)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": [
-        "--dart-define=GOOGLE_WEB_CLIENT_ID=PASTE_YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
-      ]
+      "args": ["--dart-define=GOOGLE_WEB_CLIENT_ID=PASTE_YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"]
     }
   ]
 }

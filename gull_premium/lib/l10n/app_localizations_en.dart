@@ -136,6 +136,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orSignInWithEmail => 'Or sign in with email';
 
   @override
+  String get forgotPassword => 'Forgot Password?';
+
+  @override
+  String get resetPasswordTitle => 'Reset Password';
+
+  @override
+  String get resetPasswordSubtitle =>
+      'Enter your registered email address to receive a password reset link.';
+
+  @override
+  String get resetPasswordSendLink => 'Send Link';
+
+  @override
+  String get resetPasswordSuccessMessage =>
+      'If this email is registered, a password reset link has been sent.';
+
+  @override
   String get heroTitlePart1 => 'When words can\'t…\n';
 
   @override
@@ -315,16 +332,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get what_do_you_want_to_say => 'What do you want to say today?';
 
   @override
-  String get say_love => 'Say \'I love you\'...';
+  String get say_love => 'I love you...';
 
   @override
-  String get say_sorry => 'Say \'I\'m sorry\'...';
+  String get say_sorry => 'I\'m sorry...';
 
   @override
-  String get say_congrats => 'Say \'Congratulations\'...';
+  String get say_congrats => 'Congratulations...';
 
   @override
-  String get say_thanks => 'Say \'Thank you\'...';
+  String get say_thanks => 'Thank you...';
 
   @override
   String get collection_crafted_for =>

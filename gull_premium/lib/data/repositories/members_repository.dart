@@ -2,6 +2,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/customer_member_model.dart';
 
+/// Result of a paginated customers fetch (cursor-based).
+class PaginatedCustomersResult {
+  final List<CustomerMemberModel> items;
+  final DocumentSnapshot? lastDocument;
+  final bool hasMore;
+
+  const PaginatedCustomersResult({
+    required this.items,
+    this.lastDocument,
+    this.hasMore = false,
+  });
+}
+
 /// Repository for Super Admin CRM: customers (users with role == 'customer').
 class MembersRepository {
   MembersRepository({
@@ -11,7 +24,7 @@ class MembersRepository {
   final FirebaseFirestore _firestore;
 
   static const String _usersCollection = 'users';
-  static const int _customersLimit = 500;
+  static const int _pageSize = 20;
 
   /// Stream of live customer count (users where role == 'customer').
   Stream<int> watchCustomerCount() {
@@ -22,21 +35,37 @@ class MembersRepository {
         .map((snap) => snap.docs.length);
   }
 
-  /// Stream of all customers ordered by createdAt (newest first).
-  Stream<List<CustomerMemberModel>> watchCustomers() {
-    return _firestore
+  /// Fetches a page of customers (newest first). Use [startAfter] for the next page.
+  Future<PaginatedCustomersResult> getCustomersPage({
+    DocumentSnapshot? startAfter,
+    int limit = _pageSize,
+  }) async {
+    var query = _firestore
         .collection(_usersCollection)
         .where('role', isEqualTo: 'customer')
         .orderBy('createdAt', descending: true)
-        .limit(_customersLimit)
-        .snapshots()
-        .map((snap) {
-      final list = <CustomerMemberModel>[];
-      for (final doc in snap.docs) {
-        final model = CustomerMemberModel.fromFirestore(doc.id, doc.data());
-        if (model != null) list.add(model);
-      }
-      return list;
-    });
+        .limit(limit + 1);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    final snap = await query.get();
+    final docs = snap.docs;
+    final hasMore = docs.length > limit;
+    final pageDocs = hasMore ? docs.sublist(0, limit) : docs;
+    final lastDoc = pageDocs.isNotEmpty ? pageDocs.last : null;
+
+    final list = <CustomerMemberModel>[];
+    for (final doc in pageDocs) {
+      final model = CustomerMemberModel.fromFirestore(doc.id, doc.data());
+      if (model != null) list.add(model);
+    }
+
+    return PaginatedCustomersResult(
+      items: list,
+      lastDocument: lastDoc,
+      hasMore: hasMore,
+    );
   }
 }

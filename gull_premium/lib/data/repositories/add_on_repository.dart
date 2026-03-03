@@ -64,7 +64,7 @@ class AddOnRepository {
   /// Returns only active add-ons. Empty list if Firestore has none or on error (no hardcoded fallback).
   Future<List<AddOnModel>> getAddOns({String? vendorId}) async {
     try {
-      final snap = await _addOns.get().timeout(_queryTimeout);
+      final snap = await _addOns.limit(200).get().timeout(_queryTimeout);
       final list = <AddOnModel>[];
       for (final doc in snap.docs) {
         try {

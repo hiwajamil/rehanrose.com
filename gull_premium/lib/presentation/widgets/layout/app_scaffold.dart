@@ -1,9 +1,10 @@
-import 'dart:async';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
@@ -14,7 +15,6 @@ import '../../../core/utils/locale_provider.dart';
 import '../../../core/utils/rtl_utils.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../pages/auth/login_screen.dart';
-import '../common/primary_button.dart';
 import '../common/track_order_modal.dart';
 import 'app_footer.dart';
 
@@ -108,11 +108,19 @@ void showLoginModalOrPush(BuildContext context) {
 /// Header is sticky. About is in the footer.
 /// Vendor dashboard pages render their own [VendorDashboardHeader].
 /// Pass [scrollController] for pages that need scroll-based logic (e.g. infinite scroll).
+/// When [minimalHeader] is true, shows a transparent overlay header (hamburger, logo, profile) for cinematic landing.
 class AppScaffold extends ConsumerWidget {
   final Widget child;
   final ScrollController? scrollController;
+  /// When true, show minimal transparent header (hamburger, app name, profile) instead of full nav.
+  final bool minimalHeader;
 
-  const AppScaffold({super.key, required this.child, this.scrollController});
+  const AppScaffold({
+    super.key,
+    required this.child,
+    this.scrollController,
+    this.minimalHeader = false,
+  });
 
   /// True when we are on a vendor route and the user is authenticated,
   /// so the vendor page will show [VendorDashboardHeader] and we must not
@@ -127,100 +135,68 @@ class AppScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final showPublicHeader = !_isVendorDashboard(context, ref);
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
 
     return Scaffold(
-      drawer: showPublicHeader && isMobile
+      drawer: showPublicHeader
           ? _MobileNavDrawer(
               onNavigate: () {
                 Navigator.of(context).pop();
               },
             )
           : null,
-      body: SafeArea(
-        child: Column(
-          children: [
-            if (showPublicHeader) const _PublicHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: scrollController,
-                child: Column(
-                  children: [
-                    child,
-                    if (showPublicHeader) const AppFooter(),
-                    const SizedBox(height: 80),
-                  ],
+      body: minimalHeader && showPublicHeader
+          ? Stack(
+              children: [
+                SafeArea(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    child: Column(
+                      children: [
+                        child,
+                        if (showPublicHeader) const AppFooter(),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
+                  ),
                 ),
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _MinimalTransparentHeader(),
+                ),
+              ],
+            )
+          : SafeArea(
+              child: Column(
+                children: [
+                  if (showPublicHeader) const _PublicHeader(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        children: [
+                          child,
+                          if (showPublicHeader) const AppFooter(),
+                          const SizedBox(height: 80),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
 
-/// Public website header: brand, nav (Occasions, Florists, Track Order, Help), actions.
-class _PublicHeader extends ConsumerStatefulWidget {
+/// Public website header: hamburger (left), app title (center), profile/sign-in (right).
+class _PublicHeader extends ConsumerWidget {
   const _PublicHeader();
 
   @override
-  ConsumerState<_PublicHeader> createState() => _PublicHeaderState();
-}
-
-class _PublicHeaderState extends ConsumerState<_PublicHeader> {
-  OverlayEntry? _occasionsOverlay;
-  Timer? _occasionsCloseTimer;
-  final GlobalKey _occasionsKey = GlobalKey();
-
-  void _showOccasionsMenu(RenderBox navBox) {
-    _occasionsCloseTimer?.cancel();
-    // If menu is already open, don't remove/reinsert (causes flashing on hover)
-    if (_occasionsOverlay != null) return;
-    _occasionsOverlay = OverlayEntry(
-      builder: (context) => _OccasionsMegaMenu(
-        anchor: navBox,
-        onClose: _hideOccasionsMenu,
-        onEnterMenu: () => _occasionsCloseTimer?.cancel(),
-        onLeaveMenu: _scheduleCloseOccasions,
-        onSelectOccasion: (occasionId) {
-          context.go('/products?category=$occasionId');
-          _hideOccasionsMenu();
-        },
-        onSelectRecipient: (recipient) {
-          context.go('/');
-          _hideOccasionsMenu();
-        },
-      ),
-    );
-    Overlay.of(context).insert(_occasionsOverlay!);
-  }
-
-  void _hideOccasionsMenu() {
-    _occasionsCloseTimer?.cancel();
-    _occasionsOverlay?.remove();
-    _occasionsOverlay = null;
-    if (mounted) setState(() {});
-  }
-
-  void _scheduleCloseOccasions() {
-    _occasionsCloseTimer?.cancel();
-    _occasionsCloseTimer = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) _hideOccasionsMenu();
-    });
-  }
-
-  @override
-  void dispose() {
-    _occasionsCloseTimer?.cancel();
-    _occasionsOverlay?.remove();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     const maxWidth = 1280.0;
     const horizontalPadding = 16.0;
     const verticalPadding = 16.0;
@@ -246,71 +222,32 @@ class _PublicHeaderState extends ConsumerState<_PublicHeader> {
             child: Row(
               textDirection: Directionality.of(context),
               children: [
-                GestureDetector(
-                  onTap: () => context.go('/'),
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Text(
-                      l10n.appTitle,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppColors.inkCharcoal,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
-                          ),
+                IconButton(
+                  icon: const Icon(Icons.menu_rounded),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  style: IconButton.styleFrom(
+                    foregroundColor: AppColors.inkCharcoal,
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () => context.go('/'),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Text(
+                          l10n.appTitle,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: AppColors.inkCharcoal,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                const Spacer(),
-                if (!isMobile) ...[
-                  _OccasionsNavItem(
-                    key: _occasionsKey,
-                    label: l10n.navOccasions,
-                    isOpen: _occasionsOverlay != null,
-                    onHoverOrTap: () {
-                      final navBox = _occasionsKey.currentContext?.findRenderObject() as RenderBox?;
-                      if (navBox != null && navBox.hasSize) _showOccasionsMenu(navBox);
-                    },
-                    onEnterMenu: () => _occasionsCloseTimer?.cancel(),
-                    onLeaveMenu: _scheduleCloseOccasions,
-                  ),
-                  const SizedBox(width: 32),
-                  _NavLink(
-                    label: l10n.navOffers,
-                    onTap: () => context.go('/offers'),
-                    accentColor: AppColors.navOffersAccent,
-                  ),
-                  const SizedBox(width: 32),
-                  _NavLink(
-                    label: l10n.navFlorists,
-                    onTap: () => context.go('/florists'),
-                  ),
-                  const SizedBox(width: 32),
-                  _NavLink(
-                    label: l10n.navTrackOrder,
-                    onTap: () => showTrackOrderModal(context),
-                  ),
-                  const SizedBox(width: 32),
-                  _HelpDropdown(),
-                ],
-                if (!isMobile) const Spacer(),
-                if (!isMobile) ...[
-                  _LanguageSwitcher(),
-                  const SizedBox(width: 16),
-                  _HeaderOutlinedButton(
-                    label: l10n.ctaBecomeVendor,
-                    onPressed: () => context.go('/vendor'),
-                  ),
-                  const SizedBox(width: 16),
-                  const _AuthHeaderAction(),
-                ],
-                if (isMobile)
-                  IconButton(
-                    icon: const Icon(Icons.menu_rounded),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                    style: IconButton.styleFrom(
-                      foregroundColor: AppColors.inkCharcoal,
-                    ),
-                  ),
+                const _AuthHeaderAction(),
               ],
             ),
           ),
@@ -321,63 +258,45 @@ class _PublicHeaderState extends ConsumerState<_PublicHeader> {
 
 }
 
-/// Nav item that opens Occasions mega menu on hover (desktop) or tap (mobile).
-class _OccasionsNavItem extends StatefulWidget {
-  final String label;
-  final bool isOpen;
-  final VoidCallback onHoverOrTap;
-  final VoidCallback onEnterMenu;
-  final VoidCallback onLeaveMenu;
-
-  const _OccasionsNavItem({
-    super.key,
-    required this.label,
-    required this.isOpen,
-    required this.onHoverOrTap,
-    required this.onEnterMenu,
-    required this.onLeaveMenu,
-  });
+/// Minimal transparent overlay header for hero/landing: hamburger, app name, profile.
+class _MinimalTransparentHeader extends ConsumerWidget {
+  const _MinimalTransparentHeader();
 
   @override
-  State<_OccasionsNavItem> createState() => _OccasionsNavItemState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
 
-class _OccasionsNavItemState extends State<_OccasionsNavItem> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = (_hovered || widget.isOpen) ? AppColors.inkCharcoal : AppColors.navMuted;
-    return MouseRegion(
-      onEnter: (_) {
-        setState(() => _hovered = true);
-        widget.onHoverOrTap();
-      },
-      onExit: (_) {
-        setState(() => _hovered = false);
-        // Only schedule close when menu is not open. When the menu is open, the overlay
-        // covers the nav item so we get a spurious onExit; the menu's own MouseRegion
-        // handles scheduling close when the user actually leaves the menu panel.
-        if (!widget.isOpen) widget.onLeaveMenu();
-      },
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onHoverOrTap,
-        behavior: HitTestBehavior.opaque,
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(color: Colors.transparent),
+      child: SafeArea(
+        bottom: false,
         child: Padding(
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 4, vertical: 8),
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 12),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            textDirection: Directionality.of(context),
             children: [
-              Text(
-                widget.label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w500,
-                    ),
+              IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                style: IconButton.styleFrom(foregroundColor: Colors.white),
               ),
-              directionalIcon(context, Icons.keyboard_arrow_down_rounded,
-                  size: 20, color: color),
+              Expanded(
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () => context.go('/'),
+                    child: Text(
+                      l10n.appTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
+                    ),
+                  ),
+                ),
+              ),
+              const _AuthHeaderAction(minimalStyle: true),
             ],
           ),
         ),
@@ -386,182 +305,19 @@ class _OccasionsNavItemState extends State<_OccasionsNavItem> {
   }
 }
 
-/// Mega menu overlay: emotion categories + Shop by Recipient.
-class _OccasionsMegaMenu extends StatelessWidget {
-  final RenderBox anchor;
-  final VoidCallback onClose;
-  final VoidCallback onEnterMenu;
-  final VoidCallback onLeaveMenu;
-  final ValueChanged<String> onSelectOccasion;
-  final ValueChanged<String> onSelectRecipient;
-
-  const _OccasionsMegaMenu({
-    required this.anchor,
-    required this.onClose,
-    required this.onEnterMenu,
-    required this.onLeaveMenu,
-    required this.onSelectOccasion,
-    required this.onSelectRecipient,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final isRTL = Directionality.of(context) == TextDirection.rtl;
-    final pos = anchor.localToGlobal(Offset.zero);
-    final size = anchor.size;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    const menuWidth = 320.0;
-    const menuPadding = 16.0;
-
-    return Stack(
-      children: [
-        GestureDetector(
-          onTap: onClose,
-          behavior: HitTestBehavior.opaque,
-          child: const SizedBox.expand(),
-        ),
-        Positioned(
-          top: size.height + 4,
-          left: isRTL ? null : pos.dx,
-          right: isRTL ? (screenWidth - pos.dx - size.width) : null,
-          child: MouseRegion(
-            onEnter: (_) => onEnterMenu(),
-            onExit: (_) => onLeaveMenu(),
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(12),
-              color: AppColors.surface,
-              child: Container(
-                width: menuWidth,
-                padding: const EdgeInsets.all(menuPadding),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ...kEmotionCategories.map((cat) {
-                      return _MegaMenuItem(
-                        label: localizedEmotionCategoryTitle(l10n, cat.titleKey),
-                        onTap: () => onSelectOccasion(cat.id),
-                      );
-                    }),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Divider(height: 1, color: AppColors.headerBorder),
-                    ),
-                    Text(
-                      l10n.occasionsShopByRecipient,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppColors.inkMuted,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    _MegaMenuItem(
-                      label: l10n.occasionsForMom,
-                      onTap: () => onSelectRecipient('mom'),
-                    ),
-                    _MegaMenuItem(
-                      label: l10n.occasionsForHer,
-                      onTap: () => onSelectRecipient('her'),
-                    ),
-                    _MegaMenuItem(
-                      label: l10n.occasionsForHim,
-                      onTap: () => onSelectRecipient('him'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MegaMenuItem extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _MegaMenuItem({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.inkCharcoal,
-                fontWeight: FontWeight.w500,
-              ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Help dropdown: Delivery Areas, Contact Us, FAQ.
-class _HelpDropdown extends StatelessWidget {
-  const _HelpDropdown();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return PopupMenuButton<String>(
-      tooltip: '',
-      offset: const Offset(0, 40),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 8, vertical: 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.navHelp,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.navMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
-            directionalIcon(context, Icons.keyboard_arrow_down_rounded,
-                size: 20, color: AppColors.inkCharcoal),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'delivery',
-          child: Text(l10n.helpDeliveryAreas),
-        ),
-        PopupMenuItem(
-          value: 'contact',
-          child: Text(l10n.helpContactUs),
-        ),
-        PopupMenuItem(
-          value: 'faq',
-          child: Text(l10n.helpFaq),
-        ),
-      ],
-      onSelected: (value) {
-        if (value == 'delivery') showDeliveryAreasDialog(context);
-        if (value == 'contact') showContactUsDialog(context);
-        if (value == 'faq') showFaqDialog(context);
-      },
-    );
-  }
-}
-
 /// Language dropdown: English, کوردی, العربية. Persists to SharedPreferences + Firestore.
 class _LanguageSwitcher extends ConsumerWidget {
+  /// When true, use white/off-white for glassmorphism drawer.
+  final bool lightStyle;
+
+  const _LanguageSwitcher({this.lightStyle = false});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
     final l10n = AppLocalizations.of(context)!;
+    final textColor = lightStyle ? Colors.white.withValues(alpha: 0.9) : AppColors.inkCharcoal;
+    final iconColor = lightStyle ? Colors.white.withValues(alpha: 0.9) : AppColors.inkCharcoal;
 
     return PopupMenuButton<String>(
       tooltip: '',
@@ -574,12 +330,12 @@ class _LanguageSwitcher extends ConsumerWidget {
             Text(
               languageDisplayName(locale.languageCode, context),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.inkCharcoal,
+                    color: textColor,
                     fontWeight: FontWeight.w500,
                   ),
             ),
             directionalIcon(context, Icons.keyboard_arrow_down_rounded,
-                size: 20, color: AppColors.inkCharcoal),
+                size: 20, color: iconColor),
           ],
         ),
       ),
@@ -604,102 +360,12 @@ class _LanguageSwitcher extends ConsumerWidget {
   }
 }
 
-/// Single nav link: hover changes color only, no movement.
-class _NavLink extends StatefulWidget {
-  final String label;
-  final VoidCallback onTap;
-  /// When set, use this as the default (non-hover) color for emphasis (e.g. Offers).
-  final Color? accentColor;
-
-  const _NavLink({
-    required this.label,
-    required this.onTap,
-    this.accentColor,
-  });
-
-  @override
-  State<_NavLink> createState() => _NavLinkState();
-}
-
-class _NavLinkState extends State<_NavLink> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final baseColor = widget.accentColor ?? AppColors.navMuted;
-    final color = _hovered ? AppColors.inkCharcoal : baseColor;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 4, vertical: 8),
-          child: Text(
-            widget.label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Outlined pill button: rounded-full, subtle border, hover bg only.
-class _HeaderOutlinedButton extends StatefulWidget {
-  final String label;
-  final VoidCallback onPressed;
-
-  const _HeaderOutlinedButton({
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  State<_HeaderOutlinedButton> createState() => _HeaderOutlinedButtonState();
-}
-
-class _HeaderOutlinedButtonState extends State<_HeaderOutlinedButton> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        child: Container(
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: _hovered
-                ? AppColors.border.withValues(alpha: 0.6)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: AppColors.headerBorder),
-          ),
-          child: Text(
-            widget.label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.inkCharcoal,
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Header auth action: if logged in shows avatar (→ /account), else "Sign In / Register" (opens login).
+/// When [minimalStyle] is true, uses light colors for transparent hero header.
 class _AuthHeaderAction extends ConsumerWidget {
-  const _AuthHeaderAction();
+  const _AuthHeaderAction({this.minimalStyle = false});
+
+  final bool minimalStyle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -711,9 +377,17 @@ class _AuthHeaderAction extends ConsumerWidget {
         photoUrl: user.photoURL,
         displayName: user.displayName,
         email: user.email,
+        minimalStyle: minimalStyle,
       );
     }
 
+    if (minimalStyle) {
+      return IconButton(
+        icon: const Icon(Icons.person_outline_rounded),
+        onPressed: () => showLoginModalOrPush(context),
+        style: IconButton.styleFrom(foregroundColor: Colors.white),
+      );
+    }
     return _SignInRegisterButton(label: l10n.signInRegister);
   }
 }
@@ -722,11 +396,13 @@ class _HeaderAccountAvatar extends StatelessWidget {
   final String? photoUrl;
   final String? displayName;
   final String? email;
+  final bool minimalStyle;
 
   const _HeaderAccountAvatar({
     this.photoUrl,
     this.displayName,
     this.email,
+    this.minimalStyle = false,
   });
 
   String get _initial {
@@ -745,6 +421,7 @@ class _HeaderAccountAvatar extends StatelessWidget {
               imageUrl: photoUrl!,
               imageBuilder: (_, imageProvider) => CircleAvatar(
                 radius: 18,
+                backgroundColor: minimalStyle ? Colors.white24 : null,
                 backgroundImage: imageProvider,
               ),
               placeholder: (_, __) => _buildInitialAvatar(),
@@ -757,11 +434,11 @@ class _HeaderAccountAvatar extends StatelessWidget {
   Widget _buildInitialAvatar() {
     return CircleAvatar(
       radius: 18,
-      backgroundColor: AppColors.border,
+      backgroundColor: minimalStyle ? Colors.white24 : AppColors.border,
       child: Text(
         _initial.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.inkMuted,
+        style: TextStyle(
+          color: minimalStyle ? Colors.white : AppColors.inkMuted,
           fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
@@ -807,46 +484,13 @@ class _SignInRegisterButtonState extends State<_SignInRegisterButton> {
   }
 }
 
-/// Drawer nav item: tappable row. [accentColor] optionally styles the text (e.g. Offers).
-class _DrawerNavItem extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final Color? accentColor;
-
-  const _DrawerNavItem({
-    required this.label,
-    required this.onTap,
-    this.accentColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = accentColor ?? AppColors.inkCharcoal;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.symmetric(
-          horizontal: 12,
-          vertical: 14,
-        ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w500,
-              ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Occasions accordion in mobile drawer: expands to show emotion categories.
 class _OccasionsAccordion extends StatefulWidget {
   final VoidCallback onNavigate;
+  /// When true, use white/serif styling for glassmorphism drawer.
+  final bool glassStyle;
 
-  const _OccasionsAccordion({required this.onNavigate});
+  const _OccasionsAccordion({required this.onNavigate, this.glassStyle = false});
 
   @override
   State<_OccasionsAccordion> createState() => _OccasionsAccordionState();
@@ -858,6 +502,29 @@ class _OccasionsAccordionState extends State<_OccasionsAccordion> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isGlass = widget.glassStyle;
+    final titleColor = isGlass ? Colors.white : AppColors.inkCharcoal;
+    final subtitleColor = isGlass ? Colors.white.withValues(alpha: 0.85) : AppColors.inkMuted;
+    final titleStyle = isGlass
+        ? GoogleFonts.playfairDisplay(
+            fontSize: 23,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          )
+        : Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: titleColor,
+            fontWeight: FontWeight.w500,
+          );
+    final subtitleStyle = isGlass
+        ? TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: subtitleColor,
+          )
+        : Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: subtitleColor,
+            fontWeight: FontWeight.w500,
+          );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -877,10 +544,7 @@ class _OccasionsAccordionState extends State<_OccasionsAccordion> {
                   Expanded(
                     child: Text(
                       l10n.navOccasions,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppColors.inkCharcoal,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      style: titleStyle,
                     ),
                   ),
                   AnimatedRotation(
@@ -890,7 +554,7 @@ class _OccasionsAccordionState extends State<_OccasionsAccordion> {
                       context,
                       Icons.keyboard_arrow_down_rounded,
                       size: 24,
-                      color: AppColors.inkCharcoal,
+                      color: titleColor,
                     ),
                   ),
                 ],
@@ -919,10 +583,7 @@ class _OccasionsAccordionState extends State<_OccasionsAccordion> {
                         ),
                         child: Text(
                           localizedEmotionCategoryTitle(l10n, cat.titleKey),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.inkMuted,
-                                fontWeight: FontWeight.w500,
-                              ),
+                          style: subtitleStyle,
                         ),
                       ),
                     ),
@@ -940,7 +601,53 @@ class _OccasionsAccordionState extends State<_OccasionsAccordion> {
   }
 }
 
-/// Mobile drawer: nav links with Occasions accordion, language switcher, primary actions.
+/// Primary nav item for glass drawer: large serif, white, generous padding.
+Widget _glassDrawerPrimaryItem({
+  required BuildContext context,
+  required String label,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 4),
+      child: Text(
+        label,
+        style: GoogleFonts.playfairDisplay(
+          fontSize: 23,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+      ),
+    ),
+  );
+}
+
+/// Secondary nav item for glass drawer: smaller, lighter font.
+Widget _glassDrawerSecondaryItem({
+  required BuildContext context,
+  required String label,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          color: Colors.white.withValues(alpha: 0.88),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Mobile drawer: glassmorphism nav with Occasions accordion, language switcher, primary actions.
 class _MobileNavDrawer extends ConsumerWidget {
   final VoidCallback onNavigate;
 
@@ -949,217 +656,342 @@ class _MobileNavDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    const horizontalPadding = 28.0;
+    const verticalPadding = 28.0;
 
     return Drawer(
-      backgroundColor: AppColors.headerBackground,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l10n.appTitle,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.inkCharcoal,
-                      fontWeight: FontWeight.w600,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.6),
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header: logo + close
+                  Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(
+                      horizontalPadding,
+                      verticalPadding,
+                      horizontalPadding,
+                      0,
                     ),
-              ),
-              const SizedBox(height: 24),
-              _LanguageSwitcher(),
-              const SizedBox(height: 24),
-              // Auth and Become a Vendor at top so they are visible on mobile without scrolling
-              ref.watch(authStateProvider).when(
-                data: (user) {
-                  if (user != null) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    child: Row(
                       children: [
-                        PrimaryButton(
-                          label: l10n.account,
-                          onPressed: () {
-                            context.go('/account');
-                            onNavigate();
-                          },
-                          variant: PrimaryButtonVariant.outline,
+                        Expanded(
+                          child: Text(
+                            l10n.appTitle,
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: PrimaryButton(
-                            label: l10n.ctaBecomeVendor,
-                            onPressed: () {
-                              context.go('/vendor');
-                              onNavigate();
-                            },
-                            variant: PrimaryButtonVariant.outline,
+                        IconButton(
+                          onPressed: onNavigate,
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          style: IconButton.styleFrom(
+                            foregroundColor: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: PrimaryButton(
-                          label: l10n.signInRegister,
-                          onPressed: () {
-                            onNavigate();
-                            showLoginModalOrPush(context);
+                    ),
+                  ),
+                  // Scrollable nav
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        horizontalPadding,
+                        8,
+                        horizontalPadding,
+                        24,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Primary: Occasions
+                          _OccasionsAccordion(
+                            onNavigate: onNavigate,
+                            glassStyle: true,
+                          ),
+                          _glassDrawerPrimaryItem(
+                            context: context,
+                            label: l10n.navOffers,
+                            onTap: () {
+                              context.go('/offers');
+                              onNavigate();
+                            },
+                          ),
+                          _glassDrawerPrimaryItem(
+                            context: context,
+                            label: l10n.navFlorists,
+                            onTap: () {
+                              context.go('/florists');
+                              onNavigate();
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          // Subtle divider
+                          Divider(
+                            height: 1,
+                            color: Colors.white.withValues(alpha: 0.15),
+                            thickness: 1,
+                          ),
+                          const SizedBox(height: 16),
+                          // Secondary nav (order: Track Order, Delivery Areas, FAQ, About, Contact Us)
+                          _glassDrawerSecondaryItem(
+                            context: context,
+                            label: l10n.navTrackOrder,
+                            onTap: () {
+                              showTrackOrderModal(context);
+                              onNavigate();
+                            },
+                          ),
+                          _glassDrawerSecondaryItem(
+                            context: context,
+                            label: l10n.helpDeliveryAreas,
+                            onTap: () {
+                              showDeliveryAreasDialog(context);
+                              onNavigate();
+                            },
+                          ),
+                          _glassDrawerSecondaryItem(
+                            context: context,
+                            label: l10n.helpFaq,
+                            onTap: () {
+                              showFaqDialog(context);
+                              onNavigate();
+                            },
+                          ),
+                          _glassDrawerSecondaryItem(
+                            context: context,
+                            label: l10n.navAbout,
+                            onTap: () {
+                              context.go('/');
+                              onNavigate();
+                            },
+                          ),
+                          _glassDrawerSecondaryItem(
+                            context: context,
+                            label: l10n.helpContactUs,
+                            onTap: () {
+                              showContactUsDialog(context);
+                              onNavigate();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Footer: action buttons + language
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      20,
+                      horizontalPadding,
+                      verticalPadding + 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ref.watch(authStateProvider).when(
+                          data: (user) {
+                            if (user != null) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  OutlinedButton(
+                                    onPressed: () {
+                                      context.go('/account');
+                                      onNavigate();
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      side: BorderSide(
+                                        color: Colors.white.withValues(alpha: 0.5),
+                                        width: 1.2,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                        horizontal: 24,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      l10n.account,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton(
+                                    onPressed: () {
+                                      context.go('/vendor');
+                                      onNavigate();
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      side: BorderSide(
+                                        color: Colors.white.withValues(alpha: 0.5),
+                                        width: 1.2,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                        horizontal: 24,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      l10n.ctaBecomeVendor,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                OutlinedButton(
+                                  onPressed: () {
+                                    onNavigate();
+                                    showLoginModalOrPush(context);
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.white.withValues(alpha: 0.12),
+                                    side: BorderSide(
+                                      color: Colors.white.withValues(alpha: 0.5),
+                                      width: 1.2,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                      horizontal: 24,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    l10n.signInRegister,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton(
+                                  onPressed: () {
+                                    context.go('/vendor');
+                                    onNavigate();
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    side: BorderSide(
+                                      color: Colors.white.withValues(alpha: 0.5),
+                                      width: 1.2,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                      horizontal: 24,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    l10n.ctaBecomeVendor,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
                           },
+                          loading: () => _buildGlassAuthButtons(context, l10n),
+                          error: (_, __) => _buildGlassAuthButtons(context, l10n),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: PrimaryButton(
-                          label: l10n.ctaBecomeVendor,
-                          onPressed: () {
-                            context.go('/vendor');
-                            onNavigate();
-                          },
-                          variant: PrimaryButtonVariant.outline,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: PrimaryButton(
-                        label: l10n.signInRegister,
-                        onPressed: () {
-                          onNavigate();
-                          showLoginModalOrPush(context);
-                        },
-                      ),
+                        const SizedBox(height: 16),
+                        _LanguageSwitcher(lightStyle: true),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: PrimaryButton(
-                        label: l10n.ctaBecomeVendor,
-                        onPressed: () {
-                          context.go('/vendor');
-                          onNavigate();
-                        },
-                        variant: PrimaryButtonVariant.outline,
-                      ),
-                    ),
-                  ],
-                ),
-                error: (_, __) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: PrimaryButton(
-                        label: l10n.signInRegister,
-                        onPressed: () {
-                          onNavigate();
-                          showLoginModalOrPush(context);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: PrimaryButton(
-                        label: l10n.ctaBecomeVendor,
-                        onPressed: () {
-                          context.go('/vendor');
-                          onNavigate();
-                        },
-                        variant: PrimaryButtonVariant.outline,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
-              _OccasionsAccordion(
-                onNavigate: onNavigate,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DrawerNavItem(
-                  label: l10n.navOffers,
-                  onTap: () {
-                    context.go('/offers');
-                    onNavigate();
-                  },
-                  accentColor: AppColors.navOffersAccent,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DrawerNavItem(
-                  label: l10n.navFlorists,
-                  onTap: () {
-                    context.go('/florists');
-                    onNavigate();
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DrawerNavItem(
-                  label: l10n.navTrackOrder,
-                  onTap: () {
-                    showTrackOrderModal(context);
-                    onNavigate();
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DrawerNavItem(
-                  label: l10n.helpDeliveryAreas,
-                  onTap: () {
-                    showDeliveryAreasDialog(context);
-                    onNavigate();
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DrawerNavItem(
-                  label: l10n.helpContactUs,
-                  onTap: () {
-                    showContactUsDialog(context);
-                    onNavigate();
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DrawerNavItem(
-                  label: l10n.helpFaq,
-                  onTap: () {
-                    showFaqDialog(context);
-                    onNavigate();
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DrawerNavItem(
-                  label: l10n.navAbout,
-                  onTap: () {
-                    context.go('/');
-                    onNavigate();
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGlassAuthButtons(BuildContext context, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OutlinedButton(
+          onPressed: () {
+            onNavigate();
+            showLoginModalOrPush(context);
+          },
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.white.withValues(alpha: 0.12),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.5),
+              width: 1.2,
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(
+            l10n.signInRegister,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: () {
+            context.go('/vendor');
+            onNavigate();
+          },
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.5),
+              width: 1.2,
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(
+            l10n.ctaBecomeVendor,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -7,8 +7,6 @@ import '../../../controllers/controllers.dart';
 import '../../../data/models/flower_model.dart';
 import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/primary_button.dart';
-import '../../widgets/layout/app_scaffold.dart';
-import '../../widgets/layout/section_container.dart';
 
 class AnalyticsOverviewPage extends ConsumerWidget {
   const AnalyticsOverviewPage({super.key});
@@ -16,27 +14,22 @@ class AnalyticsOverviewPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authAsync = ref.watch(authStateProvider);
-    return AppScaffold(
-      child: SectionContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
-        child: authAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => _buildAccessDenied(context),
-          data: (user) {
-            if (user == null) return _buildAccessDenied(context);
-            return FutureBuilder<bool>(
-              future: ref.read(authRepositoryProvider).isAdmin(user.uid),
-              builder: (context, adminSnapshot) {
-                if (adminSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (adminSnapshot.data != true) return _buildAccessDenied(context);
-                return _buildContent(context, ref);
-              },
-            );
+    return authAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => _buildAccessDenied(context),
+      data: (user) {
+        if (user == null) return _buildAccessDenied(context);
+        return FutureBuilder<bool>(
+          future: ref.read(authRepositoryProvider).isAdmin(user.uid),
+          builder: (context, adminSnapshot) {
+            if (adminSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (adminSnapshot.data != true) return _buildAccessDenied(context);
+            return _buildContent(context, ref);
           },
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -103,19 +96,16 @@ class AnalyticsOverviewPage extends ConsumerWidget {
                 children: [
                   Text(
                     'Analytics Overview',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ink,
+                        ),
                   ),
                   const Spacer(),
                   PrimaryButton(
                     label: 'Refresh',
                     onPressed: () =>
                         ref.invalidate(adminAnalyticsBouquetsProvider),
-                    variant: PrimaryButtonVariant.outline,
-                  ),
-                  const SizedBox(width: 12),
-                  PrimaryButton(
-                    label: 'Back to Admin',
-                    onPressed: () => context.go('/admin'),
                     variant: PrimaryButtonVariant.outline,
                   ),
                 ],

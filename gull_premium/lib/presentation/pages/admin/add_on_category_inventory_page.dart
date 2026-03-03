@@ -12,8 +12,6 @@ import '../../../controllers/controllers.dart';
 import '../../../data/models/add_on_model.dart';
 import '../../widgets/admin/add_edit_add_on_dialog.dart';
 import '../../widgets/common/app_cached_image.dart';
-import '../../widgets/layout/app_scaffold.dart';
-import '../../widgets/layout/section_container.dart';
 
 /// Dedicated inventory screen for a single add-on category (Vases, Chocolates, or Cards).
 /// Displays a grid of items with name, price, thumbnail. Prominent "+ Add New X" button.
@@ -171,40 +169,32 @@ class _AddOnCategoryInventoryPageState
       color: AppColors.ink,
     );
 
-    return AppScaffold(
-      child: SectionContainer(
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 20 : 48,
-          vertical: isMobile ? 24 : 40,
-        ),
-        child: authAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => _buildAccessDenied(context),
-          data: (user) {
-            if (user == null) return _buildAccessDenied(context);
-            return FutureBuilder<bool>(
-              future: () async {
-                final authRepo = ref.read(authRepositoryProvider);
-                final ok = await authRepo.isAdmin(user.uid);
-                if (ok) await authRepo.ensureSuperAdminUserDoc(user.uid);
-                return ok;
-              }(),
-              builder: (context, adminSnapshot) {
-                if (adminSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (adminSnapshot.data != true) return _buildAccessDenied(context);
-                return _buildContent(
-                  context,
-                  addOnsAsync,
-                  playfair,
-                  isMobile,
-                );
-              },
+    return authAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => _buildAccessDenied(context),
+      data: (user) {
+        if (user == null) return _buildAccessDenied(context);
+        return FutureBuilder<bool>(
+          future: () async {
+            final authRepo = ref.read(authRepositoryProvider);
+            final ok = await authRepo.isAdmin(user.uid);
+            if (ok) await authRepo.ensureSuperAdminUserDoc(user.uid);
+            return ok;
+          }(),
+          builder: (context, adminSnapshot) {
+            if (adminSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (adminSnapshot.data != true) return _buildAccessDenied(context);
+            return _buildContent(
+              context,
+              addOnsAsync,
+              playfair,
+              isMobile,
             );
           },
-        ),
-      ),
+        );
+      },
     );
   }
 

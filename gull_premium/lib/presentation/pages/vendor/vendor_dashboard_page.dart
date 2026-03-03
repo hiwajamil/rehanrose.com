@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/repositories/auth_repository.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/utils/auth_error_utils.dart';
 import '../../../controllers/controllers.dart';
@@ -118,6 +119,25 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _openForgotPassword() {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final authRepo = ref.read(authRepositoryProvider);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => _VendorResetPasswordDialog(
+        l10n: l10n,
+        authRepository: authRepo,
+        onCancel: () => Navigator.of(ctx).pop(),
+        onSent: () {
+          Navigator.of(ctx).pop();
+          _showMessage(l10n.resetPasswordSuccessMessage);
+        },
+        onError: _showMessage,
+      ),
+    );
   }
 
   @override
@@ -296,12 +316,27 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
                         onPressed: _isSubmitting ? () {} : _signInVendor,
                       ),
                       const SizedBox(height: 12),
-                      Text(
-                        l10n.vendorForgotPasswordContactSupport,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.inkMuted),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _isSubmitting ? null : _openForgotPassword,
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.rose,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            l10n.forgotPassword,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: AppColors.rose,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
                       ),
                     ] else ...[
                       _AuthField(
@@ -670,6 +705,154 @@ class _AuthField extends StatelessWidget {
               borderSide: BorderSide.none,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog for vendor "Forgot Password": enter email, send reset link via Firebase.
+class _VendorResetPasswordDialog extends StatefulWidget {
+  const _VendorResetPasswordDialog({
+    required this.l10n,
+    required this.authRepository,
+    required this.onCancel,
+    required this.onSent,
+    required this.onError,
+  });
+
+  final AppLocalizations l10n;
+  final AuthRepository authRepository;
+  final VoidCallback onCancel;
+  final VoidCallback onSent;
+  final void Function(String message) onError;
+
+  @override
+  State<_VendorResetPasswordDialog> createState() =>
+      _VendorResetPasswordDialogState();
+}
+
+class _VendorResetPasswordDialogState extends State<_VendorResetPasswordDialog> {
+  final _emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  static String? _validateEmail(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Please enter your email address';
+    final trimmed = v.trim();
+    if (!trimmed.contains('@') || !trimmed.contains('.')) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendLink() async {
+    if (_isLoading) return;
+    if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim();
+    setState(() => _isLoading = true);
+    try {
+      await widget.authRepository.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      widget.onSent();
+    } catch (e) {
+      if (mounted) widget.onError(authErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(
+        widget.l10n.resetPasswordTitle,
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.ink,
+            ),
+      ),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              widget.l10n.resetPasswordSubtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.inkMuted,
+                    height: 1.45,
+                  ),
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: widget.l10n.emailLabel,
+                hintText: widget.l10n.emailHint,
+                prefixIcon: Icon(Icons.mail_outline, color: AppColors.inkMuted, size: 22),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: AppColors.rose.withValues(alpha: 0.4),
+                    width: 1,
+                  ),
+                ),
+              ),
+              validator: _validateEmail,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : widget.onCancel,
+          child: Text(
+            widget.l10n.cancel,
+            style: TextStyle(
+              color: AppColors.inkMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        FilledButton(
+          onPressed: _isLoading ? null : _sendLink,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.rose,
+            foregroundColor: Colors.white,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(widget.l10n.resetPasswordSendLink),
         ),
       ],
     );

@@ -1,17 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 
+import '../../../core/env/app_env.dart';
 import '../../../core/constants/breakpoints.dart';
+import '../../../core/utils/auth_error_utils.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../data/repositories/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
-import '../../widgets/layout/app_scaffold.dart';
-import '../../widgets/layout/section_container.dart';
 
 class AdminDashboardPage extends ConsumerStatefulWidget {
   const AdminDashboardPage({super.key});
@@ -39,12 +36,14 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 
   Future<void> _signIn() async {
+    if (!mounted) return;
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-        if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       _showMessage(AppLocalizations.of(context)!.adminEnterEmailPassword);
       return;
     }
+    if (!mounted) return;
     setState(() => _isSigningIn = true);
     try {
       final authRepo = ref.read(authRepositoryProvider);
@@ -54,8 +53,10 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           password: password,
         );
       } on fa.FirebaseAuthException catch (e) {
+        final superEmail = AppEnv.superAdminEmail.trim();
         if (e.code == 'user-not-found' &&
-            email.toLowerCase() == kSuperAdminEmail.toLowerCase()) {
+            superEmail.isNotEmpty &&
+            email.toLowerCase() == superEmail.toLowerCase()) {
           await authRepo.createUserWithEmailAndPassword(
             email: email,
             password: password,
@@ -64,14 +65,21 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           rethrow;
         }
       }
+      if (!mounted) return;
       final user = authRepo.currentUser;
+      final superEmail = AppEnv.superAdminEmail.trim();
       if (user != null &&
-          user.email?.trim().toLowerCase() == kSuperAdminEmail.toLowerCase()) {
+          superEmail.isNotEmpty &&
+          user.email?.trim().toLowerCase() == superEmail.toLowerCase()) {
         await authRepo.ensureSuperAdminUserDoc(user.uid);
       }
     } on fa.FirebaseAuthException catch (e) {
       if (mounted) {
-        _showMessage(e.message ?? AppLocalizations.of(context)!.adminUnableToSignIn);
+        _showMessage(authErrorMessage(e, fallback: AppLocalizations.of(context)!.adminUnableToSignIn));
+      }
+    } catch (e, _) {
+      if (mounted) {
+        _showMessage(authErrorMessage(e, fallback: AppLocalizations.of(context)!.adminUnableToSignIn));
       }
     } finally {
       if (mounted) setState(() => _isSigningIn = false);
@@ -87,28 +95,38 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final authAsync = ref.watch(authStateProvider);
-    return AppScaffold(
-      child: SectionContainer(
+    return authAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => _buildFullScreenWrapper(context, _buildAdminSignIn(context)),
+      data: (user) {
+        if (user == null) return _buildFullScreenWrapper(context, _buildAdminSignIn(context));
+        final isAdminAsync = ref.watch(isAdminForUidProvider(user.uid));
+        return isAdminAsync.when(
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, __) => _buildFullScreenWrapper(context, _buildAdminSignIn(context)),
+          data: (isAdmin) {
+            if (!isAdmin) return _buildFullScreenWrapper(context, _buildNotAuthorized(context, user));
+            return _buildAdminDashboard(context, user.uid);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFullScreenWrapper(BuildContext context, Widget child) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        color: Colors.grey.shade50,
         padding: EdgeInsets.symmetric(
           horizontal: MediaQuery.sizeOf(context).width <= kMobileBreakpoint ? 16 : 48,
           vertical: MediaQuery.sizeOf(context).width <= kMobileBreakpoint ? 24 : 56,
         ),
-        child: authAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => _buildAdminSignIn(context),
-          data: (user) {
-            if (user == null) return _buildAdminSignIn(context);
-            final isAdminAsync = ref.watch(isAdminForUidProvider(user.uid));
-            return isAdminAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => _buildAdminSignIn(context),
-              data: (isAdmin) {
-                if (!isAdmin) return _buildNotAuthorized(context, user);
-                return _buildAdminDashboard(context, user.uid);
-              },
-            );
-          },
-        ),
+        child: Center(child: SingleChildScrollView(child: child)),
       ),
     );
   }
@@ -162,9 +180,27 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             onSubmitted: _isSigningIn ? null : _signIn,
           ),
           const SizedBox(height: 24),
-          PrimaryButton(
-            label: _isSigningIn ? l10n.adminSigningIn : l10n.signIn,
-            onPressed: _isSigningIn ? () {} : _signIn,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isSigningIn ? null : _signIn,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.rose,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                _isSigningIn ? l10n.adminSigningIn : l10n.signIn,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -223,100 +259,20 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   Widget _buildAdminDashboard(BuildContext context, String adminId) {
     final l10n = AppLocalizations.of(context)!;
     final applicationsAsync = ref.watch(pendingVendorApplicationsStreamProvider);
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isMobile) ...[
-            Text(
-              l10n.adminPendingApplications,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                PrimaryButton(
-                  label: l10n.adminAnalytics,
-                  onPressed: () => context.go('/admin/analytics'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-                PrimaryButton(
-                  label: l10n.adminBouquetApproval,
-                  onPressed: () => context.go('/admin/approvals'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-                PrimaryButton(
-                  label: l10n.adminManageAddOns,
-                  onPressed: () => context.push('/admin/add-ons'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-                PrimaryButton(
-                  label: 'Orders',
-                  onPressed: () => context.go('/admin/orders'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-                PrimaryButton(
-                  label: l10n.adminSignOut,
-                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-              ],
-            ),
-          ] else
-            Row(
-              children: [
-                Text(
-                  l10n.adminPendingApplications,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const Spacer(),
-                PrimaryButton(
-                  label: l10n.adminAnalytics,
-                  onPressed: () => context.go('/admin/analytics'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-                const SizedBox(width: 12),
-                PrimaryButton(
-                  label: l10n.adminBouquetApproval,
-                  onPressed: () => context.go('/admin/approvals'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-                const SizedBox(width: 12),
-                PrimaryButton(
-                  label: l10n.adminManageAddOns,
-                  onPressed: () => context.push('/admin/add-ons'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-                const SizedBox(width: 12),
-                PrimaryButton(
-                  label: 'Orders',
-                  onPressed: () => context.go('/admin/orders'),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-                const SizedBox(width: 12),
-                PrimaryButton(
-                  label: l10n.adminSignOut,
-                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
-                  variant: PrimaryButtonVariant.outline,
-                ),
-              ],
-            ),
-          const SizedBox(height: 20),
-          Consumer(
-            builder: (context, ref, _) {
-              final countAsync = ref.watch(customerCountStreamProvider);
-              return _TotalMembersCard(
-                countAsync: countAsync,
-                onTap: () => context.push('/admin/members'),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          applicationsAsync.when(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          l10n.adminPendingApplications,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.ink,
+              ),
+        ),
+        const SizedBox(height: 20),
+        applicationsAsync.when(
           loading: () => Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Row(
@@ -473,8 +429,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             );
           },
         ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -575,95 +530,3 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// Tappable card showing live customer count. Navigates to MembersListScreen.
-class _TotalMembersCard extends StatelessWidget {
-  final AsyncValue<int> countAsync;
-  final VoidCallback onTap;
-
-  const _TotalMembersCard({
-    required this.countAsync,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
-            boxShadow: const [
-              BoxShadow(
-                color: AppColors.shadow,
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.rose.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  Icons.people_outline,
-                  size: 28,
-                  color: AppColors.rosePrimary,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Members',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.ink,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    countAsync.when(
-                      data: (count) => Text(
-                        '$count',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.rosePrimary,
-                            ),
-                      ),
-                      loading: () => SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.rose,
-                        ),
-                      ),
-                      error: (_, __) => Text(
-                        '—',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: AppColors.inkMuted,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.inkMuted),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

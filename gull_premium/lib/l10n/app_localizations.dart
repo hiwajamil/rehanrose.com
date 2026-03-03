@@ -352,6 +352,36 @@ abstract class AppLocalizations {
   /// **'Or sign in with email'**
   String get orSignInWithEmail;
 
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password?'**
+  String get forgotPassword;
+
+  /// No description provided for @resetPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPasswordTitle;
+
+  /// No description provided for @resetPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your registered email address to receive a password reset link.'**
+  String get resetPasswordSubtitle;
+
+  /// No description provided for @resetPasswordSendLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Link'**
+  String get resetPasswordSendLink;
+
+  /// No description provided for @resetPasswordSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'If this email is registered, a password reset link has been sent.'**
+  String get resetPasswordSuccessMessage;
+
   /// No description provided for @heroTitlePart1.
   ///
   /// In en, this message translates to:
@@ -691,25 +721,25 @@ abstract class AppLocalizations {
   /// No description provided for @say_love.
   ///
   /// In en, this message translates to:
-  /// **'Say \'I love you\'...'**
+  /// **'I love you...'**
   String get say_love;
 
   /// No description provided for @say_sorry.
   ///
   /// In en, this message translates to:
-  /// **'Say \'I\'m sorry\'...'**
+  /// **'I\'m sorry...'**
   String get say_sorry;
 
   /// No description provided for @say_congrats.
   ///
   /// In en, this message translates to:
-  /// **'Say \'Congratulations\'...'**
+  /// **'Congratulations...'**
   String get say_congrats;
 
   /// No description provided for @say_thanks.
   ///
   /// In en, this message translates to:
-  /// **'Say \'Thank you\'...'**
+  /// **'Thank you...'**
   String get say_thanks;
 
   /// No description provided for @collection_crafted_for.
