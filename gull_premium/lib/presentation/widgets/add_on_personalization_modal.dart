@@ -21,18 +21,24 @@ import 'voice_message_dialog.dart';
 const int freeDeliveryThreshold = 50000;
 
 /// Opens the Add-on & Personalization dialog (centered) for the given bouquet.
-/// Step 1: Add-ons (multi-select). Step 2: Voice message QR. Step 3: Order via WhatsApp.
+/// Premium flow: Complete your gift (add-ons) → Personalize (voice message) → Sticky checkout bar.
 void showAddOnPersonalizationModal(BuildContext context, String flowerId) {
   showDialog<void>(
     context: context,
     barrierColor: Colors.black54,
     builder: (ctx) => Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 520,
-          maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 520,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: _AddOnPersonalizationSheet(flowerId: flowerId),
+          ),
         ),
-        child: _AddOnPersonalizationSheet(flowerId: flowerId),
       ),
     ),
   );
@@ -67,9 +73,6 @@ class _AddOnPersonalizationSheetState
     super.dispose();
   }
 
-  bool _hasSelectedAddOn(AddOnType type) =>
-      _selectedAddOns.any((a) => a.type == type);
-
   void _removeAddOn(AddOnType type) {
     setState(() => _selectedAddOns.removeWhere((a) => a.type == type));
   }
@@ -99,16 +102,16 @@ class _AddOnPersonalizationSheetState
     AddOnType.card,
   ];
 
-  static String _categoryTitle(AddOnType type) {
+  static String _categoryTitle(AppLocalizations l10n, AddOnType type) {
     switch (type) {
       case AddOnType.vase:
-        return 'Vases';
+        return l10n.addOnCategoryVases;
       case AddOnType.chocolate:
-        return 'Chocolates';
+        return l10n.addOnCategoryChocolates;
       case AddOnType.card:
-        return 'Card';
+        return l10n.addOnCategoryCard;
       default:
-        return 'Add-ons';
+        return l10n.addOnCategoryAddOns;
     }
   }
 
@@ -226,240 +229,182 @@ class _AddOnPersonalizationSheetState
                   orElse: () => <AddOnModel>[],
                 );
                 final total = _totalPriceIqd(bouquet);
+                final sectionTitleStyle = GoogleFonts.montserrat(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.ink,
+                );
 
-                return ListView(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                return Column(
                   children: [
-                    Text(
-                      bouquet.name,
-                      style: montserrat.copyWith(fontSize: 18),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${l10n.currencyIqd} ${formatPriceIqd(bouquet.priceIqd)}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.inkMuted,
-                          ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      l10n.step1AddOns,
-                      style: montserrat.copyWith(fontSize: 16),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: _addOnCategoryOrder.map((categoryType) {
-                        final ofType = addOns
-                            .where((a) => a.type == categoryType)
-                            .toList();
-                        final isAvailable = ofType.isNotEmpty;
-                        final isFirst = categoryType == _addOnCategoryOrder.first;
-                        final isLast = categoryType == _addOnCategoryOrder.last;
-                        const gap = 12.0;
-                        return Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              left: isFirst ? 0 : gap / 2,
-                              right: isLast ? 0 : gap / 2,
+                    Expanded(
+                      child: ListView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                        children: [
+                          Text(
+                            bouquet.name,
+                            style: montserrat.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                             ),
-                            child: Opacity(
-                              opacity: isAvailable ? 1.0 : 0.6,
-                              child: AbsorbPointer(
-                                absorbing: !isAvailable,
-                                child: Column(
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${l10n.currencyIqd} ${formatPriceIqd(bouquet.priceIqd)}',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: AppColors.inkMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                          const SizedBox(height: 28),
+                          Text(
+                            l10n.completeYourGift,
+                            style: sectionTitleStyle,
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            height: 160,
+                            child: Center(
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                clipBehavior: Clip.none,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Stack(
-                                      clipBehavior: Clip.none,
-                                      children: [
-                                        _AddOnCategoryTile(
-                                          categoryType: categoryType,
-                                          ofType: ofType,
-                                          isAvailable: isAvailable,
-                                          locale: locale,
-                                          l10n: l10n,
-                                          montserrat: montserrat,
-                                          onTap: isAvailable
-                                              ? () => _openVariantSelection(
-                                                    context,
-                                                    categoryType,
-                                                    ofType,
-                                                  )
-                                              : null,
-                                        ),
-                                        Positioned(
-                                          top: -4,
-                                          right: 8,
-                                          child: _AvailabilityBadge(
-                                            isAvailable: isAvailable,
-                                          ),
-                                        ),
-                                      ],
+                                    for (var index = 0;
+                                        index < _addOnCategoryOrder.length;
+                                        index++) ...[
+                                      if (index > 0) const SizedBox(width: 12),
+                                      Builder(
+                                        builder: (context) {
+                                          final categoryType =
+                                              _addOnCategoryOrder[index];
+                                          final ofType = addOns
+                                              .where((a) =>
+                                                  a.type == categoryType)
+                                              .toList();
+                                          final isAvailable = ofType.isNotEmpty;
+                                          AddOnModel? selected;
+                                          for (final a in _selectedAddOns) {
+                                            if (a.type == categoryType) {
+                                              selected = a;
+                                              break;
+                                            }
+                                          }
+                                          return Opacity(
+                                            opacity:
+                                                isAvailable ? 1.0 : 0.55,
+                                            child: AbsorbPointer(
+                                              absorbing: !isAvailable,
+                                              child: _PremiumAddOnCard(
+                                                categoryType: categoryType,
+                                                ofType: ofType,
+                                                selected: selected,
+                                                locale: locale,
+                                                l10n: l10n,
+                                                onTap: isAvailable
+                                                    ? () =>
+                                                        _openVariantSelection(
+                                                          context,
+                                                          categoryType,
+                                                          ofType,
+                                                        )
+                                                    : null,
+                                                onRemove: selected != null
+                                                    ? () => _removeAddOn(
+                                                        categoryType)
+                                                    : null,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          Text(
+                            l10n.personalizeSectionTitle,
+                            style: sectionTitleStyle,
+                          ),
+                          const SizedBox(height: 12),
+                          Material(
+                            color: _voiceMessageUrl != null
+                                ? AppColors.blush.withValues(alpha: 0.2)
+                                : AppColors.blush.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            elevation: 0,
+                            child: InkWell(
+                              onTap: _openVoiceMessage,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 18,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.mic_none_rounded,
+                                      size: 28,
+                                      color: _voiceMessageUrl != null
+                                          ? AppColors.rosePrimary
+                                          : AppColors.inkMuted,
                                     ),
-                                    const SizedBox(height: 12),
-                                    Center(
+                                    const SizedBox(width: 16),
+                                    Expanded(
                                       child: Column(
-                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          _CategoryCircleIndicator(
-                                            isSelected: _hasSelectedAddOn(
-                                                categoryType),
-                                          ),
-                                          if (_hasSelectedAddOn(
-                                              categoryType)) ...[
-                                            const SizedBox(height: 6),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  _removeAddOn(categoryType),
-                                              style: TextButton.styleFrom(
-                                                padding: const EdgeInsets
-                                                    .symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
+                                          Text(
+                                            l10n.addFreeVoiceMessage,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.ink,
                                                 ),
-                                                minimumSize: Size.zero,
-                                                tapTargetSize:
-                                                    MaterialTapTargetSize
-                                                        .shrinkWrap,
-                                              ),
-                                              child: Text(
-                                                'Remove',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .labelSmall
-                                                    ?.copyWith(
-                                                      color: AppColors.inkMuted,
-                                                      decoration: TextDecoration
-                                                          .underline,
-                                                    ),
-                                              ),
+                                          ),
+                                          if (_voiceMessageUrl != null) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              l10n.voiceMessageAdded,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color: AppColors.inkMuted,
+                                                  ),
                                             ),
                                           ],
                                         ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      l10n.step2VoiceMessage,
-                      style: montserrat.copyWith(fontSize: 16),
-                    ),
-                    const SizedBox(height: 12),
-                    Material(
-                      color: _voiceMessageUrl != null
-                          ? AppColors.sage.withValues(alpha: 0.25)
-                          : AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        onTap: _openVoiceMessage,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _voiceMessageUrl != null
-                                  ? AppColors.sage
-                                  : AppColors.border,
-                              width: _voiceMessageUrl != null ? 2 : 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.qr_code_2,
-                                size: 28,
-                                color: _voiceMessageUrl != null
-                                    ? AppColors.ink
-                                    : AppColors.inkMuted,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      l10n.includesFreeVoiceMessageQRCode,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.ink,
-                                          ),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: AppColors.inkMuted,
+                                      size: 22,
                                     ),
-                                    if (_voiceMessageUrl != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          l10n.voiceMessageAdded,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                color: AppColors.inkMuted,
-                                              ),
-                                        ),
-                                      ),
                                   ],
                                 ),
                               ),
-                              Icon(
-                                Icons.chevron_right,
-                                color: AppColors.inkMuted,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      l10n.step3Order,
-                      style: montserrat.copyWith(fontSize: 16),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          l10n.totalPriceLabel,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: AppColors.inkMuted,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                        Text(
-                          '${l10n.currencyIqd} ${formatPriceIqd(total)}',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: AppColors.ink,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    _FreeDeliveryProgressBar(
-                      currentTotal: total,
-                      threshold: freeDeliveryThreshold,
-                      l10n: l10n,
-                    ),
-                    const SizedBox(height: 20),
-                    Material(
+                          const SizedBox(height: 24),
+                          _FreeDeliveryBanner(
+                            currentTotal: total,
+                            threshold: freeDeliveryThreshold,
+                            l10n: l10n,
+                          ),
+                          const SizedBox(height: 20),
+                          Material(
                       color: _deliveryLatLng != null
                           ? const Color(0xFF4CAF50).withValues(alpha: 0.12)
                           : AppColors.surface,
@@ -497,7 +442,7 @@ class _AddOnPersonalizationSheetState
                               Expanded(
                                 child: _deliveryLatLng != null
                                     ? Text(
-                                        '✅ Location Selected (Tap to change)',
+                                        '✅ ${l10n.locationSelectedTapToChange}',
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleSmall
@@ -512,7 +457,7 @@ class _AddOnPersonalizationSheetState
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
-                                            'Select Delivery Location',
+                                            l10n.selectDeliveryLocation,
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .titleSmall
@@ -550,60 +495,60 @@ class _AddOnPersonalizationSheetState
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OrderViaWhatsAppButton(
-                        label: l10n.orderViaWhatsApp,
-                        valueProposition: '',
-                        onPressed: () {
-                          if (_deliveryLatLng == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.location_on_outlined,
-                                      color: Colors.white,
-                                      size: 22,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        l10n.locationRequiredSnackbar,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w500,
-                                            ) ??
-                                            const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                backgroundColor: Colors.red.shade400,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-                          ref.read(analyticsServiceProvider).logClickWhatsApp(
-                                itemId: bouquet.id,
-                                itemName: bouquet.name,
-                              );
-                          _orderViaWhatsApp(bouquet);
-                        },
-                        enabled:
-                            ref.watch(connectivityStatusProvider).value ?? true,
+                          const SizedBox(height: 24),
+                        ],
                       ),
+                    ),
+                    _StickyCheckoutBar(
+                      total: total,
+                      l10n: l10n,
+                      onOrder: () {
+                        if (_deliveryLatLng == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on_outlined,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      l10n.locationRequiredSnackbar,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ) ??
+                                          const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: Colors.red.shade400,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        ref.read(analyticsServiceProvider).logClickWhatsApp(
+                              itemId: bouquet.id,
+                              itemName: bouquet.name,
+                            );
+                        _orderViaWhatsApp(bouquet);
+                      },
+                      enabled:
+                          ref.watch(connectivityStatusProvider).value ?? true,
                     ),
                   ],
                 );
@@ -617,121 +562,231 @@ class _AddOnPersonalizationSheetState
   }
 }
 
-/// Single card per add-on category (Vases, Chocolates, Card).
-/// Unavailable: light grey card, grey icon, label. Available: white card, image, label, price.
-class _AddOnCategoryTile extends StatelessWidget {
-  final AddOnType categoryType;
-  final List<AddOnModel> ofType;
-  final bool isAvailable;
-  final String locale;
+/// Sticky bottom bar: total on the left, Order via WhatsApp button on the right.
+class _StickyCheckoutBar extends StatelessWidget {
+  final int total;
   final AppLocalizations l10n;
-  final TextStyle montserrat;
-  final VoidCallback? onTap;
+  final VoidCallback onOrder;
+  final bool enabled;
 
-  const _AddOnCategoryTile({
-    required this.categoryType,
-    required this.ofType,
-    required this.isAvailable,
-    required this.locale,
+  const _StickyCheckoutBar({
+    required this.total,
     required this.l10n,
-    required this.montserrat,
-    this.onTap,
+    required this.onOrder,
+    required this.enabled,
   });
 
   @override
   Widget build(BuildContext context) {
-    final title = _AddOnPersonalizationSheetState._categoryTitle(categoryType);
-    final iconData = _AddOnPersonalizationSheetState._categoryIcon(categoryType);
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        16 + MediaQuery.paddingOf(context).bottom,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.totalPriceLabel,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.inkMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${l10n.currencyIqd} ${formatPriceIqd(total)}',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: OrderViaWhatsAppButton(
+                label: l10n.orderViaWhatsApp,
+                valueProposition: '',
+                onPressed: onOrder,
+                enabled: enabled,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
+/// Premium horizontal add-on card: fixed size, white background, image top half, centered label/price/add.
+class _PremiumAddOnCard extends StatelessWidget {
+  static const double cardWidth = 120;
+  static const double cardHeight = 160;
+  static const double imageHeight = 80;
+
+  final AddOnType categoryType;
+  final List<AddOnModel> ofType;
+  final AddOnModel? selected;
+  final String locale;
+  final AppLocalizations l10n;
+  final VoidCallback? onTap;
+  final VoidCallback? onRemove;
+
+  const _PremiumAddOnCard({
+    required this.categoryType,
+    required this.ofType,
+    required this.selected,
+    required this.locale,
+    required this.l10n,
+    this.onTap,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final title = _AddOnPersonalizationSheetState._categoryTitle(l10n, categoryType);
+    final iconData = _AddOnPersonalizationSheetState._categoryIcon(categoryType);
     final isUnavailable = ofType.isEmpty;
-    final backgroundColor = isUnavailable
-        ? AppColors.background.withValues(alpha: 0.8)
-        : AppColors.surface;
-    final borderColor = isUnavailable ? AppColors.border : AppColors.border;
+    final displayModel = selected ?? (ofType.isNotEmpty ? ofType.first : null);
+    final isSelected = selected != null;
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          width: cardWidth,
+          height: cardHeight,
           decoration: BoxDecoration(
-            color: backgroundColor,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isUnavailable) ...[
-                const SizedBox(height: 24),
-                Center(
-                  child: Icon(
-                    iconData,
-                    color: AppColors.inkMuted.withValues(alpha: 0.6),
-                    size: 48,
-                  ),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
                 ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Text(
-                    title,
-                    style: montserrat.copyWith(
-                      fontSize: 14,
-                      color: AppColors.inkMuted,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ] else ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: ofType.first.imageUrl.isEmpty
-                      ? Shimmer.fromColors(
-                          baseColor: AppColors.border,
-                          highlightColor: AppColors.surface,
-                          child: Container(
-                            height: 100,
-                            color: AppColors.border,
-                            child: Icon(
-                              iconData,
-                              color: AppColors.inkMuted,
-                              size: 36,
+                child: Container(
+                  height: imageHeight,
+                  width: double.infinity,
+                  color: const Color(0xFFF0F0F0),
+                  alignment: Alignment.center,
+                  child: isUnavailable || displayModel == null
+                      ? Icon(
+                          iconData,
+                          color: AppColors.inkMuted.withValues(alpha: 0.5),
+                          size: 32,
+                        )
+                      : displayModel.imageUrl.isEmpty
+                          ? Shimmer.fromColors(
+                              baseColor: AppColors.border,
+                              highlightColor: Colors.white,
+                              child: Container(
+                                color: AppColors.border,
+                                child: Icon(
+                                  iconData,
+                                  color: AppColors.inkMuted,
+                                  size: 28,
+                                ),
+                              ),
+                            )
+                          : Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: AppCachedImage(
+                                imageUrl: displayModel.imageUrl,
+                                fit: BoxFit.contain,
+                                errorIcon: iconData,
+                                errorIconSize: 28,
+                              ),
                             ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ink,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        displayModel != null
+                            ? '${l10n.currencyIqd} ${formatPriceIqd(displayModel.priceIqd)}'
+                            : '—',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.inkMuted,
+                              fontSize: 11,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      if (isSelected && onRemove != null)
+                        GestureDetector(
+                          onTap: onRemove,
+                          child: Text(
+                            l10n.remove,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: AppColors.inkMuted,
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 11,
+                                ),
+                            textAlign: TextAlign.center,
                           ),
                         )
-                      : SizedBox(
-                          height: 100,
-                          width: double.infinity,
-                          child: AppCachedImage(
-                            imageUrl: ofType.first.imageUrl,
-                            fit: BoxFit.cover,
-                            errorIcon: iconData,
-                            errorIconSize: 36,
-                          ),
+                      else if (!isUnavailable)
+                        Icon(
+                          Icons.add_circle_outline_rounded,
+                          size: 20,
+                          color: AppColors.rosePrimary,
                         ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: montserrat.copyWith(
-                    fontSize: 14,
-                    color: AppColors.ink,
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${l10n.currencyIqd} ${formatPriceIqd(ofType.first.priceIqd)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.inkMuted,
-                        fontSize: 12,
-                      ),
-                ),
-                const SizedBox(height: 4),
-              ],
+              ),
             ],
           ),
         ),
@@ -740,94 +795,19 @@ class _AddOnCategoryTile extends StatelessWidget {
   }
 }
 
-/// Small badge above/beside each add-on category tile showing availability.
-/// Green "Available" when the category has active items; pink "Not Available" otherwise.
-class _AvailabilityBadge extends StatelessWidget {
-  final bool isAvailable;
-
-  const _AvailabilityBadge({required this.isAvailable});
-
-  static const Color _availableColor = Color(0xFF4CAF50);
-  static const Color _notAvailableColor = Color(0xFFE91E8C);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: isAvailable ? _availableColor : _notAvailableColor,
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Text(
-        isAvailable ? 'Available' : 'Not Available',
-        style: GoogleFonts.montserrat(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-/// Circle indicator below each add-on category (Vase, Chocolate, Card).
-/// Empty circle when no add-on selected; green tick inside when selected.
-/// Positioned outside the card boundary.
-class _CategoryCircleIndicator extends StatelessWidget {
-  final bool isSelected;
-
-  const _CategoryCircleIndicator({required this.isSelected});
-
-  static const double _size = 28;
-  static const Color _selectedGreen = Color(0xFF4CAF50);
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: _size,
-      height: _size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.transparent,
-              border: Border.all(
-                color: isSelected ? _selectedGreen : AppColors.border,
-                width: 2,
-              ),
-            ),
-          ),
-          if (isSelected)
-            Icon(Icons.check, size: 14, color: _selectedGreen),
-        ],
-      ),
-    );
-  }
-}
-
-class _FreeDeliveryProgressBar extends StatelessWidget {
+/// Premium free-delivery banner: progress bar with gift icon, rewarding feel.
+class _FreeDeliveryBanner extends StatelessWidget {
   final int currentTotal;
   final int threshold;
   final AppLocalizations l10n;
 
-  const _FreeDeliveryProgressBar({
+  const _FreeDeliveryBanner({
     required this.currentTotal,
     required this.threshold,
     required this.l10n,
   });
 
-  /// Motivating orange color for "add more" state
   static const Color _addMoreColor = Color(0xFFE67E22);
-  /// Success green when free delivery unlocked
   static const Color _unlockedColor = Color(0xFF4CAF50);
 
   @override
@@ -841,35 +821,53 @@ class _FreeDeliveryProgressBar extends StatelessWidget {
         : l10n.addAmountMoreForFreeDelivery(formatPriceIqd(remaining));
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: progressColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        color: progressColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: progressColor.withValues(alpha: 0.4),
+          color: progressColor.withValues(alpha: 0.35),
           width: 1,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: progressColor.withValues(alpha: 0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            borderRadius: BorderRadius.circular(4),
-            minHeight: 6,
+        boxShadow: [
+          BoxShadow(
+            color: progressColor.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: progressColor,
-                  fontSize: 13,
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            unlocked ? Icons.card_giftcard_rounded : Icons.redeem_rounded,
+            size: 28,
+            color: progressColor,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: progressColor.withValues(alpha: 0.2),
+                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                  borderRadius: BorderRadius.circular(6),
+                  minHeight: 8,
                 ),
-            textAlign: TextAlign.center,
+                const SizedBox(height: 10),
+                Text(
+                  text,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: progressColor,
+                        fontSize: 13,
+                      ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

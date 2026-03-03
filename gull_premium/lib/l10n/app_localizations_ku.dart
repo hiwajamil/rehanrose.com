@@ -411,6 +411,15 @@ class AppLocalizationsKu extends AppLocalizations {
   String get step3Order => 'هەنگاو ٣: داواکاری';
 
   @override
+  String get completeYourGift => 'دیاریەکەت تەواو بکە';
+
+  @override
+  String get personalizeSectionTitle => 'تایبەتمەند بکە';
+
+  @override
+  String get addFreeVoiceMessage => 'نامەیەکی دەنگی بەخۆڕایی زیاد بکە';
+
+  @override
   String get couldNotLoadProduct => 'بارکردنی بەرهەم سەرکەوتوو نەبوو.';
 
   @override
@@ -969,4 +978,139 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get vendorStatFastOnboarding => 'چوونەنێوەکردنی خێرا';
+
+  @override
+  String get adminOrders => 'داواکارییەکان';
+
+  @override
+  String get adminMembersCrm => 'CRM ئەندامان';
+
+  @override
+  String get adminTotalMembers => 'کۆی ئەندامان';
+
+  @override
+  String get vendorAddBouquetPageTitle => 'دەستەگوڵ زیاد بکە';
+
+  @override
+  String get vendorAddBouquetProductCodeHint =>
+      'کۆدی بەرهەم بە ئۆتۆماتیک لە بۆنەکەوە دروست دەبێت کە هەڵی دەبژێریت (وەک ڕۆژی لەدایکبوون → BD-402).';
+
+  @override
+  String get vendorBouquetName => 'ناوی دەستەگوڵ';
+
+  @override
+  String get vendorDescription => 'وەسف';
+
+  @override
+  String get vendorProductCode => 'کۆدی بەرهەم';
+
+  @override
+  String get vendorProductCodeHint => 'بۆنەیەک هەڵبژێرە بۆ دروستکردن';
+
+  @override
+  String get vendorPriceIqd => 'نرخ (دینار)';
+
+  @override
+  String get vendorPhotos => 'وێنەکان';
+
+  @override
+  String get vendorAvailable => 'بەردەستە';
+
+  @override
+  String get vendorPublishing => 'بڵاوکردنەوە…';
+
+  @override
+  String get vendorPublishBouquet => 'دەستەگوڵ بڵاو بکەرەوە';
+
+  @override
+  String get vendorTapToUploadBouquetImages =>
+      'تەنها بکە بۆ بارکردنی وێنەی دەستەگوڵ';
+
+  @override
+  String get vendorUpTo3PhotosJpgPng => 'هەتا ٣ وێنە · JPG یان PNG';
+
+  @override
+  String vendorPhotosSelected(int count) {
+    return '$count/٣ هەڵبژێردرا';
+  }
+
+  @override
+  String get vendorOccasion => 'بۆنە';
+
+  @override
+  String get vendorChooseOccasionSameAsMainPage =>
+      'بۆنە هەڵبژێرە (هەمان پەڕەی سەرەکی)';
+
+  @override
+  String get vendorPleaseEnterBouquetName => 'تکایە ناوی دەستەگوڵ بنووسە.';
+
+  @override
+  String get vendorPleaseSelectOccasion => 'تکایە بۆنەیەک هەڵبژێرە.';
+
+  @override
+  String get vendorInvalidSelection => 'هەڵبژاردنەکە دروست نییە.';
+
+  @override
+  String get vendorEnterPriceNumberIqd => 'نرخەکە وەک ژمارە بە دینار بنووسە.';
+
+  @override
+  String get vendorPleaseUploadOnePhoto => 'تکایە لانیکەم یەک وێنە بار بکە.';
+
+  @override
+  String get vendorPleaseSignInAgain => 'تکایە دووبارە چوونەژوورەوە بکە.';
+
+  @override
+  String vendorBouquetSubmittedWithCode(String code, String occasion) {
+    return 'دەستەگوڵ نێردرا بۆ پەسەندکردن. کۆد: $code. لەژێر \"$occasion\" لە پەڕەی سەرەکیدا دەردەکەوێت دوای پەسەندکردنی بەڕێوەبەر.';
+  }
+
+  @override
+  String vendorBouquetSubmitted(String occasion) {
+    return 'دەستەگوڵ نێردرا بۆ پەسەندکردن. لەژێر \"$occasion\" لە پەڕەی سەرەکیدا دەردەکەوێت دوای پەسەندکردنی بەڕێوەبەر.';
+  }
+
+  @override
+  String get vendorPublishTimedOut =>
+      'کاتی بڵاوکردنەوە تەواو بوو. تکایە دووبارە هەوڵ بدەرەوە.';
+
+  @override
+  String get vendorUnableToPublishBouquet =>
+      'بڵاوکردنەوەی دەستەگوڵ سەرکەوتوو نەبوو.';
+
+  @override
+  String get vendorUnableToPublish =>
+      'بڵاوکردنەوە سەرکەوتوو نەبوو. دووبارە هەوڵ بدەرەوە یان پەیوەندی بپشکنە.';
+
+  @override
+  String vendorUnableToPublishWithMessage(String message) {
+    return 'بڵاوکردنەوە سەرکەوتوو نەبوو. $message';
+  }
+
+  @override
+  String get freeQrVoice => 'نامەی دەنگی QR بەخۆڕایی';
+
+  @override
+  String get order => 'داواکردن';
+
+  @override
+  String get addOnCategoryVases => 'گڵدانەکان';
+
+  @override
+  String get addOnCategoryChocolates => 'چۆکلێت';
+
+  @override
+  String get addOnCategoryCard => 'کارت';
+
+  @override
+  String get addOnCategoryAddOns => 'زیادەکان';
+
+  @override
+  String get locationSelectedTapToChange =>
+      'شوێن هەڵبژێردرا (تەنها بکە بۆ گۆڕین)';
+
+  @override
+  String get selectDeliveryLocation => 'شوێنی گەیاندن هەڵبژێرە';
+
+  @override
+  String get remove => 'لابردن';
 }

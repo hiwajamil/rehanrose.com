@@ -82,6 +82,16 @@ Before implementing any change, consider whether a better approach exists. If yo
 
 ---
 
+## Firebase deploy (rehanrose.com)
+
+When the user asks to **push the updated app to Firebase** or deploy to Firebase:
+1. **Always build with env** so the live site behaves like local (`flutter run --dart-define-from-file=env.json`): super admin, Google sign-in, and vendor flows must work on rehanrose.com.
+2. From **gull_premium**: run `flutter build web --dart-define-from-file=env.json` (ensure `env.json` exists; if not, tell the user to copy from `env.json.example` and fill values).
+3. Then run `firebase deploy` from **gull_premium**.
+4. Alternatively run the project script: **Windows** `.\gull_premium\deploy_to_firebase.ps1` from repo root, or **macOS/Linux** `./gull_premium/deploy_to_firebase.sh`. Do not run `flutter build web` without `--dart-define-from-file=env.json` when deploying, or super admin and sign-in will not work on the live site.
+
+---
+
 ## Refactoring
 
 - **Before adding code**: Consider if existing patterns, utilities, or abstractions can be reused

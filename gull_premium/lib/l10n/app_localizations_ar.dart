@@ -403,6 +403,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get step3Order => 'الخطوة 3: الطلب';
 
   @override
+  String get completeYourGift => 'أكمل هديتك';
+
+  @override
+  String get personalizeSectionTitle => 'خصص';
+
+  @override
+  String get addFreeVoiceMessage => 'أضف رسالة صوتية مجانية';
+
+  @override
   String get couldNotLoadProduct => 'تعذر تحميل المنتج.';
 
   @override
@@ -954,4 +963,136 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vendorStatFastOnboarding => 'انضمام سريع';
+
+  @override
+  String get adminOrders => 'الطلبات';
+
+  @override
+  String get adminMembersCrm => 'إدارة الأعضاء';
+
+  @override
+  String get adminTotalMembers => 'إجمالي الأعضاء';
+
+  @override
+  String get vendorAddBouquetPageTitle => 'إضافة باقة';
+
+  @override
+  String get vendorAddBouquetProductCodeHint =>
+      'يتم إنشاء رمز المنتج تلقائياً من المناسبة التي تختارها (مثلاً عيد الميلاد → BD-402).';
+
+  @override
+  String get vendorBouquetName => 'اسم الباقة';
+
+  @override
+  String get vendorDescription => 'الوصف';
+
+  @override
+  String get vendorProductCode => 'رمز المنتج';
+
+  @override
+  String get vendorProductCodeHint => 'اختر مناسبة للإنشاء';
+
+  @override
+  String get vendorPriceIqd => 'السعر (دينار عراقي)';
+
+  @override
+  String get vendorPhotos => 'الصور';
+
+  @override
+  String get vendorAvailable => 'متوفر';
+
+  @override
+  String get vendorPublishing => 'جاري النشر…';
+
+  @override
+  String get vendorPublishBouquet => 'نشر الباقة';
+
+  @override
+  String get vendorTapToUploadBouquetImages => 'اضغط لرفع صور الباقة';
+
+  @override
+  String get vendorUpTo3PhotosJpgPng => 'حتى 3 صور · JPG أو PNG';
+
+  @override
+  String vendorPhotosSelected(int count) {
+    return '$count/3 محددة';
+  }
+
+  @override
+  String get vendorOccasion => 'المناسبة';
+
+  @override
+  String get vendorChooseOccasionSameAsMainPage =>
+      'اختر المناسبة (نفس الصفحة الرئيسية)';
+
+  @override
+  String get vendorPleaseEnterBouquetName => 'يرجى إدخال اسم الباقة.';
+
+  @override
+  String get vendorPleaseSelectOccasion => 'يرجى اختيار مناسبة.';
+
+  @override
+  String get vendorInvalidSelection => 'اختيار غير صالح.';
+
+  @override
+  String get vendorEnterPriceNumberIqd => 'أدخل السعر رقماً بالدينار العراقي.';
+
+  @override
+  String get vendorPleaseUploadOnePhoto => 'يرجى رفع صورة واحدة على الأقل.';
+
+  @override
+  String get vendorPleaseSignInAgain => 'يرجى تسجيل الدخول مرة أخرى.';
+
+  @override
+  String vendorBouquetSubmittedWithCode(String code, String occasion) {
+    return 'تم إرسال الباقة للموافقة. الرمز: $code. ستظهر تحت \"$occasion\" في الصفحة الرئيسية بعد موافقة المدير.';
+  }
+
+  @override
+  String vendorBouquetSubmitted(String occasion) {
+    return 'تم إرسال الباقة للموافقة. ستظهر تحت \"$occasion\" في الصفحة الرئيسية بعد موافقة المدير.';
+  }
+
+  @override
+  String get vendorPublishTimedOut =>
+      'انتهت مهلة النشر. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get vendorUnableToPublishBouquet => 'تعذّر نشر الباقة.';
+
+  @override
+  String get vendorUnableToPublish =>
+      'تعذّر النشر. حاول مرة أخرى أو تحقق من اتصالك.';
+
+  @override
+  String vendorUnableToPublishWithMessage(String message) {
+    return 'تعذّر النشر. $message';
+  }
+
+  @override
+  String get freeQrVoice => 'رسالة صوتية مجانية QR';
+
+  @override
+  String get order => 'طلب';
+
+  @override
+  String get addOnCategoryVases => 'المزهريات';
+
+  @override
+  String get addOnCategoryChocolates => 'الشوكولاتة';
+
+  @override
+  String get addOnCategoryCard => 'البطاقة';
+
+  @override
+  String get addOnCategoryAddOns => 'الإضافات';
+
+  @override
+  String get locationSelectedTapToChange => 'تم اختيار الموقع (اضغط للتغيير)';
+
+  @override
+  String get selectDeliveryLocation => 'اختر موقع التوصيل';
+
+  @override
+  String get remove => 'إزالة';
 }

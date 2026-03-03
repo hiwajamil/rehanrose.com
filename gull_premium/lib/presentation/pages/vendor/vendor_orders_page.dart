@@ -45,7 +45,10 @@ class _VendorOrdersPageState extends ConsumerState<VendorOrdersPage>
           children: [
             Text(
               'Orders',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -55,17 +58,7 @@ class _VendorOrdersPageState extends ConsumerState<VendorOrdersPage>
                   ),
             ),
             const SizedBox(height: 24),
-            TabBar(
-              controller: _tabController,
-              labelColor: AppColors.rosePrimary,
-              unselectedLabelColor: AppColors.inkMuted,
-              indicatorColor: AppColors.rosePrimary,
-              tabs: const [
-                Tab(text: 'New Requests'),
-                Tab(text: 'Preparing'),
-                Tab(text: 'Ready'),
-              ],
-            ),
+            _PillTabBar(controller: _tabController),
             const SizedBox(height: 24),
             SizedBox(
               height: 520,
@@ -80,6 +73,57 @@ class _VendorOrdersPageState extends ConsumerState<VendorOrdersPage>
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Pill-shaped segmented control for order status tabs.
+class _PillTabBar extends StatelessWidget {
+  final TabController controller;
+
+  const _PillTabBar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: controller,
+        indicator: BoxDecoration(
+          color: AppColors.rosePrimary.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.rosePrimary.withValues(alpha: 0.35),
+            width: 1,
+          ),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: AppColors.rosePrimary,
+        unselectedLabelColor: AppColors.inkMuted,
+        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+        unselectedLabelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+        tabs: const [
+          Tab(text: 'New Requests'),
+          Tab(text: 'Preparing'),
+          Tab(text: 'Ready'),
+        ],
       ),
     );
   }
@@ -131,29 +175,9 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
       data: (allOrders) {
         final orders = allOrders.where((o) => o.status == widget.status).toList();
         if (orders.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  widget.status == OmsOrderStatus.pending
-                      ? Icons.inbox_outlined
-                      : widget.status == OmsOrderStatus.preparing
-                          ? Icons.schedule_outlined
-                          : Icons.check_circle_outline,
-                  size: 48,
-                  color: AppColors.inkMuted,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _emptyLabel(widget.status),
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.inkMuted,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+          return _OrdersEmptyState(
+            status: widget.status,
+            message: _emptyLabel(widget.status),
           );
         }
         final repo = ref.read(omsOrderRepositoryProvider);
@@ -213,6 +237,74 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
           },
         );
       },
+    );
+  }
+}
+
+/// Premium empty state for orders tabs: soft icon + gentle placeholder text.
+class _OrdersEmptyState extends StatelessWidget {
+  final OmsOrderStatus status;
+  final String message;
+
+  const _OrdersEmptyState({
+    required this.status,
+    required this.message,
+  });
+
+  IconData get _icon {
+    switch (status) {
+      case OmsOrderStatus.pending:
+        return Icons.inbox_outlined;
+      case OmsOrderStatus.preparing:
+        return Icons.schedule_outlined;
+      case OmsOrderStatus.ready:
+        return Icons.check_circle_outline;
+      case OmsOrderStatus.delivered:
+        return Icons.local_shipping_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.inkMuted.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(_icon, size: 36, color: AppColors.inkMuted),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              message,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.inkMuted,
+                    height: 1.4,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

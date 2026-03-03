@@ -5,7 +5,7 @@ import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// Skeleton placeholder for a product card in the grid.
-/// Matches [FlowerCard] layout: image area (aspect 0.65), title line, price line.
+/// Matches [FlowerCard] layout: image area (aspect 0.72), title line, price line.
 /// Uses shimmer package for a moving gradient effect.
 class ProductGridShimmer extends StatelessWidget {
   /// When true, uses compact layout (smaller padding/radii) to match mobile grid.
@@ -14,12 +14,12 @@ class ProductGridShimmer extends StatelessWidget {
   const ProductGridShimmer({super.key, this.isCompact = false});
 
   /// Same aspect ratio as [FlowerCard] image area.
-  static const double _imageAspectRatio = 0.65;
+  static const double _imageAspectRatio = 0.72;
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = isCompact ? 14.0 : 24.0;
-    final contentPadding = isCompact ? 8.0 : 20.0;
+    final borderRadius = isCompact ? 16.0 : 20.0;
+    final contentPadding = isCompact ? 12.0 : 16.0;
 
     return Shimmer.fromColors(
       baseColor: AppColors.border,
@@ -36,11 +36,14 @@ class ProductGridShimmer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Image placeholder
-              AspectRatio(
-                aspectRatio: _imageAspectRatio,
-                child: Container(
-                  color: AppColors.border,
+              // Image placeholder (rounded top to match card)
+              ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
+                child: AspectRatio(
+                  aspectRatio: _imageAspectRatio,
+                  child: Container(
+                    color: AppColors.border,
+                  ),
                 ),
               ),
               Padding(

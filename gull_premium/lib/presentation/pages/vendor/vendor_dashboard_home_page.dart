@@ -141,26 +141,35 @@ class _MiniAnalyticsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.rose, size: 28),
-          const SizedBox(height: 12),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.rose.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.rosePrimary, size: 24),
+          ),
+          const SizedBox(height: 16),
           Text(
             value,
             style: GoogleFonts.playfairDisplay(
-              fontSize: 28,
+              fontSize: 32,
               fontWeight: FontWeight.w700,
               color: AppColors.ink,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 4),
@@ -180,40 +189,72 @@ class _MiniAnalyticsCard extends StatelessWidget {
 class _AlertsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.of(context)!.vendorAlerts,
+            l10n.vendorAlerts,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.ink,
                   fontWeight: FontWeight.w600,
                 ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            AppLocalizations.of(context)!.vendorNoOrdersNeedingConfirmation,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.inkMuted,
-                ),
+          const SizedBox(height: 20),
+          _EmptyStateInline(
+            icon: Icons.check_circle_outline,
+            message: l10n.vendorNoOrdersNeedingConfirmation,
           ),
-          const SizedBox(height: 8),
-          Text(
-            AppLocalizations.of(context)!.vendorNoNewAdminNotices,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.inkMuted,
-                ),
+          const SizedBox(height: 12),
+          _EmptyStateInline(
+            icon: Icons.notifications_none,
+            message: l10n.vendorNoNewAdminNotices,
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Inline empty-state row for alerts (icon + gentle text).
+class _EmptyStateInline extends StatelessWidget {
+  final IconData icon;
+  final String message;
+
+  const _EmptyStateInline({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: AppColors.inkMuted),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            message,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.inkMuted,
+                  height: 1.4,
+                ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -115,6 +115,8 @@ class AnalyticsOverviewPage extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _SummaryCard(
+                      icon: Icons.visibility_outlined,
+                      iconTint: const Color(0xFF2E7D32),
                       title: 'Product Views',
                       value: totalViews.toString(),
                     ),
@@ -122,6 +124,8 @@ class AnalyticsOverviewPage extends ConsumerWidget {
                   const SizedBox(width: 20),
                   Expanded(
                     child: _SummaryCard(
+                      icon: Icons.chat_outlined,
+                      iconTint: AppColors.rosePrimary,
                       title: 'WhatsApp Clicks',
                       value: totalClicks.toString(),
                     ),
@@ -162,43 +166,66 @@ class AnalyticsOverviewPage extends ConsumerWidget {
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
+    required this.icon,
+    required this.iconTint,
     required this.title,
     required this.value,
   });
 
+  final IconData icon;
+  final Color iconTint;
   final String title;
   final String value;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.inkMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: iconTint.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
             ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.ink,
-                  ),
+            child: Icon(icon, size: 28, color: iconTint),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.inkMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -227,13 +254,21 @@ class _ProductList extends StatelessWidget {
         ),
       );
     }
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ListView.separated(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: products.length,
@@ -241,9 +276,9 @@ class _ProductList extends StatelessWidget {
         itemBuilder: (context, index) {
           final p = products[index];
           return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               child: SizedBox(
                 width: 56,
                 height: 56,
@@ -264,6 +299,7 @@ class _ProductList extends StatelessWidget {
             subtitle: Text(subtitleBuilder(p)),
           );
         },
+      ),
       ),
     );
   }

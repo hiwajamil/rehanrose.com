@@ -21,6 +21,9 @@ class VendorShellLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
 
+    // Premium B2B SaaS: soft off-white content area
+    const Color vendorContentBg = Color(0xFFF4F5F7);
+
     if (isMobile) {
       return VendorNewOrderSoundListener(
         child: Scaffold(
@@ -35,7 +38,7 @@ class VendorShellLayout extends ConsumerWidget {
               ),
               Expanded(
                 child: Material(
-                  color: AppColors.background,
+                  color: vendorContentBg,
                   child: ClipRect(
                     child: child,
                   ),
@@ -49,7 +52,7 @@ class VendorShellLayout extends ConsumerWidget {
 
     return VendorNewOrderSoundListener(
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: vendorContentBg,
         body: Column(
           children: [
             _buildHeader(context, ref),
@@ -60,7 +63,7 @@ class VendorShellLayout extends ConsumerWidget {
                   _VendorSidebar(width: _sidebarWidth.toDouble()),
                   Expanded(
                     child: Material(
-                      color: AppColors.background,
+                      color: vendorContentBg,
                       child: ClipRect(
                         child: child,
                       ),
@@ -160,9 +163,9 @@ class _VendorSidebar extends StatelessWidget {
 
     return Container(
       width: width,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(right: BorderSide(color: AppColors.border)),
+        border: Border(right: BorderSide(color: Colors.grey.shade200, width: 1)),
       ),
       child: SafeArea(
         right: false,
@@ -265,23 +268,27 @@ class _NavTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: ListTile(
-        leading: Icon(
-          active ? activeIcon : icon,
-          size: 22,
-          color: active ? AppColors.rose : AppColors.inkMuted,
+      child: Material(
+        color: active ? AppColors.rose.withValues(alpha: 0.12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: ListTile(
+          leading: Icon(
+            active ? activeIcon : icon,
+            size: 22,
+            color: active ? AppColors.rosePrimary : AppColors.inkMuted,
+          ),
+          title: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: active ? AppColors.ink : AppColors.inkMuted,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                ),
+          ),
+          selected: active,
+          selectedTileColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          onTap: () => context.go(path),
         ),
-        title: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: active ? AppColors.ink : AppColors.inkMuted,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-              ),
-        ),
-        selected: active,
-        selectedTileColor: AppColors.rose.withValues(alpha: 0.08),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        onTap: () => context.go(path),
       ),
     );
   }
@@ -294,6 +301,7 @@ class _VendorDrawer extends StatelessWidget {
     final path = GoRouterState.of(context).uri.path;
 
     return Drawer(
+      backgroundColor: Colors.white,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -308,7 +316,7 @@ class _VendorDrawer extends StatelessWidget {
                     ),
               ),
             ),
-            const Divider(height: 1),
+            Divider(height: 1, color: Colors.grey.shade200),
             Expanded(
               child: Builder(
                 builder: (context) {

@@ -366,15 +366,14 @@ class _OperationalOverview extends ConsumerWidget {
           color: AppColors.ink,
         );
         return Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: AppColors.shadow,
-                blurRadius: 8,
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -383,12 +382,12 @@ class _OperationalOverview extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Operational Overview', style: playfair),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               if (isMobile)
                 _buildStatsColumn(stats, montserrat)
               else
                 _buildStatsRow(stats, montserrat),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _buildWorkloadBar(stats, montserrat),
             ],
           ),
@@ -400,25 +399,34 @@ class _OperationalOverview extends ConsumerWidget {
   Widget _buildStatsRow(_ApprovalStats stats, TextStyle montserrat) {
     return Row(
       children: [
-        _StatChip(
-          label: 'Total Approved',
-          value: stats.totalApproved.toString(),
-          montserrat: montserrat,
-          color: const Color(0xFF2E7D32),
+        Expanded(
+          child: _StatChip(
+            icon: Icons.check_circle_outline,
+            label: 'Total Approved',
+            value: stats.totalApproved.toString(),
+            montserrat: montserrat,
+            color: const Color(0xFF2E7D32),
+          ),
         ),
         const SizedBox(width: 16),
-        _StatChip(
-          label: 'Total Rejected',
-          value: stats.totalRejected.toString(),
-          montserrat: montserrat,
-          color: const Color(0xFFC62828),
+        Expanded(
+          child: _StatChip(
+            icon: Icons.cancel_outlined,
+            label: 'Total Rejected',
+            value: stats.totalRejected.toString(),
+            montserrat: montserrat,
+            color: const Color(0xFFC62828),
+          ),
         ),
         const SizedBox(width: 16),
-        _StatChip(
-          label: 'Quality Index',
-          value: '${stats.qualityIndexPercent.toStringAsFixed(1)}%',
-          montserrat: montserrat,
-          color: AppColors.rosePrimary,
+        Expanded(
+          child: _StatChip(
+            icon: Icons.trending_up,
+            label: 'Quality Index',
+            value: '${stats.qualityIndexPercent.toStringAsFixed(1)}%',
+            montserrat: montserrat,
+            color: AppColors.rosePrimary,
+          ),
         ),
       ],
     );
@@ -426,23 +434,26 @@ class _OperationalOverview extends ConsumerWidget {
 
   Widget _buildStatsColumn(_ApprovalStats stats, TextStyle montserrat) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _StatChip(
+          icon: Icons.check_circle_outline,
           label: 'Total Approved',
           value: stats.totalApproved.toString(),
           montserrat: montserrat,
           color: const Color(0xFF2E7D32),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         _StatChip(
+          icon: Icons.cancel_outlined,
           label: 'Total Rejected',
           value: stats.totalRejected.toString(),
           montserrat: montserrat,
           color: const Color(0xFFC62828),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         _StatChip(
+          icon: Icons.trending_up,
           label: 'Quality Index',
           value: '${stats.qualityIndexPercent.toStringAsFixed(1)}%',
           montserrat: montserrat,
@@ -502,12 +513,14 @@ class _OperationalOverview extends ConsumerWidget {
 
 class _StatChip extends StatelessWidget {
   const _StatChip({
+    required this.icon,
     required this.label,
     required this.value,
     required this.montserrat,
     required this.color,
   });
 
+  final IconData icon;
   final String label;
   final String value;
   final TextStyle montserrat;
@@ -516,27 +529,49 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: montserrat.copyWith(fontSize: 11, color: AppColors.inkMuted),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: montserrat.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: color,
+        ],
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 22, color: color),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: montserrat.copyWith(fontSize: 11, color: AppColors.inkMuted),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: montserrat.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -666,38 +701,96 @@ class _TabContent extends ConsumerWidget {
     return streamAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Unable to load bouquets.',
-              style: GoogleFonts.montserrat(color: AppColors.inkMuted),
-            ),
-            const SizedBox(height: 16),
-            PrimaryButton(
-              label: 'Back to Admin',
-              onPressed: () => context.go('/admin'),
-              variant: PrimaryButtonVariant.outline,
-            ),
-          ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.inkMuted.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.cloud_off_outlined,
+                  size: 48,
+                  color: AppColors.inkMuted.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Unable to load bouquets.',
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  color: AppColors.inkMuted,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                label: 'Back to Admin',
+                onPressed: () => context.go('/admin'),
+                variant: PrimaryButtonVariant.outline,
+              ),
+            ],
+          ),
         ),
       ),
       data: (bouquets) {
         if (bouquets.isEmpty) {
           return Center(
             child: Container(
-              padding: const EdgeInsets.all(48),
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Text(
-                emptyMessage,
-                style: GoogleFonts.montserrat(
-                  fontSize: 16,
-                  color: AppColors.inkMuted,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.inkMuted.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.inbox_outlined,
+                      size: 48,
+                      color: AppColors.inkMuted.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    emptyMessage,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 16,
+                      color: AppColors.inkMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
           );

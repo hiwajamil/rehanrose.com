@@ -187,24 +187,35 @@ class _CategoryCardState extends State<_CategoryCard> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: Material(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        elevation: _hovered ? 6 : 2,
-        shadowColor: AppColors.shadow.withValues(alpha: 0.15),
+        color: Colors.transparent,
         child: InkWell(
           onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(20),
-          hoverColor: AppColors.rose.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(16),
+          hoverColor: AppColors.rosePrimary.withValues(alpha: 0.04),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+                if (_hovered)
+                  BoxShadow(
+                    color: AppColors.rosePrimary.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+              ],
               border: Border.all(
                 color: _hovered
-                    ? AppColors.rose.withValues(alpha: 0.5)
-                    : AppColors.border,
-                width: _hovered ? 2 : 1,
+                    ? AppColors.rosePrimary.withValues(alpha: 0.3)
+                    : Colors.transparent,
+                width: 1,
               ),
             ),
             child: Column(
@@ -213,13 +224,13 @@ class _CategoryCardState extends State<_CategoryCard> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.rose.withValues(alpha: 0.1),
+                    color: AppColors.rosePrimary.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     widget.icon,
                     size: 48,
-                    color: AppColors.rose,
+                    color: AppColors.rosePrimary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -240,6 +251,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                       'Manage',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: AppColors.inkMuted,
+                            fontWeight: FontWeight.w500,
                           ),
                       textDirection: Directionality.of(context),
                     ),

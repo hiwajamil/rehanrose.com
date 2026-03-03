@@ -121,7 +121,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     return Scaffold(
       body: Container(
         width: double.infinity,
-        color: Colors.grey.shade50,
+        color: const Color(0xFFF4F5F7),
         padding: EdgeInsets.symmetric(
           horizontal: MediaQuery.sizeOf(context).width <= kMobileBreakpoint ? 16 : 48,
           vertical: MediaQuery.sizeOf(context).width <= kMobileBreakpoint ? 24 : 56,
@@ -328,8 +328,14 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                   padding: EdgeInsets.all(isMobileCard ? 16 : 20),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

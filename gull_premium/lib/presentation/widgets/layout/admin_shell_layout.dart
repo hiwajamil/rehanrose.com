@@ -43,7 +43,7 @@ class AdminShellLayout extends ConsumerWidget {
                   ),
                   Expanded(
                     child: Container(
-                      color: Colors.grey.shade50,
+                      color: const Color(0xFFF4F5F7),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -95,15 +95,8 @@ class _AdminSidebar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
-          right: BorderSide(color: AppColors.border, width: 1),
+          right: BorderSide(color: Colors.grey[200]!, width: 1),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(2, 0),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -180,14 +173,14 @@ class _AdminSidebar extends StatelessWidget {
                 _NavTile(
                   icon: Icons.shopping_bag_outlined,
                   selectedIcon: Icons.shopping_bag_rounded,
-                  label: 'Orders',
+                  label: l10n.adminOrders,
                   selected: _isSelected('/admin/orders'),
                   onTap: () => context.go('/admin/orders'),
                 ),
                 _NavTile(
                   icon: Icons.people_outline,
                   selectedIcon: Icons.people_rounded,
-                  label: 'Members CRM',
+                  label: l10n.adminMembersCrm,
                   selected: _isSelected('/admin/members'),
                   onTap: () => context.push('/admin/members'),
                 ),
@@ -249,7 +242,7 @@ class _NavTile extends StatelessWidget {
         title: Text(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? AppColors.rosePrimary : AppColors.ink,
               ),
         ),
@@ -257,7 +250,7 @@ class _NavTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         selected: selected,
-        selectedTileColor: AppColors.rosePrimary.withValues(alpha: 0.1),
+        selectedTileColor: AppColors.rosePrimary.withValues(alpha: 0.12),
         onTap: onTap,
       ),
     );
@@ -301,7 +294,7 @@ class _AdminMetricsRowState extends State<_AdminMetricsRow> {
                 final value = snapshot.hasData ? '${snapshot.data}' : '—';
                 return _MetricCard(
                   icon: Icons.people_outline,
-                  title: 'Total Members',
+                  title: l10n.adminTotalMembers,
                   value: value,
                   isLoading: isLoading,
                   onTap: () => context.push('/admin/members'),
@@ -363,12 +356,11 @@ class _MetricCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: AppColors.shadow.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
             ],
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.8)),
           ),
           child: Row(
             children: [

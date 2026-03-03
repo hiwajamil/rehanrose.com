@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/emotion_category.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/section_container.dart';
 
@@ -72,39 +73,40 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
     final description = _descriptionController.text.trim();
     final price = int.tryParse(_priceController.text.trim());
 
+    final l10n = AppLocalizations.of(context);
     if (name.isEmpty) {
-      _message('Please enter a bouquet name.');
+      _message(l10n?.vendorPleaseEnterBouquetName ?? 'Please enter a bouquet name.');
       return;
     }
     if (_selectedEmotionCategoryId == null || _selectedEmotionCategoryId!.isEmpty) {
-      setState(() => _occasionError = 'Please select an occasion.');
-      _message('Please select an occasion.');
+      setState(() => _occasionError = l10n?.vendorPleaseSelectOccasion ?? 'Please select an occasion.');
+      _message(l10n?.vendorPleaseSelectOccasion ?? 'Please select an occasion.');
       return;
     }
     final emotionCategoryId = _selectedEmotionCategoryId!;
     if (!isValidEmotionCategoryId(emotionCategoryId)) {
-      setState(() => _occasionError = 'Invalid selection.');
+      setState(() => _occasionError = l10n?.vendorInvalidSelection ?? 'Invalid selection.');
       return;
     }
     final occasionLabel = kOccasionLabelByEmotionCategoryId[emotionCategoryId];
     if (occasionLabel == null || occasionLabel.isEmpty) {
-      setState(() => _occasionError = 'Invalid selection.');
+      setState(() => _occasionError = l10n?.vendorInvalidSelection ?? 'Invalid selection.');
       return;
     }
     setState(() => _occasionError = null);
 
     if (price == null) {
-      _message('Enter the price as a number in IQD.');
+      _message(l10n?.vendorEnterPriceNumberIqd ?? 'Enter the price as a number in IQD.');
       return;
     }
     if (_images.isEmpty) {
-      _message('Please upload at least one photo.');
+      _message(l10n?.vendorPleaseUploadOnePhoto ?? 'Please upload at least one photo.');
       return;
     }
 
     final user = ref.read(authStateProvider).value;
     if (user == null) {
-      _message('Please sign in again.');
+      _message(l10n?.vendorPleaseSignInAgain ?? 'Please sign in again.');
       return;
     }
 
@@ -122,10 +124,11 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
             productCodePrefix: codePrefix,
           );
       if (!mounted) return;
+      final msgL10n = AppLocalizations.of(context);
       _message(
         code != null
-            ? 'Bouquet submitted for approval. Code: $code. It will appear under "$occasionLabel" on the main page after the super admin approves it.'
-            : 'Bouquet submitted for approval. It will appear under "$occasionLabel" on the main page after the super admin approves it.',
+            ? (msgL10n?.vendorBouquetSubmittedWithCode(code, occasionLabel) ?? 'Bouquet submitted for approval. Code: $code. It will appear under "$occasionLabel" on the main page after the super admin approves it.')
+            : (msgL10n?.vendorBouquetSubmitted(occasionLabel) ?? 'Bouquet submitted for approval. It will appear under "$occasionLabel" on the main page after the super admin approves it.'),
       );
       _nameController.clear();
       _descriptionController.clear();
@@ -137,12 +140,13 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
         _codeController.clear();
       });
     } on TimeoutException catch (_) {
-      _message('Publish timed out. Please try again.');
+      _message(AppLocalizations.of(context)?.vendorPublishTimedOut ?? 'Publish timed out. Please try again.');
     } on fa.FirebaseException catch (e) {
-      _message(e.message ?? 'Unable to publish bouquet.');
+      _message(e.message ?? (AppLocalizations.of(context)?.vendorUnableToPublishBouquet ?? 'Unable to publish bouquet.'));
     } catch (e, _) {
+      final l10nErr = AppLocalizations.of(context);
       final msg = e is Exception ? e.toString().replaceFirst('Exception: ', '') : '';
-      _message(msg.isNotEmpty ? 'Unable to publish. $msg' : 'Unable to publish. Try again or check your connection.');
+      _message(msg.isNotEmpty ? (l10nErr?.vendorUnableToPublishWithMessage(msg) ?? 'Unable to publish. $msg') : (l10nErr?.vendorUnableToPublish ?? 'Unable to publish. Try again or check your connection.'));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -150,6 +154,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
       child: SectionContainer(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
@@ -157,36 +162,43 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Add Bouquet',
+              l10n?.vendorAddBouquetPageTitle ?? 'Add Bouquet',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Product code is auto-generated from the occasion you choose (e.g. Birthday → BD-402).',
+              l10n?.vendorAddBouquetProductCodeHint ?? 'Product code is auto-generated from the occasion you choose (e.g. Birthday → BD-402).',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.inkMuted,
                   ),
             ),
             const SizedBox(height: 24),
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                    spreadRadius: 0,
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _Field(
-                    label: 'Bouquet name',
+                    label: l10n?.vendorBouquetName ?? 'Bouquet name',
                     hint: '',
                     controller: _nameController,
                     icon: Icons.local_florist_outlined,
                   ),
                   const SizedBox(height: 20),
                   _Field(
-                    label: 'Description',
+                    label: l10n?.vendorDescription ?? 'Description',
                     hint: '',
                     controller: _descriptionController,
                     icon: Icons.notes_outlined,
@@ -200,38 +212,32 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   ),
                   const SizedBox(height: 20),
                   _Field(
-                    label: 'Product code',
-                    hint: 'Select an occasion to generate',
+                    label: l10n?.vendorProductCode ?? 'Product code',
+                    hint: l10n?.vendorProductCodeHint ?? 'Select an occasion to generate',
                     controller: _codeController,
                     icon: Icons.tag_outlined,
                     readOnly: true,
                   ),
                   const SizedBox(height: 20),
                   _Field(
-                    label: 'Price (IQD)',
+                    label: l10n?.vendorPriceIqd ?? 'Price (IQD)',
                     hint: '',
                     controller: _priceController,
                     icon: Icons.payments_outlined,
                     keyboardType: TextInputType.number,
                   ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PrimaryButton(
-                          label: 'Upload photos',
-                          onPressed: _pickImages,
-                          variant: PrimaryButtonVariant.outline,
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n?.vendorPhotos ?? 'Photos',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '${_images.length}/3',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.inkMuted,
-                            ),
-                      ),
-                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _ImageUploadZone(
+                    imageCount: _images.length,
+                    onTap: _pickImages,
                   ),
                   if (_images.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -242,29 +248,41 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                           .map(
                             (f) => Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
+                                  horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: AppColors.background,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.border),
+                                color: AppColors.rose.withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: AppColors.rose.withValues(alpha: 0.2)),
                               ),
-                              child: Text(
-                                f.name,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(color: AppColors.inkMuted),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.image_outlined,
+                                      size: 18, color: AppColors.rosePrimary),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      f.name,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(color: AppColors.inkMuted),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           )
                           .toList(),
                     ),
                   ],
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   Row(
                     children: [
                       Text(
-                        'Available',
+                        l10n?.vendorAvailable ?? 'Available',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.ink,
                               fontWeight: FontWeight.w500,
@@ -274,13 +292,14 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                       Switch(
                         value: _available,
                         onChanged: (v) => setState(() => _available = v),
-                        activeThumbColor: AppColors.rose,
+                        activeTrackColor: AppColors.rosePrimary.withValues(alpha: 0.5),
+                        activeThumbColor: AppColors.rosePrimary,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   PrimaryButton(
-                    label: _submitting ? 'Publishing...' : 'Publish bouquet',
+                    label: _submitting ? (l10n?.vendorPublishing ?? 'Publishing...') : (l10n?.vendorPublishBouquet ?? 'Publish bouquet'),
                     onPressed: _submitting || _selectedEmotionCategoryId == null
                         ? () {}
                         : _submit,
@@ -289,6 +308,85 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Large drag-and-drop style zone for bouquet image upload (creator studio vibe).
+class _ImageUploadZone extends StatelessWidget {
+  final int imageCount;
+  final VoidCallback onTap;
+
+  const _ImageUploadZone({
+    required this.imageCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+          decoration: BoxDecoration(
+            color: AppColors.rose.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.rose.withValues(alpha: 0.25),
+              width: 2,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.rose.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.camera_alt_outlined,
+                  size: 28,
+                  color: AppColors.rosePrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n?.vendorTapToUploadBouquetImages ?? 'Tap to upload bouquet images',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n?.vendorUpTo3PhotosJpgPng ?? 'Up to 3 photos · JPG or PNG',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.inkMuted,
+                    ),
+              ),
+              if (imageCount > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l10n?.vendorPhotosSelected(imageCount) ?? '$imageCount/3 selected',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: AppColors.rosePrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -336,20 +434,21 @@ class _Field extends StatelessWidget {
           enableSuggestions: false,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: AppColors.inkMuted),
+            prefixIcon: Icon(icon, color: AppColors.inkMuted, size: 22),
             filled: true,
-            fillColor: AppColors.background,
+            fillColor: Colors.grey.shade50,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: Colors.grey.shade200),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: Colors.grey.shade200),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.rose),
+              borderSide: BorderSide(color: AppColors.rosePrimary, width: 1.5),
             ),
           ),
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -374,11 +473,12 @@ class _OccasionDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Occasion',
+          l10n?.vendorOccasion ?? 'Occasion',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w600,
@@ -390,21 +490,22 @@ class _OccasionDropdown extends StatelessWidget {
           decoration: InputDecoration(
             errorText: error,
             filled: true,
-            fillColor: AppColors.background,
+            fillColor: Colors.grey.shade50,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: Colors.grey.shade200),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: Colors.grey.shade200),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.rose),
+              borderSide: const BorderSide(color: AppColors.rosePrimary, width: 1.5),
             ),
           ),
-          hint: const Text('Choose occasion (same as main page)'),
+          hint: Text(l10n?.vendorChooseOccasionSameAsMainPage ?? 'Choose occasion (same as main page)'),
           items: kEmotionCategories
               .map((c) => DropdownMenuItem<String>(
                     value: c.id,

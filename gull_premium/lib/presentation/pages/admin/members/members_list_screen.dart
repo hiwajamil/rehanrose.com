@@ -80,36 +80,18 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
               ? const _MembersListShimmer()
               : state.error != null && state.list.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.inkMuted),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Unable to load members.',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: AppColors.inkMuted,
-                                ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                      child: _AdminEmptyState(
+                        icon: Icons.cloud_off_outlined,
+                        message: 'Unable to load members.',
+                        subtitle: 'Please check your connection and try again.',
                       ),
                     )
                   : state.list.isEmpty
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.people_outline, size: 64, color: AppColors.inkMuted),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No members yet.',
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      color: AppColors.inkMuted,
-                                    ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                          child: _AdminEmptyState(
+                            icon: Icons.people_outline,
+                            message: 'No members yet.',
+                            subtitle: 'Registered customers will appear here.',
                           ),
                         )
                       : ListView.builder(
@@ -294,13 +276,12 @@ class _MemberCard extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -521,6 +502,74 @@ class _OrderHistoryTile extends StatelessWidget {
   }
 }
 
+/// Premium empty/error state for admin CRM: soft icon + message.
+class _AdminEmptyState extends StatelessWidget {
+  const _AdminEmptyState({
+    required this.icon,
+    required this.message,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String message;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.inkMuted.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 56,
+              color: AppColors.inkMuted.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w600,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.inkMuted,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Shimmer placeholder while members list is loading.
 class _MembersListShimmer extends StatelessWidget {
   const _MembersListShimmer();
@@ -539,7 +588,7 @@ class _MembersListShimmer extends StatelessWidget {
             height: 180,
             decoration: BoxDecoration(
               color: AppColors.border,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
           ),
         ),

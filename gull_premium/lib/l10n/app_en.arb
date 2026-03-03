@@ -149,6 +149,9 @@
   "step1AddOns": "Step 1: Add-ons",
   "step2VoiceMessage": "Step 2: Voice Message",
   "step3Order": "Step 3: Order",
+  "completeYourGift": "Complete your gift",
+  "personalizeSectionTitle": "Personalize",
+  "addFreeVoiceMessage": "Add a Free Voice Message",
   "couldNotLoadProduct": "Could not load product.",
   "productNotFound": "Product not found.",
   "voiceMessageAdded": "Voice message added",
@@ -328,5 +331,68 @@
   "vendorToggleCreateAccount": "Create account",
   "vendorStatSatisfaction": "Vendor satisfaction",
   "vendorStatAvgRevenue": "Avg. weekly revenue",
-  "vendorStatFastOnboarding": "Fast onboarding"
+  "vendorStatFastOnboarding": "Fast onboarding",
+  "adminOrders": "Orders",
+  "adminMembersCrm": "Members CRM",
+  "adminTotalMembers": "Total Members",
+  "vendorAddBouquetPageTitle": "Add Bouquet",
+  "vendorAddBouquetProductCodeHint": "Product code is auto-generated from the occasion you choose (e.g. Birthday → BD-402).",
+  "vendorBouquetName": "Bouquet name",
+  "vendorDescription": "Description",
+  "vendorProductCode": "Product code",
+  "vendorProductCodeHint": "Select an occasion to generate",
+  "vendorPriceIqd": "Price (IQD)",
+  "vendorPhotos": "Photos",
+  "vendorAvailable": "Available",
+  "vendorPublishing": "Publishing...",
+  "vendorPublishBouquet": "Publish bouquet",
+  "vendorTapToUploadBouquetImages": "Tap to upload bouquet images",
+  "vendorUpTo3PhotosJpgPng": "Up to 3 photos · JPG or PNG",
+  "vendorPhotosSelected": "{count}/3 selected",
+  "@vendorPhotosSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "vendorOccasion": "Occasion",
+  "vendorChooseOccasionSameAsMainPage": "Choose occasion (same as main page)",
+  "vendorPleaseEnterBouquetName": "Please enter a bouquet name.",
+  "vendorPleaseSelectOccasion": "Please select an occasion.",
+  "vendorInvalidSelection": "Invalid selection.",
+  "vendorEnterPriceNumberIqd": "Enter the price as a number in IQD.",
+  "vendorPleaseUploadOnePhoto": "Please upload at least one photo.",
+  "vendorPleaseSignInAgain": "Please sign in again.",
+  "vendorBouquetSubmittedWithCode": "Bouquet submitted for approval. Code: {code}. It will appear under \"{occasion}\" on the main page after the super admin approves it.",
+  "@vendorBouquetSubmittedWithCode": {
+    "placeholders": {
+      "code": {"type": "String"},
+      "occasion": {"type": "String"}
+    }
+  },
+  "vendorBouquetSubmitted": "Bouquet submitted for approval. It will appear under \"{occasion}\" on the main page after the super admin approves it.",
+  "@vendorBouquetSubmitted": {
+    "placeholders": {
+      "occasion": {"type": "String"}
+    }
+  },
+  "vendorPublishTimedOut": "Publish timed out. Please try again.",
+  "vendorUnableToPublishBouquet": "Unable to publish bouquet.",
+  "vendorUnableToPublish": "Unable to publish. Try again or check your connection.",
+  "vendorUnableToPublishWithMessage": "Unable to publish. {message}",
+  "@vendorUnableToPublishWithMessage": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+  "freeQrVoice": "Free QR Voice",
+  "order": "Order",
+  "addOnCategoryVases": "Vases",
+  "addOnCategoryChocolates": "Chocolates",
+  "addOnCategoryCard": "Card",
+  "addOnCategoryAddOns": "Add-ons",
+  "locationSelectedTapToChange": "Location Selected (Tap to change)",
+  "selectDeliveryLocation": "Select Delivery Location",
+  "remove": "Remove"
 }

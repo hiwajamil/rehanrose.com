@@ -400,16 +400,40 @@ class _BuildCreateOrderTab extends StatelessWidget {
             )
           else
             Center(
-              child: Padding(
-                padding: const EdgeInsets.all(48),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.search, size: 64, color: AppColors.inkMuted),
-                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.inkMuted.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.search,
+                        size: 48,
+                        color: AppColors.inkMuted.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     Text(
                       'Enter a bouquet code and tap Search.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: AppColors.inkMuted,
+                            fontWeight: FontWeight.w500,
                           ),
                       textAlign: TextAlign.center,
                     ),
@@ -432,7 +456,13 @@ class _VendorDropdownLoading extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -463,7 +493,13 @@ class _VendorDropdownError extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
         'Could not load vendors.',
@@ -514,7 +550,13 @@ class _VendorSearchDropdown extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -707,13 +749,12 @@ class _BouquetCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 16,
-            offset: Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -876,33 +917,91 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
     }
     if (state.error != null && state.list.isEmpty) {
       return Center(
-        child: Text(
-          'Unable to load orders.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.inkMuted,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.inkMuted.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.cloud_off_outlined,
+                  size: 48,
+                  color: AppColors.inkMuted.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Unable to load orders.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppColors.inkMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       );
     }
     if (orders.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 48,
-              color: AppColors.inkMuted,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _emptyLabel(widget.status),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.inkMuted,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.inkMuted.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.inbox_outlined,
+                  size: 48,
+                  color: AppColors.inkMuted.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                _emptyLabel(widget.status),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppColors.inkMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       );
     }

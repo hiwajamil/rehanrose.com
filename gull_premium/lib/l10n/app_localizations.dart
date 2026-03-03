@@ -868,6 +868,24 @@ abstract class AppLocalizations {
   /// **'Step 3: Order'**
   String get step3Order;
 
+  /// No description provided for @completeYourGift.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete your gift'**
+  String get completeYourGift;
+
+  /// No description provided for @personalizeSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalize'**
+  String get personalizeSectionTitle;
+
+  /// No description provided for @addFreeVoiceMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a Free Voice Message'**
+  String get addFreeVoiceMessage;
+
   /// No description provided for @couldNotLoadProduct.
   ///
   /// In en, this message translates to:
@@ -1893,6 +1911,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Fast onboarding'**
   String get vendorStatFastOnboarding;
+
+  /// No description provided for @adminOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get adminOrders;
+
+  /// No description provided for @adminMembersCrm.
+  ///
+  /// In en, this message translates to:
+  /// **'Members CRM'**
+  String get adminMembersCrm;
+
+  /// No description provided for @adminTotalMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Members'**
+  String get adminTotalMembers;
+
+  /// No description provided for @vendorAddBouquetPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Bouquet'**
+  String get vendorAddBouquetPageTitle;
+
+  /// No description provided for @vendorAddBouquetProductCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Product code is auto-generated from the occasion you choose (e.g. Birthday → BD-402).'**
+  String get vendorAddBouquetProductCodeHint;
+
+  /// No description provided for @vendorBouquetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Bouquet name'**
+  String get vendorBouquetName;
+
+  /// No description provided for @vendorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get vendorDescription;
+
+  /// No description provided for @vendorProductCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Product code'**
+  String get vendorProductCode;
+
+  /// No description provided for @vendorProductCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an occasion to generate'**
+  String get vendorProductCodeHint;
+
+  /// No description provided for @vendorPriceIqd.
+  ///
+  /// In en, this message translates to:
+  /// **'Price (IQD)'**
+  String get vendorPriceIqd;
+
+  /// No description provided for @vendorPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get vendorPhotos;
+
+  /// No description provided for @vendorAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get vendorAvailable;
+
+  /// No description provided for @vendorPublishing.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing...'**
+  String get vendorPublishing;
+
+  /// No description provided for @vendorPublishBouquet.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish bouquet'**
+  String get vendorPublishBouquet;
+
+  /// No description provided for @vendorTapToUploadBouquetImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to upload bouquet images'**
+  String get vendorTapToUploadBouquetImages;
+
+  /// No description provided for @vendorUpTo3PhotosJpgPng.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to 3 photos · JPG or PNG'**
+  String get vendorUpTo3PhotosJpgPng;
+
+  /// No description provided for @vendorPhotosSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}/3 selected'**
+  String vendorPhotosSelected(int count);
+
+  /// No description provided for @vendorOccasion.
+  ///
+  /// In en, this message translates to:
+  /// **'Occasion'**
+  String get vendorOccasion;
+
+  /// No description provided for @vendorChooseOccasionSameAsMainPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose occasion (same as main page)'**
+  String get vendorChooseOccasionSameAsMainPage;
+
+  /// No description provided for @vendorPleaseEnterBouquetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a bouquet name.'**
+  String get vendorPleaseEnterBouquetName;
+
+  /// No description provided for @vendorPleaseSelectOccasion.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select an occasion.'**
+  String get vendorPleaseSelectOccasion;
+
+  /// No description provided for @vendorInvalidSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid selection.'**
+  String get vendorInvalidSelection;
+
+  /// No description provided for @vendorEnterPriceNumberIqd.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the price as a number in IQD.'**
+  String get vendorEnterPriceNumberIqd;
+
+  /// No description provided for @vendorPleaseUploadOnePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Please upload at least one photo.'**
+  String get vendorPleaseUploadOnePhoto;
+
+  /// No description provided for @vendorPleaseSignInAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in again.'**
+  String get vendorPleaseSignInAgain;
+
+  /// No description provided for @vendorBouquetSubmittedWithCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Bouquet submitted for approval. Code: {code}. It will appear under \"{occasion}\" on the main page after the super admin approves it.'**
+  String vendorBouquetSubmittedWithCode(String code, String occasion);
+
+  /// No description provided for @vendorBouquetSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Bouquet submitted for approval. It will appear under \"{occasion}\" on the main page after the super admin approves it.'**
+  String vendorBouquetSubmitted(String occasion);
+
+  /// No description provided for @vendorPublishTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish timed out. Please try again.'**
+  String get vendorPublishTimedOut;
+
+  /// No description provided for @vendorUnableToPublishBouquet.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to publish bouquet.'**
+  String get vendorUnableToPublishBouquet;
+
+  /// No description provided for @vendorUnableToPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to publish. Try again or check your connection.'**
+  String get vendorUnableToPublish;
+
+  /// No description provided for @vendorUnableToPublishWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to publish. {message}'**
+  String vendorUnableToPublishWithMessage(String message);
+
+  /// No description provided for @freeQrVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Free QR Voice'**
+  String get freeQrVoice;
+
+  /// No description provided for @order.
+  ///
+  /// In en, this message translates to:
+  /// **'Order'**
+  String get order;
+
+  /// No description provided for @addOnCategoryVases.
+  ///
+  /// In en, this message translates to:
+  /// **'Vases'**
+  String get addOnCategoryVases;
+
+  /// No description provided for @addOnCategoryChocolates.
+  ///
+  /// In en, this message translates to:
+  /// **'Chocolates'**
+  String get addOnCategoryChocolates;
+
+  /// No description provided for @addOnCategoryCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Card'**
+  String get addOnCategoryCard;
+
+  /// No description provided for @addOnCategoryAddOns.
+  ///
+  /// In en, this message translates to:
+  /// **'Add-ons'**
+  String get addOnCategoryAddOns;
+
+  /// No description provided for @locationSelectedTapToChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Location Selected (Tap to change)'**
+  String get locationSelectedTapToChange;
+
+  /// No description provided for @selectDeliveryLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Delivery Location'**
+  String get selectDeliveryLocation;
+
+  /// No description provided for @remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
 }
 
 class _AppLocalizationsDelegate

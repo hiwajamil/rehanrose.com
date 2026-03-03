@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/layout/section_container.dart';
 
 /// Earnings: today/weekly revenue, completed orders, next payout.
+/// Premium KPI cards with soft-tinted icons and elegant typography.
 class VendorEarningsPage extends StatelessWidget {
   const VendorEarningsPage({super.key});
 
@@ -17,7 +19,10 @@ class VendorEarningsPage extends StatelessWidget {
           children: [
             Text(
               'Earnings',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -34,18 +39,22 @@ class VendorEarningsPage extends StatelessWidget {
                 _EarningsCard(
                   title: "Today's revenue",
                   value: 'IQD 0',
+                  icon: Icons.today_outlined,
                 ),
                 _EarningsCard(
                   title: 'Weekly revenue',
                   value: 'IQD 0',
+                  icon: Icons.calendar_view_week_outlined,
                 ),
                 _EarningsCard(
                   title: 'Completed orders',
                   value: '0',
+                  icon: Icons.check_circle_outline,
                 ),
                 _EarningsCard(
                   title: 'Next payout',
                   value: '—',
+                  icon: Icons.payments_outlined,
                 ),
               ],
             ),
@@ -59,8 +68,13 @@ class VendorEarningsPage extends StatelessWidget {
 class _EarningsCard extends StatelessWidget {
   final String title;
   final String value;
+  final IconData icon;
 
-  const _EarningsCard({required this.title, required this.value});
+  const _EarningsCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -70,11 +84,28 @@ class _EarningsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.rose.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.rosePrimary, size: 24),
+          ),
+          const SizedBox(height: 16),
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -85,10 +116,12 @@ class _EarningsCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.ink,
-                  fontWeight: FontWeight.w700,
-                ),
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+              letterSpacing: -0.5,
+            ),
           ),
         ],
       ),

@@ -21,6 +21,38 @@ String formatOmsOrderDate(DateTime d, {bool short = false}) {
   return '${d.day}/${d.month}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
 
+/// Compact label-value cell for order card grid layout.
+class _OrderCardDetailCell extends StatelessWidget {
+  const _OrderCardDetailCell({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.inkMuted,
+                fontWeight: FontWeight.w500,
+              ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.ink,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Label-value row for OMS order details.
 class OmsDetailRow extends StatelessWidget {
   final String label;
@@ -113,13 +145,13 @@ class OmsOrderCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
-          boxShadow: const [
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 12,
-              offset: Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+              spreadRadius: 0,
             ),
           ],
         ),
@@ -187,29 +219,66 @@ class OmsOrderCard extends StatelessWidget {
                                 color: AppColors.inkMuted,
                               ),
                         ),
-                        const SizedBox(height: 8),
-                        OmsDetailRow(label: 'Customer', value: order.customerPhone),
-                        if (showVendorLine)
-                          OmsDetailRow(
-                            label: 'Vendor',
-                            value: order.vendorName ?? '—',
-                            labelWidth: 72,
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: AppColors.border, width: 1),
+                            ),
                           ),
-                        OmsDetailRow(
-                          label: 'Total',
-                          value: _priceString(context),
-                          labelWidth: showVendorLine ? 72 : 80,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _OrderCardDetailCell(
+                                  label: 'Customer',
+                                  value: order.customerPhone,
+                                ),
+                              ),
+                              if (showVendorLine)
+                                Expanded(
+                                  child: _OrderCardDetailCell(
+                                    label: 'Vendor',
+                                    value: order.vendorName ?? '—',
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                        OmsDetailRow(
-                          label: 'Placed',
-                          value: createdAtStr,
-                          labelWidth: showVendorLine ? 72 : 80,
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: order.addons.isNotEmpty
+                                  ? BorderSide(color: AppColors.border, width: 1)
+                                  : BorderSide.none,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _OrderCardDetailCell(
+                                  label: 'Total',
+                                  value: _priceString(context),
+                                ),
+                              ),
+                              Expanded(
+                                child: _OrderCardDetailCell(
+                                  label: 'Date',
+                                  value: createdAtStr,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         if (order.addons.isNotEmpty)
-                          OmsDetailRow(
-                            label: 'Add-ons',
-                            value: order.addons,
-                            labelWidth: showVendorLine ? 72 : 80,
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _OrderCardDetailCell(
+                              label: 'Add-ons',
+                              value: order.addons,
+                            ),
                           ),
                       ],
                     ),

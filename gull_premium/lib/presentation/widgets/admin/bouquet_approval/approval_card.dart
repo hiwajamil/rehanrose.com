@@ -87,11 +87,17 @@ class BouquetApprovalCard extends ConsumerWidget {
     final thumbSize = isWide ? _thumbSizeWide : _thumbSize;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: isWide
           ? _buildHorizontal(context, thumbSize, vendorName, approvedCount, codeDisplay, montserrat, playfair, greyText)

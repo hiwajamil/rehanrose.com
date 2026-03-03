@@ -434,12 +434,20 @@ class _BouquetCard extends StatelessWidget {
     final isRejected = bouquet.status == 'rejected';
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isSelected ? AppColors.sage.withValues(alpha: 0.08) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
         border: Border.all(
-          color: isRejected ? Colors.red.shade300 : (isSelected ? AppColors.sage : AppColors.border),
+          color: isRejected ? Colors.red.shade300 : (isSelected ? AppColors.sage : Colors.grey.shade200),
           width: isRejected ? 2 : (isSelected ? 2 : 1),
         ),
       ),
@@ -702,6 +710,7 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
+/// Premium empty state: soft grey icon in circle + gentle placeholder text.
 class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String message;
@@ -711,21 +720,39 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(48),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Center(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: AppColors.inkMuted),
-            const SizedBox(height: 16),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.inkMuted.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 40, color: AppColors.inkMuted),
+            ),
+            const SizedBox(height: 24),
             Text(
               message,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: AppColors.inkMuted,
+                    height: 1.4,
                   ),
               textAlign: TextAlign.center,
             ),

@@ -410,6 +410,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get step3Order => 'Step 3: Order';
 
   @override
+  String get completeYourGift => 'Complete your gift';
+
+  @override
+  String get personalizeSectionTitle => 'Personalize';
+
+  @override
+  String get addFreeVoiceMessage => 'Add a Free Voice Message';
+
+  @override
   String get couldNotLoadProduct => 'Could not load product.';
 
   @override
@@ -964,4 +973,135 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vendorStatFastOnboarding => 'Fast onboarding';
+
+  @override
+  String get adminOrders => 'Orders';
+
+  @override
+  String get adminMembersCrm => 'Members CRM';
+
+  @override
+  String get adminTotalMembers => 'Total Members';
+
+  @override
+  String get vendorAddBouquetPageTitle => 'Add Bouquet';
+
+  @override
+  String get vendorAddBouquetProductCodeHint =>
+      'Product code is auto-generated from the occasion you choose (e.g. Birthday → BD-402).';
+
+  @override
+  String get vendorBouquetName => 'Bouquet name';
+
+  @override
+  String get vendorDescription => 'Description';
+
+  @override
+  String get vendorProductCode => 'Product code';
+
+  @override
+  String get vendorProductCodeHint => 'Select an occasion to generate';
+
+  @override
+  String get vendorPriceIqd => 'Price (IQD)';
+
+  @override
+  String get vendorPhotos => 'Photos';
+
+  @override
+  String get vendorAvailable => 'Available';
+
+  @override
+  String get vendorPublishing => 'Publishing...';
+
+  @override
+  String get vendorPublishBouquet => 'Publish bouquet';
+
+  @override
+  String get vendorTapToUploadBouquetImages => 'Tap to upload bouquet images';
+
+  @override
+  String get vendorUpTo3PhotosJpgPng => 'Up to 3 photos · JPG or PNG';
+
+  @override
+  String vendorPhotosSelected(int count) {
+    return '$count/3 selected';
+  }
+
+  @override
+  String get vendorOccasion => 'Occasion';
+
+  @override
+  String get vendorChooseOccasionSameAsMainPage =>
+      'Choose occasion (same as main page)';
+
+  @override
+  String get vendorPleaseEnterBouquetName => 'Please enter a bouquet name.';
+
+  @override
+  String get vendorPleaseSelectOccasion => 'Please select an occasion.';
+
+  @override
+  String get vendorInvalidSelection => 'Invalid selection.';
+
+  @override
+  String get vendorEnterPriceNumberIqd => 'Enter the price as a number in IQD.';
+
+  @override
+  String get vendorPleaseUploadOnePhoto => 'Please upload at least one photo.';
+
+  @override
+  String get vendorPleaseSignInAgain => 'Please sign in again.';
+
+  @override
+  String vendorBouquetSubmittedWithCode(String code, String occasion) {
+    return 'Bouquet submitted for approval. Code: $code. It will appear under \"$occasion\" on the main page after the super admin approves it.';
+  }
+
+  @override
+  String vendorBouquetSubmitted(String occasion) {
+    return 'Bouquet submitted for approval. It will appear under \"$occasion\" on the main page after the super admin approves it.';
+  }
+
+  @override
+  String get vendorPublishTimedOut => 'Publish timed out. Please try again.';
+
+  @override
+  String get vendorUnableToPublishBouquet => 'Unable to publish bouquet.';
+
+  @override
+  String get vendorUnableToPublish =>
+      'Unable to publish. Try again or check your connection.';
+
+  @override
+  String vendorUnableToPublishWithMessage(String message) {
+    return 'Unable to publish. $message';
+  }
+
+  @override
+  String get freeQrVoice => 'Free QR Voice';
+
+  @override
+  String get order => 'Order';
+
+  @override
+  String get addOnCategoryVases => 'Vases';
+
+  @override
+  String get addOnCategoryChocolates => 'Chocolates';
+
+  @override
+  String get addOnCategoryCard => 'Card';
+
+  @override
+  String get addOnCategoryAddOns => 'Add-ons';
+
+  @override
+  String get locationSelectedTapToChange => 'Location Selected (Tap to change)';
+
+  @override
+  String get selectDeliveryLocation => 'Select Delivery Location';
+
+  @override
+  String get remove => 'Remove';
 }
