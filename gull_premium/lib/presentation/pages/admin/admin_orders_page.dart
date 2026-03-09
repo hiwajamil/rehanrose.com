@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../controllers/controllers.dart';
@@ -181,31 +182,30 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final vendorsAsync = ref.watch(vendorsListProvider);
+    final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+    final spacing = isMobile ? 16.0 : 24.0;
+    final contentHeight = MediaQuery.sizeOf(context).height - (isMobile ? 320.0 : 280.0);
     return DefaultTabController(
       length: 2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                'Order Management',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.ink,
-                    ),
-              ),
-            ],
+          Text(
+            'Order Management',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.ink,
+                ),
           ),
-            const SizedBox(height: 8),
-            Text(
-              'Create orders from WhatsApp requests and track status.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.inkMuted,
-                  ),
-            ),
-            const SizedBox(height: 24),
-            TabBar(
+          SizedBox(height: spacing / 2),
+          Text(
+            'Create orders from WhatsApp requests and track status.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.inkMuted,
+                ),
+          ),
+          SizedBox(height: spacing),
+          TabBar(
               labelColor: AppColors.rosePrimary,
               unselectedLabelColor: AppColors.inkMuted,
               indicatorColor: AppColors.rosePrimary,
@@ -214,9 +214,9 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
                 Tab(text: 'Order Tracking'),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: spacing),
             SizedBox(
-              height: (MediaQuery.sizeOf(context).height - 280).clamp(400.0, 1000.0),
+              height: contentHeight.clamp(isMobile ? 280.0 : 400.0, 1000.0),
               child: TabBarView(
                 children: [
                   _BuildCreateOrderTab(
@@ -280,169 +280,210 @@ class _BuildCreateOrderTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Search by bouquet code (e.g. #BQT-102)',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.inkMuted,
-                  fontWeight: FontWeight.w600,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Search by bouquet code (e.g. #BQT-102)',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.inkMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: searchController,
-                  decoration: _adminInputDecoration(
-                    hintText: '#BQT-102',
-                    prefixIcon: const Icon(Icons.search, color: AppColors.inkMuted),
-                  ),
-                  onSubmitted: (_) => onSearch(),
+                const SizedBox(height: 8),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < kAdminShellDrawerBreakpoint;
+                    final searchField = TextField(
+                      controller: searchController,
+                      decoration: _adminInputDecoration(
+                        hintText: '#BQT-102',
+                        prefixIcon: const Icon(Icons.search, color: AppColors.inkMuted),
+                      ),
+                      onSubmitted: (_) => onSearch(),
+                    );
+                    final searchBtn = PrimaryButton(
+                      label: isSearching ? 'Searching...' : 'Search',
+                      onPressed: isSearching ? () {} : onSearch,
+                    );
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          searchField,
+                          const SizedBox(height: 12),
+                          searchBtn,
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(child: searchField),
+                        const SizedBox(width: 12),
+                        searchBtn,
+                      ],
+                    );
+                  },
                 ),
-              ),
-              const SizedBox(width: 12),
-              PrimaryButton(
-                label: isSearching ? 'Searching...' : 'Search',
-                onPressed: isSearching ? () {} : onSearch,
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          if (foundBouquet != null) ...[
-            _BouquetCard(
-              bouquet: foundBouquet!,
-              vendorName: vendorName ?? '—',
-              l10n: l10n,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Assign to vendor',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.ink,
+                const SizedBox(height: 32),
+                if (foundBouquet != null) ...[
+                  _BouquetCard(
+                    bouquet: foundBouquet!,
+                    vendorName: vendorName ?? '—',
+                    l10n: l10n,
                   ),
-            ),
-            const SizedBox(height: 8),
-            vendorsAsync.when(
-              loading: () => _VendorDropdownLoading(),
-              error: (_, __) => _VendorDropdownError(),
-              data: (vendors) {
-                if (onVendorsLoadedForPreSelect != null &&
-                    foundBouquet != null &&
-                    selectedVendor == null) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    onVendorsLoadedForPreSelect!(vendors);
-                  });
-                }
-                return _VendorSearchDropdown(
-                  vendors: vendors,
-                  selectedVendor: selectedVendor,
-                  onVendorSelected: onVendorSelected,
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Customer Phone Number',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.ink,
+                  const SizedBox(height: 24),
+                  Text(
+                    'Assign to vendor',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ink,
+                        ),
                   ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: _adminInputDecoration(
-                hintText: '+964... or local number',
-                prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.inkMuted),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Requested Add-ons (Notes)',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.ink,
+                  const SizedBox(height: 8),
+                  vendorsAsync.when(
+                    loading: () => _VendorDropdownLoading(),
+                    error: (_, __) => _VendorDropdownError(),
+                    data: (vendors) {
+                      if (onVendorsLoadedForPreSelect != null &&
+                          foundBouquet != null &&
+                          selectedVendor == null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          onVendorsLoadedForPreSelect!(vendors);
+                        });
+                      }
+                      return _VendorSearchDropdown(
+                        vendors: vendors,
+                        selectedVendor: selectedVendor,
+                        onVendorSelected: onVendorSelected,
+                      );
+                    },
                   ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: addonsController,
-              maxLines: 3,
-              decoration: _adminInputDecoration(
-                hintText: 'e.g. Vase, card message...',
-                prefixIcon: null,
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: PrimaryButton(
-                label: isSubmitting
-                    ? 'Creating...'
-                    : 'Send The Bouquet For Preparation',
-                onPressed: isSubmitting ? () {} : onSendForPreparation,
-                variant: PrimaryButtonVariant.primary,
-              ),
-            ),
-          ] else if (isSearching)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(48),
-                child: CircularProgressIndicator(color: AppColors.rose),
-              ),
-            )
-          else
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Customer Phone Number',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ink,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: _adminInputDecoration(
+                      hintText: '+964... or local number',
+                      prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.inkMuted),
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Requested Add-ons (Notes)',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ink,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: addonsController,
+                    maxLines: 3,
+                    decoration: _adminInputDecoration(
+                      hintText: 'e.g. Vase, card message...',
+                      prefixIcon: null,
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ] else if (isSearching)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(48),
+                      child: CircularProgressIndicator(color: AppColors.rose),
+                    ),
+                  )
+                else
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
                       decoration: BoxDecoration(
-                        color: AppColors.inkMuted.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.search,
-                        size: 48,
-                        color: AppColors.inkMuted.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Enter a bouquet code and tap Search.',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppColors.inkMuted,
-                            fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
                           ),
-                      textAlign: TextAlign.center,
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: AppColors.inkMuted.withValues(alpha: 0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.search,
+                              size: 48,
+                              color: AppColors.inkMuted.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Enter a bouquet code and tap Search.',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: AppColors.inkMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
             ),
-        ],
-      ),
+          ),
+        ),
+        if (foundBouquet != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: PrimaryButton(
+                    label: isSubmitting
+                        ? 'Creating...'
+                        : 'Send The Bouquet For Preparation',
+                    onPressed: isSubmitting ? () {} : onSendForPreparation,
+                    variant: PrimaryButtonVariant.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
@@ -744,9 +785,46 @@ class _BouquetCard extends StatelessWidget {
         : bouquet.priceIqd;
     final priceStr = '${l10n.currencyIqd} ${formatPriceIqd(price)}';
     final imageUrl = bouquet.listingImageUrl;
+    final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+    final padding = isMobile ? 16.0 : 20.0;
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          bouquet.name,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.ink,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Code: #${bouquet.bouquetCode}',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.inkMuted,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Vendor: $vendorName',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.ink,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          priceStr,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppColors.rosePrimary,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
+    );
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -758,61 +836,49 @@ class _BouquetCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (imageUrl.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AppCachedImage(
-                imageUrl: imageUrl,
-                width: 120,
-                height: 120,
-                fit: BoxFit.cover,
-                memCacheWidth: 240,
-                memCacheHeight: 240,
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          if (imageUrl.isNotEmpty) const SizedBox(width: 20),
-          Expanded(
-            child: Column(
+      child: isMobile && imageUrl.isNotEmpty
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  bouquet.name,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
-                      ),
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AppCachedImage(
+                      imageUrl: imageUrl,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 240,
+                      memCacheHeight: 240,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Code: #${bouquet.bouquetCode}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.inkMuted,
-                      ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Vendor: $vendorName',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.ink,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  priceStr,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.rosePrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
+                const SizedBox(height: 16),
+                content,
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (imageUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AppCachedImage(
+                      imageUrl: imageUrl,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 240,
+                      memCacheHeight: 240,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                ],
+                Expanded(child: content),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -824,45 +890,95 @@ class _OrderTrackingTab extends ConsumerStatefulWidget {
   ConsumerState<_OrderTrackingTab> createState() => _OrderTrackingTabState();
 }
 
-class _OrderTrackingTabState extends ConsumerState<_OrderTrackingTab> {
-  bool _didInitialLoad = false;
+class _OrderTrackingTabState extends ConsumerState<_OrderTrackingTab>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (!_didInitialLoad) {
-      _didInitialLoad = true;
-      Future.microtask(() {
-        ref.read(paginatedOmsOrdersForAdminProvider.notifier).loadInitial();
-      });
-    }
-    return DefaultTabController(
-      length: 4,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TabBar(
-            isScrollable: true,
-            labelColor: AppColors.rosePrimary,
-            unselectedLabelColor: AppColors.inkMuted,
-            indicatorColor: AppColors.rosePrimary,
-            tabs: const [
-              Tab(text: 'Pending'),
-              Tab(text: 'Bouquet Preparation'),
-              Tab(text: 'Ready Bouquets'),
-              Tab(text: 'Delivered'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _AdminPillTabBar(controller: _tabController),
+        const SizedBox(height: 16),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: const [
+              _AdminOrderListByStatus(status: OmsOrderStatus.pending),
+              _AdminOrderListByStatus(status: OmsOrderStatus.preparing),
+              _AdminOrderListByStatus(status: OmsOrderStatus.ready),
+              _AdminOrderListByStatus(status: OmsOrderStatus.delivered),
             ],
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _AdminOrderListByStatus(status: OmsOrderStatus.pending),
-                _AdminOrderListByStatus(status: OmsOrderStatus.preparing),
-                _AdminOrderListByStatus(status: OmsOrderStatus.ready),
-                _AdminOrderListByStatus(status: OmsOrderStatus.delivered),
-              ],
-            ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pill-shaped segmented control for admin order status tabs (matches vendor_orders_page style).
+/// Scrollable so all 4 tabs fit on narrow screens.
+class _AdminPillTabBar extends StatelessWidget {
+  final TabController controller;
+
+  const _AdminPillTabBar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: TabBar(
+        controller: controller,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        indicator: BoxDecoration(
+          color: AppColors.rosePrimary.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.rosePrimary.withValues(alpha: 0.35),
+            width: 1,
+          ),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: AppColors.rosePrimary,
+        unselectedLabelColor: AppColors.inkMuted,
+        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+        unselectedLabelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        tabs: const [
+          Tab(text: 'Pending'),
+          Tab(text: 'Bouquet Preparation'),
+          Tab(text: 'Ready Bouquets'),
+          Tab(text: 'Delivered'),
         ],
       ),
     );
@@ -879,44 +995,14 @@ class _AdminOrderListByStatus extends ConsumerStatefulWidget {
 }
 
 class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus> {
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    final notifier = ref.read(paginatedOmsOrdersForAdminProvider.notifier);
-    final state = ref.read(paginatedOmsOrdersForAdminProvider);
-    if (!state.hasMore || state.isLoadingMore) return;
-    final pos = _scrollController.position;
-    if (pos.pixels >= pos.maxScrollExtent - 200) {
-      notifier.loadMore();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(paginatedOmsOrdersForAdminProvider);
-    final orders = state.list.where((o) => o.status == widget.status).toList();
-    final showBottomLoader = state.hasMore && state.isLoadingMore;
-
-    if (state.isLoading && state.list.isEmpty) {
-      return const Center(
+    final ordersAsync = ref.watch(omsOrdersForAdminStreamProvider);
+    return ordersAsync.when(
+      loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.rose),
-      );
-    }
-    if (state.error != null && state.list.isEmpty) {
-      return Center(
+      ),
+      error: (_, __) => Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
           margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -958,77 +1044,64 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
             ],
           ),
         ),
-      );
-    }
-    if (orders.isEmpty) {
-      return Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+      ),
+      data: (allOrders) {
+        final orders = allOrders.where((o) => o.status == widget.status).toList();
+        if (orders.isEmpty) {
+          return Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.inkMuted.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.inbox_outlined,
-                  size: 48,
-                  color: AppColors.inkMuted.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                _emptyLabel(widget.status),
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.inkMuted,
-                      fontWeight: FontWeight.w500,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.inkMuted.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
                     ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 24),
-      itemCount: orders.length + (showBottomLoader ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= orders.length) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.rose,
-                ),
+                    child: Icon(
+                      Icons.inbox_outlined,
+                      size: 48,
+                      color: AppColors.inkMuted.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _emptyLabel(widget.status),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.inkMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
           );
         }
-        return OmsOrderCard(
-          order: orders[index],
-          showVendorLine: true,
-          showOrderIdInSubtitle: true,
+        return ListView.builder(
+          padding: const EdgeInsets.only(bottom: 24),
+          itemCount: orders.length,
+          itemBuilder: (context, index) {
+            return OmsOrderCard(
+              order: orders[index],
+              showVendorLine: true,
+              showOrderIdInSubtitle: true,
+            );
+          },
         );
       },
     );

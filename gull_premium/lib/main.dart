@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
@@ -14,6 +15,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/constants/breakpoints.dart';
 import 'core/routing/app_router.dart';
+import 'core/routing/auth_redirect_notifier.dart';
 import 'core/services/firebase_init.dart' as fb;
 import 'core/theme/app_theme.dart';
 import 'controllers/controllers.dart';
@@ -146,11 +148,20 @@ Future<void> main() async {
     }
 
     if (kIsWeb) usePathUrlStrategy();
+
+    // Router and auth notifier: redirect waits for auth to be determined so web
+    // refresh keeps the user on the current URL (e.g. /vendor/orders, /admin/analytics).
+    final authRedirectNotifier = AuthRedirectNotifier();
+    final appRouter = AppRouter.createRouter(authRedirectNotifier);
+
     runApp(ProviderScope(
       overrides: [
         initialLocaleProvider.overrideWith((ref) => initialLocale),
       ],
-      child: const MainAppWithSplash(),
+      child: MainAppWithSplash(
+        router: appRouter,
+        authRedirectNotifier: authRedirectNotifier,
+      ),
     ));
   }, (error, stack) {
     debugPrint('Uncaught error: $error');
@@ -160,7 +171,14 @@ Future<void> main() async {
 
 /// Wraps the app with a splash screen that shows the mission statement.
 class MainAppWithSplash extends ConsumerStatefulWidget {
-  const MainAppWithSplash({super.key});
+  const MainAppWithSplash({
+    super.key,
+    required this.router,
+    required this.authRedirectNotifier,
+  });
+
+  final GoRouter router;
+  final AuthRedirectNotifier authRedirectNotifier;
 
   @override
   ConsumerState<MainAppWithSplash> createState() => _MainAppWithSplashState();
@@ -171,7 +189,10 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep router's redirect in sync with auth so refresh on web preserves URL.
+    widget.authRedirectNotifier.update(ref.read(authStateProvider));
     ref.listen(authStateProvider, (prev, next) {
+      widget.authRedirectNotifier.update(next);
       if (next.value != null) {
         ref.read(localeProvider.notifier).syncFromFirestoreIfLoggedIn();
       }
@@ -266,7 +287,7 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
             ],
           ),
         ),
-        routerConfig: AppRouter.router,
+        routerConfig: widget.router,
       ),
     );
   }

@@ -58,7 +58,16 @@ class AuthRepository {
   /// Sign out. Also signs out from Google so next sign-in is fresh.
   /// If the user signed in with email/password, Google sign-out may throw on web;
   /// we still sign out from Firebase so sign-out always succeeds.
+  /// Sets [isOnline] to false for the current user (e.g. vendor) before signing out.
   Future<void> signOut() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      try {
+        await setVendorOnline(uid, false);
+      } catch (_) {
+        // Best-effort: ensure sign-out proceeds even if presence update fails.
+      }
+    }
     try {
       await _googleSignIn.signOut();
     } catch (_) {
@@ -246,6 +255,7 @@ class AuthRepository {
   }
 
   /// Approve a vendor application: update application, user status, and create vendor doc.
+  /// Also merges [shopName] into the user doc for admin "Online Vendors" display.
   Future<void> approveVendorApplication(
     String applicationId,
     Map<String, dynamic> applicationData,
@@ -253,6 +263,13 @@ class AuthRepository {
   ) async {
     await updateVendorApplication(applicationId, status: 'approved', approvedBy: adminId);
     await setUserVendorStatus(applicationId, 'approved');
+    final studioName = applicationData['studioName']?.toString().trim();
+    if (studioName != null && studioName.isNotEmpty) {
+      await _firestore.collection('users').doc(applicationId).set(
+        {'shopName': studioName},
+        SetOptions(merge: true),
+      );
+    }
     await setVendorDoc(applicationId, {
       'studioName': applicationData['studioName'],
       'ownerName': applicationData['ownerName'],
@@ -274,6 +291,35 @@ class AuthRepository {
         .collection('vendor_applications')
         .where('status', isEqualTo: 'pending')
         .limit(100)
+        .snapshots();
+  }
+
+  /// Set online presence for a user (e.g. vendor). Used by vendor shell and sign-out.
+  Future<void> setVendorOnline(String uid, bool online) async {
+    await _firestore.collection('users').doc(uid).set(
+      {'isOnline': online},
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Stream of users who are vendors and currently online (for admin dashboard).
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchOnlineVendors() {
+    return _firestore
+        .collection('users')
+        .where('role', isEqualTo: 'vendor')
+        .where('isOnline', isEqualTo: true)
+        .limit(200)
+        .snapshots();
+  }
+
+  /// Stream of approved vendors (role == 'vendor', vendorStatus == 'approved') for admin.
+  /// Requires Firestore composite index on users: role, vendorStatus.
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchApprovedVendors() {
+    return _firestore
+        .collection('users')
+        .where('role', isEqualTo: 'vendor')
+        .where('vendorStatus', isEqualTo: 'approved')
+        .limit(200)
         .snapshots();
   }
 

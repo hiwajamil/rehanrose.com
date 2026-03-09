@@ -264,68 +264,50 @@ class _AddOnPersonalizationSheetState
                           ),
                           const SizedBox(height: 16),
                           SizedBox(
-                            height: 160,
-                            child: Center(
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                clipBehavior: Clip.none,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    for (var index = 0;
-                                        index < _addOnCategoryOrder.length;
-                                        index++) ...[
-                                      if (index > 0) const SizedBox(width: 12),
-                                      Builder(
-                                        builder: (context) {
-                                          final categoryType =
-                                              _addOnCategoryOrder[index];
-                                          final ofType = addOns
-                                              .where((a) =>
-                                                  a.type == categoryType)
-                                              .toList();
-                                          final isAvailable = ofType.isNotEmpty;
-                                          AddOnModel? selected;
-                                          for (final a in _selectedAddOns) {
-                                            if (a.type == categoryType) {
-                                              selected = a;
-                                              break;
-                                            }
-                                          }
-                                          return Opacity(
-                                            opacity:
-                                                isAvailable ? 1.0 : 0.55,
-                                            child: AbsorbPointer(
-                                              absorbing: !isAvailable,
-                                              child: _PremiumAddOnCard(
-                                                categoryType: categoryType,
-                                                ofType: ofType,
-                                                selected: selected,
-                                                locale: locale,
-                                                l10n: l10n,
-                                                onTap: isAvailable
-                                                    ? () =>
-                                                        _openVariantSelection(
-                                                          context,
-                                                          categoryType,
-                                                          ofType,
-                                                        )
-                                                    : null,
-                                                onRemove: selected != null
-                                                    ? () => _removeAddOn(
-                                                        categoryType)
-                                                    : null,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
+                            height: 220,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _addOnCategoryOrder.length,
+                              separatorBuilder: (_, __) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final categoryType =
+                                    _addOnCategoryOrder[index];
+                                final ofType = addOns
+                                    .where((a) => a.type == categoryType)
+                                    .toList();
+                                final isAvailable = ofType.isNotEmpty;
+                                AddOnModel? sel;
+                                for (final a in _selectedAddOns) {
+                                  if (a.type == categoryType) {
+                                    sel = a;
+                                    break;
+                                  }
+                                }
+                                return Opacity(
+                                  opacity: isAvailable ? 1.0 : 0.55,
+                                  child: AbsorbPointer(
+                                    absorbing: !isAvailable,
+                                    child: _PremiumAddOnCard(
+                                      categoryType: categoryType,
+                                      ofType: ofType,
+                                      selected: sel,
+                                      locale: locale,
+                                      l10n: l10n,
+                                      onTap: isAvailable
+                                          ? () => _openVariantSelection(
+                                                context,
+                                                categoryType,
+                                                ofType,
+                                              )
+                                          : null,
+                                      onRemove: sel != null
+                                          ? () => _removeAddOn(categoryType)
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(height: 28),
@@ -639,11 +621,11 @@ class _StickyCheckoutBar extends StatelessWidget {
   }
 }
 
-/// Premium horizontal add-on card: fixed size, white background, image top half, centered label/price/add.
+/// Premium horizontal add-on card: fixed size, white background, image top half, label/price/add.
 class _PremiumAddOnCard extends StatelessWidget {
-  static const double cardWidth = 120;
-  static const double cardHeight = 160;
-  static const double imageHeight = 80;
+  static const double cardWidth = 150;
+  static const double cardHeight = 220;
+  static const double imageHeight = 110;
 
   final AddOnType categoryType;
   final List<AddOnModel> ofType;
@@ -665,129 +647,159 @@ class _PremiumAddOnCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = _AddOnPersonalizationSheetState._categoryTitle(l10n, categoryType);
-    final iconData = _AddOnPersonalizationSheetState._categoryIcon(categoryType);
+    final title =
+        _AddOnPersonalizationSheetState._categoryTitle(l10n, categoryType);
+    final iconData =
+        _AddOnPersonalizationSheetState._categoryIcon(categoryType);
     final isUnavailable = ofType.isEmpty;
     final displayModel = selected ?? (ofType.isNotEmpty ? ofType.first : null);
     final isSelected = selected != null;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: cardWidth,
-          height: cardHeight,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
+    return SizedBox(
+      width: cardWidth,
+      height: cardHeight,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: cardWidth,
+            height: cardHeight,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadow.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-                child: Container(
-                  height: imageHeight,
-                  width: double.infinity,
-                  color: const Color(0xFFF0F0F0),
-                  alignment: Alignment.center,
-                  child: isUnavailable || displayModel == null
-                      ? Icon(
-                          iconData,
-                          color: AppColors.inkMuted.withValues(alpha: 0.5),
-                          size: 32,
-                        )
-                      : displayModel.imageUrl.isEmpty
-                          ? Shimmer.fromColors(
-                              baseColor: AppColors.border,
-                              highlightColor: Colors.white,
-                              child: Container(
-                                color: AppColors.border,
-                                child: Icon(
-                                  iconData,
-                                  color: AppColors.inkMuted,
-                                  size: 28,
-                                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  child: SizedBox(
+                    height: imageHeight,
+                    width: double.infinity,
+                    child: Container(
+                      color: const Color(0xFFF0F0F0),
+                      child: isUnavailable || displayModel == null
+                          ? Center(
+                              child: Icon(
+                                iconData,
+                                color: AppColors.inkMuted.withValues(alpha: 0.5),
+                                size: 32,
                               ),
                             )
-                          : Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: AppCachedImage(
-                                imageUrl: displayModel.imageUrl,
-                                fit: BoxFit.contain,
-                                errorIcon: iconData,
-                                errorIconSize: 28,
-                              ),
-                            ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.ink,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        displayModel != null
-                            ? '${l10n.currencyIqd} ${formatPriceIqd(displayModel.priceIqd)}'
-                            : '—',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.inkMuted,
-                              fontSize: 11,
-                            ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 6),
-                      if (isSelected && onRemove != null)
-                        GestureDetector(
-                          onTap: onRemove,
-                          child: Text(
-                            l10n.remove,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppColors.inkMuted,
-                                  decoration: TextDecoration.underline,
-                                  fontSize: 11,
+                          : displayModel.imageUrl.isEmpty
+                              ? Shimmer.fromColors(
+                                  baseColor: AppColors.border,
+                                  highlightColor: Colors.white,
+                                  child: Center(
+                                    child: Icon(
+                                      iconData,
+                                      color: AppColors.inkMuted,
+                                      size: 28,
+                                    ),
+                                  ),
+                                )
+                              : AppCachedImage(
+                                  imageUrl: displayModel.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorIcon: iconData,
+                                  errorIconSize: 28,
                                 ),
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                      else if (!isUnavailable)
-                        Icon(
-                          Icons.add_circle_outline_rounded,
-                          size: 20,
-                          color: AppColors.rosePrimary,
-                        ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          title,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.ink,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                displayModel != null
+                                    ? '${l10n.currencyIqd} ${formatPriceIqd(displayModel.priceIqd)}'
+                                    : '—',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.inkMuted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isSelected && onRemove != null)
+                              GestureDetector(
+                                onTap: onRemove,
+                                child: Text(
+                                  l10n.remove,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: AppColors.inkMuted,
+                                        decoration: TextDecoration.underline,
+                                        fontSize: 11,
+                                      ),
+                                ),
+                              )
+                            else if (!isUnavailable)
+                              Material(
+                                color: AppColors.rosePrimary,
+                                borderRadius: BorderRadius.circular(20),
+                                child: InkWell(
+                                  onTap: onTap,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: const SizedBox(
+                                    width: 28,
+                                    height: 28,
+                                    child: Icon(
+                                      Icons.add_rounded,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

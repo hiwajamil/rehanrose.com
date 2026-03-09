@@ -3,6 +3,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'auth_redirect_notifier.dart';
 import '../services/firebase_init.dart';
 import '../../controllers/controllers.dart';
 import '../../presentation/pages/landing/landing_page.dart';
@@ -17,6 +18,7 @@ import '../../presentation/pages/admin/add_on_category_inventory_page.dart';
 import '../../presentation/pages/admin/admin_orders_page.dart';
 import '../../presentation/pages/admin/manage_add_ons_landing_page.dart';
 import '../../presentation/pages/admin/members/members_list_screen.dart';
+import '../../presentation/pages/admin/admin_vendors_management_page.dart';
 import '../../presentation/pages/product/order_customization_page.dart';
 import '../../presentation/pages/product/product_detail_page.dart';
 import '../../presentation/pages/product/product_listing_page.dart';
@@ -39,40 +41,56 @@ import '../../presentation/pages/auth/registration_screen.dart';
 import '../../presentation/pages/auth/account_page.dart';
 
 class AppRouter {
-  static final GoRouter router = GoRouter(
-    observers: isFirebaseInitialized
-        ? [FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)]
-        : [],
-    redirect: (context, state) async {
-      final location = state.matchedLocation;
+  /// Creates the app router with [authNotifier] so redirect waits for auth to
+  /// be determined before redirecting. This preserves the current URL on web
+  /// refresh (vendor/admin/member pages) instead of sending users to home.
+  static GoRouter createRouter(AuthRedirectNotifier authNotifier) {
+    return GoRouter(
+      refreshListenable: authNotifier,
+      observers: isFirebaseInitialized
+          ? [FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)]
+          : [],
+      redirect: (context, state) async {
+        final location = state.matchedLocation;
 
-      // Admin routes: allow unauthenticated access so /admin shows its own admin
-      // sign-in form; only redirect non-admin authenticated users away.
-      if (location.startsWith('/admin')) {
-        final user = fa.FirebaseAuth.instance.currentUser;
-        if (user == null) {
-          return null; // Let AdminDashboardPage show admin sign-in screen
+        // Wait for auth to be determined (Firebase restores session async on web).
+        // While loading, stay on current URL so refresh keeps the user on the same page.
+        if (authNotifier.isLoading) {
+          return null;
         }
-        final authRepo = AuthRepository();
-        final isAdmin = await authRepo.isAdmin(user.uid);
-        if (!isAdmin) {
-          return '/';
-        }
-        return null;
-      }
 
-      // Vendor routes: if user is admin, send them to admin dashboard.
-      if (location.startsWith('/vendor')) {
-        final user = fa.FirebaseAuth.instance.currentUser;
-        if (user != null) {
+        final user = authNotifier.currentState.when(
+              data: (u) => u,
+              loading: () => null,
+              error: (_, __) => null,
+            ) ??
+            fa.FirebaseAuth.instance.currentUser;
+
+        // Admin routes: allow unauthenticated access so /admin shows its own admin
+        // sign-in form; only redirect non-admin authenticated users away.
+        if (location.startsWith('/admin')) {
+          if (user == null) {
+            return null; // Let AdminDashboardPage show admin sign-in screen
+          }
           final authRepo = AuthRepository();
-          if (await authRepo.isAdmin(user.uid)) {
-            return '/admin';
+          final isAdmin = await authRepo.isAdmin(user.uid);
+          if (!isAdmin) {
+            return '/';
+          }
+          return null;
+        }
+
+        // Vendor routes: if user is admin, send them to admin dashboard.
+        if (location.startsWith('/vendor')) {
+          if (user != null) {
+            final authRepo = AuthRepository();
+            if (await authRepo.isAdmin(user.uid)) {
+              return '/admin';
+            }
           }
         }
-      }
-      return null;
-    },
+        return null;
+      },
     routes: [
       GoRoute(
         path: '/',
@@ -252,10 +270,15 @@ class AppRouter {
                 path: 'members',
                 builder: (_, __) => const MembersListScreen(),
               ),
+              GoRoute(
+                path: 'vendors',
+                builder: (_, __) => const AdminVendorsManagementPage(),
+              ),
             ],
           ),
         ],
       ),
     ],
-  );
+    );
+  }
 }

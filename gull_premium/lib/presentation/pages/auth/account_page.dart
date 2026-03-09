@@ -25,6 +25,7 @@ class AccountPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return AppScaffold(
+      title: l10n.account,
       child: authAsync.when(
         data: (user) {
           if (user == null) {
@@ -228,7 +229,7 @@ class _DashboardContentState extends State<_DashboardContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ——— Section A: User Identity & VIP Status ———
+          // ——— Section A: User Identity & VIP Status (Rehan Rose premium) ———
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
             decoration: BoxDecoration(
@@ -249,43 +250,83 @@ class _DashboardContentState extends State<_DashboardContent> {
                   alignment: Alignment.topCenter,
                   clipBehavior: Clip.none,
                   children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.grey.shade100,
-                      backgroundImage: widget.photoUrl != null &&
-                              widget.photoUrl!.isNotEmpty
-                          ? CachedNetworkImageProvider(widget.photoUrl!)
-                          : null,
-                      child: widget.photoUrl == null || widget.photoUrl!.isEmpty
-                          ? Text(
-                              widget.fullName.isNotEmpty
-                                  ? widget.fullName[0].toUpperCase()
-                                  : '?',
-                              style: GoogleFonts.playfairDisplay(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w600,
-                                color: softGrey,
-                              ),
-                            )
-                          : null,
+                    // Elegant ring around avatar (rose/gold)
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.accentGold,
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accentGold.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.grey.shade100,
+                        backgroundImage: widget.photoUrl != null &&
+                                widget.photoUrl!.isNotEmpty
+                            ? CachedNetworkImageProvider(widget.photoUrl!)
+                            : null,
+                        child: widget.photoUrl == null || widget.photoUrl!.isEmpty
+                            ? Text(
+                                widget.fullName.isNotEmpty
+                                    ? widget.fullName[0].toUpperCase()
+                                    : '?',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w600,
+                                  color: softGrey,
+                                ),
+                              )
+                            : null,
+                      ),
                     ),
                     Positioned(
-                      bottom: -4,
+                      bottom: -6,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                            horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2B2724),
+                          color: AppColors.badgeGoldBackground,
                           borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          l10n.profilePremiumMember,
-                          style: GoogleFonts.montserrat(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            letterSpacing: 0.3,
+                          border: Border.all(
+                            color: AppColors.accentGold.withValues(alpha: 0.4),
+                            width: 1,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 6,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.workspace_premium_rounded,
+                              size: 16,
+                              color: AppColors.accentGold,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              l10n.profilePremiumMember,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -301,39 +342,30 @@ class _DashboardContentState extends State<_DashboardContent> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                if (widget.phone.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.phone,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: softGrey,
-                          fontSize: 14,
-                        ),
-                    textAlign: TextAlign.center,
+                const SizedBox(height: 16),
+                // Contact info with subtle icons (soft dark grey)
+                if (widget.phone.isNotEmpty)
+                  _ContactRow(
+                    icon: Icons.phone_outlined,
+                    text: widget.phone,
+                    softGrey: softGrey,
                   ),
-                ],
-                if (widget.email.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    widget.email,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: softGrey,
-                          fontSize: 13,
-                        ),
-                    textAlign: TextAlign.center,
+                if (widget.phone.isNotEmpty && (widget.email.isNotEmpty || widget.city.isNotEmpty))
+                  const SizedBox(height: 8),
+                if (widget.email.isNotEmpty)
+                  _ContactRow(
+                    icon: Icons.email_outlined,
+                    text: widget.email,
+                    softGrey: softGrey,
                   ),
-                ],
-                if (widget.city.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    widget.city,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: softGrey,
-                          fontSize: 13,
-                        ),
-                    textAlign: TextAlign.center,
+                if (widget.email.isNotEmpty && widget.city.isNotEmpty)
+                  const SizedBox(height: 8),
+                if (widget.city.isNotEmpty)
+                  _ContactRow(
+                    icon: Icons.location_on_outlined,
+                    text: widget.city,
+                    softGrey: softGrey,
                   ),
-                ],
               ],
             ),
           ),
@@ -361,18 +393,22 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
           const SizedBox(height: sectionSpacing),
 
-          // ——— Section C: Special Occasions (invitation card) ———
+          // ——— Section C: Special Occasions (premium card) ———
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(cardRadius),
-              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 6,
-                  offset: const Offset(0, 1),
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: AppColors.rose.withValues(alpha: 0.04),
+                  blurRadius: 20,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -380,52 +416,73 @@ class _DashboardContentState extends State<_DashboardContent> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      CupertinoIcons.gift,
-                      color: AppColors.rose,
-                      size: 22,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.rose.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.card_giftcard_rounded,
+                        color: AppColors.rose,
+                        size: 26,
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.profileMySpecialOccasions,
-                      style: GoogleFonts.playfairDisplay(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.inkCharcoal,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.profileMySpecialOccasions,
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.inkCharcoal,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.profileOccasionsSubtitle,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: softGrey,
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  l10n.profileOccasionsSubtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: softGrey,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                ),
-                const SizedBox(height: 20),
-                TextButton.icon(
-                  onPressed: _showComingSoon,
-                  icon: Icon(
-                    CupertinoIcons.add,
-                    size: 18,
-                    color: AppColors.rose,
-                  ),
-                  label: Text(
-                    l10n.profileAddOccasion,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _showComingSoon,
+                    icon: Icon(
+                      Icons.add_rounded,
+                      size: 20,
                       color: AppColors.rose,
                     ),
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    label: Text(
+                      l10n.profileAddOccasion,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.rose,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.rose,
+                      side: BorderSide(color: AppColors.rose, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -433,7 +490,7 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
           const SizedBox(height: sectionSpacing),
 
-          // ——— Section D: Settings list ———
+          // ——— Section D: Settings list (premium) ———
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
@@ -454,13 +511,13 @@ class _DashboardContentState extends State<_DashboardContent> {
                   label: l10n.profileContactSupportWhatsApp,
                   onTap: _openWhatsAppSupport,
                 ),
-                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.08)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.08), indent: 72, endIndent: 20),
                 _SettingsTile(
                   icon: CupertinoIcons.settings,
                   label: l10n.profileSettings,
                   onTap: _showComingSoon,
                 ),
-                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.08)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.08), indent: 72, endIndent: 20),
                 _SettingsTile(
                   icon: CupertinoIcons.lock_open,
                   label: l10n.profileChangePassword,
@@ -503,6 +560,40 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  const _ContactRow({
+    required this.icon,
+    required this.text,
+    required this.softGrey,
+  });
+
+  final IconData icon;
+  final String text;
+  final Color softGrey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 18, color: softGrey),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: softGrey,
+                  fontSize: 14,
+                ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -577,9 +668,19 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final softTint = AppColors.blush.withValues(alpha: 0.25);
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: Icon(icon, size: 22, color: Colors.grey.shade600),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      leading: Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: softTint,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 22, color: AppColors.inkMuted),
+      ),
       title: Text(
         label,
         style: GoogleFonts.montserrat(
@@ -589,8 +690,8 @@ class _SettingsTile extends StatelessWidget {
         ),
       ),
       trailing: Icon(
-        CupertinoIcons.chevron_right,
-        size: 16,
+        Icons.chevron_right_rounded,
+        size: 22,
         color: Colors.grey.shade400,
       ),
       onTap: onTap,

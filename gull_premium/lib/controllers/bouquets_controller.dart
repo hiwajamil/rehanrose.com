@@ -198,3 +198,8 @@ final approvedBouquetsStreamProvider = StreamProvider<List<FlowerModel>>((ref) {
 final rejectedBouquetsStreamProvider = StreamProvider<List<FlowerModel>>((ref) {
   return ref.watch(bouquetRepositoryProvider).watchRejectedBouquets();
 });
+
+/// Stream of deleted bouquets for admin Bouquet Approval tab (soft-deleted only).
+final deletedBouquetsStreamProvider = StreamProvider<List<FlowerModel>>((ref) {
+  return ref.watch(bouquetRepositoryProvider).watchDeletedBouquets();
+});

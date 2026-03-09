@@ -1,11 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/env/app_env.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/utils/auth_error_utils.dart';
 import '../../../l10n/app_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../widgets/common/primary_button.dart';
@@ -259,11 +260,16 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   Widget _buildAdminDashboard(BuildContext context, String adminId) {
     final l10n = AppLocalizations.of(context)!;
     final applicationsAsync = ref.watch(pendingVendorApplicationsStreamProvider);
+    final onlineVendorsAsync = ref.watch(onlineVendorsStreamProvider);
+    final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+    final verticalSpacing = isMobile ? 16.0 : 20.0;
+    final sectionSpacing = isMobile ? 24.0 : 40.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
         Text(
           l10n.adminPendingApplications,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -271,7 +277,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                 color: AppColors.ink,
               ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: verticalSpacing),
         applicationsAsync.when(
           loading: () => Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -322,7 +328,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               children: docs.map((doc) {
                 final data = doc.data();
                 final isProcessing = _processingApplications.contains(doc.id);
-                final isMobileCard = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+                final isMobileCard = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: EdgeInsets.all(isMobileCard ? 16 : 20),
@@ -362,71 +368,84 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                         value: data['location']?.toString() ?? '--',
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: PrimaryButton(
-                              label: isProcessing ? l10n.adminWorking : l10n.adminApprove,
-                              onPressed: isProcessing
-                                  ? () {}
-                                  : () async {
-                                        setState(() =>
-                                            _processingApplications.add(doc.id));
-                                        try {
-                                          await ref
-                                              .read(authRepositoryProvider)
-                                              .approveVendorApplication(
-                                                doc.id,
-                                                data,
-                                                adminId,
-                                              );
-                                          if (mounted) {
-                                            _showMessage(l10n.adminApplicationApproved);
-                                          }
-                                        } catch (_) {
-                                          if (mounted) {
-                                            _showMessage(l10n.adminUnableToApprove);
-                                          }
-                                        } finally {
-                                          if (mounted) {
-                                            setState(() =>
-                                                _processingApplications.remove(doc.id));
-                                          }
+                        LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isNarrow = constraints.maxWidth < kAdminShellDrawerBreakpoint;
+                          final approveBtn = PrimaryButton(
+                            label: isProcessing ? l10n.adminWorking : l10n.adminApprove,
+                            onPressed: isProcessing
+                                ? () {}
+                                : () async {
+                                      setState(() =>
+                                          _processingApplications.add(doc.id));
+                                      try {
+                                        await ref
+                                            .read(authRepositoryProvider)
+                                            .approveVendorApplication(
+                                              doc.id,
+                                              data,
+                                              adminId,
+                                            );
+                                        if (mounted) {
+                                          _showMessage(l10n.adminApplicationApproved);
                                         }
-                                      },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: PrimaryButton(
-                              label: isProcessing ? l10n.adminWorking : l10n.adminReject,
-                              onPressed: isProcessing
-                                  ? () {}
-                                  : () async {
-                                        setState(() =>
-                                            _processingApplications.add(doc.id));
-                                        try {
-                                          await ref
-                                              .read(authRepositoryProvider)
-                                              .rejectVendorApplication(doc.id, adminId);
-                                          if (mounted) {
-                                            _showMessage(l10n.adminApplicationRejected);
-                                          }
-                                        } catch (_) {
-                                          if (mounted) {
-                                            _showMessage(l10n.adminUnableToReject);
-                                          }
-                                        } finally {
-                                          if (mounted) {
-                                            setState(() =>
-                                                _processingApplications.remove(doc.id));
-                                          }
+                                      } catch (_) {
+                                        if (mounted) {
+                                          _showMessage(l10n.adminUnableToApprove);
                                         }
-                                      },
-                              variant: PrimaryButtonVariant.outline,
-                            ),
-                          ),
-                        ],
+                                      } finally {
+                                        if (mounted) {
+                                          setState(() =>
+                                              _processingApplications.remove(doc.id));
+                                        }
+                                      }
+                                    },
+                          );
+                          final rejectBtn = PrimaryButton(
+                            label: isProcessing ? l10n.adminWorking : l10n.adminReject,
+                            onPressed: isProcessing
+                                ? () {}
+                                : () async {
+                                      setState(() =>
+                                          _processingApplications.add(doc.id));
+                                      try {
+                                        await ref
+                                            .read(authRepositoryProvider)
+                                            .rejectVendorApplication(doc.id, adminId);
+                                        if (mounted) {
+                                          _showMessage(l10n.adminApplicationRejected);
+                                        }
+                                      } catch (_) {
+                                        if (mounted) {
+                                          _showMessage(l10n.adminUnableToReject);
+                                        }
+                                      } finally {
+                                        if (mounted) {
+                                          setState(() =>
+                                              _processingApplications.remove(doc.id));
+                                        }
+                                      }
+                                    },
+                            variant: PrimaryButtonVariant.outline,
+                          );
+                          if (isNarrow) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                approveBtn,
+                                const SizedBox(height: 12),
+                                rejectBtn,
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(child: approveBtn),
+                              const SizedBox(width: 12),
+                              Expanded(child: rejectBtn),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -435,7 +454,204 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             );
           },
         ),
-      ],
+        SizedBox(height: sectionSpacing),
+        _buildOnlineVendorsCard(context, l10n, onlineVendorsAsync),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOnlineVendorsCard(
+    BuildContext context,
+    AppLocalizations l10n,
+    AsyncValue<QuerySnapshot<Map<String, dynamic>>> onlineVendorsAsync,
+  ) {
+    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              Text(
+                l10n.adminOnlineVendors,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
+              ),
+              onlineVendorsAsync.when(
+                loading: () => Text(
+                  l10n.adminLoadingOnlineVendors,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.inkMuted,
+                        fontStyle: FontStyle.italic,
+                      ),
+                ),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (snapshot) {
+                  final count = snapshot.docs.length;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      l10n.adminOnlineVendorsCount(count),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF059669),
+                          ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          onlineVendorsAsync.when(
+            loading: () => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.inkMuted,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    l10n.adminLoadingOnlineVendors,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.inkMuted),
+                  ),
+                ],
+              ),
+            ),
+            error: (_, __) => Text(
+              l10n.adminNoOnlineVendors,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.inkMuted),
+            ),
+            data: (snapshot) {
+              final docs = snapshot.docs;
+              if (docs.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text(
+                    l10n.adminNoOnlineVendors,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.inkMuted),
+                  ),
+                );
+              }
+              return ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 280),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data();
+                    final shopName = data['shopName']?.toString().trim();
+                    final displayName = data['displayName']?.toString().trim();
+                    final email = data['email']?.toString().trim() ?? '';
+                    final label = (shopName != null && shopName.isNotEmpty)
+                        ? shopName
+                        : (displayName != null && displayName.isNotEmpty)
+                            ? displayName
+                            : email.isNotEmpty
+                                ? email
+                                : 'Vendor';
+                    return _OnlineVendorTile(label: label);
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnlineVendorTile extends StatelessWidget {
+  const _OnlineVendorTile({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF22C55E),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF22C55E).withValues(alpha: 0.6),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+                BoxShadow(
+                  color: const Color(0xFF22C55E).withValues(alpha: 0.35),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w500,
+                  ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -510,12 +726,14 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelWidth = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint ? 64.0 : 72.0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 72,
+            width: labelWidth,
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(

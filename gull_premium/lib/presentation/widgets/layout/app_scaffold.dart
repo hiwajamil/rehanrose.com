@@ -109,17 +109,21 @@ void showLoginModalOrPush(BuildContext context) {
 /// Vendor dashboard pages render their own [VendorDashboardHeader].
 /// Pass [scrollController] for pages that need scroll-based logic (e.g. infinite scroll).
 /// When [minimalHeader] is true, shows a transparent overlay header (hamburger, logo, profile) for cinematic landing.
+/// When [title] is set, the header shows this instead of the app title (e.g. "Account" on profile page).
 class AppScaffold extends ConsumerWidget {
   final Widget child;
   final ScrollController? scrollController;
   /// When true, show minimal transparent header (hamburger, app name, profile) instead of full nav.
   final bool minimalHeader;
+  /// Optional page title; when set, shown in the header center instead of [AppLocalizations.appTitle].
+  final String? title;
 
   const AppScaffold({
     super.key,
     required this.child,
     this.scrollController,
     this.minimalHeader = false,
+    this.title,
   });
 
   /// True when we are on a vendor route and the user is authenticated,
@@ -170,7 +174,7 @@ class AppScaffold extends ConsumerWidget {
           : SafeArea(
               child: Column(
                 children: [
-                  if (showPublicHeader) const _PublicHeader(),
+                  if (showPublicHeader) _PublicHeader(title: title),
                   Expanded(
                     child: SingleChildScrollView(
                       controller: scrollController,
@@ -190,13 +194,16 @@ class AppScaffold extends ConsumerWidget {
   }
 }
 
-/// Public website header: hamburger (left), app title (center), profile/sign-in (right).
+/// Public website header: hamburger (left), app title or page title (center), profile/sign-in (right).
 class _PublicHeader extends ConsumerWidget {
-  const _PublicHeader();
+  const _PublicHeader({this.title});
+
+  final String? title;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final centerTitle = title ?? l10n.appTitle;
     const maxWidth = 1280.0;
     const horizontalPadding = 16.0;
     const verticalPadding = 16.0;
@@ -236,7 +243,7 @@ class _PublicHeader extends ConsumerWidget {
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         child: Text(
-                          l10n.appTitle,
+                          centerTitle,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 color: AppColors.inkCharcoal,
                                 fontWeight: FontWeight.w600,

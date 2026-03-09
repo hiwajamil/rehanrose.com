@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/order_model.dart';
@@ -139,6 +140,8 @@ class OmsOrderCard extends StatelessWidget {
         : '#${order.bouquetCode}';
     final hasImage = order.bouquetImageUrl != null && order.bouquetImageUrl!.isNotEmpty;
     final showPreparedCount = preparedCount != null && preparedCount! > 0;
+    final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+    final padding = isMobile ? 16.0 : 20.0;
 
     return RepaintBoundary(
       child: Container(
@@ -156,7 +159,7 @@ class OmsOrderCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(padding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -227,24 +230,39 @@ class OmsOrderCard extends StatelessWidget {
                               bottom: BorderSide(color: AppColors.border, width: 1),
                             ),
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _OrderCardDetailCell(
-                                  label: 'Customer',
-                                  value: order.customerPhone,
+                          child: isMobile && showVendorLine
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _OrderCardDetailCell(
+                                      label: 'Customer',
+                                      value: order.customerPhone,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _OrderCardDetailCell(
+                                      label: 'Vendor',
+                                      value: order.vendorName ?? '—',
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: _OrderCardDetailCell(
+                                        label: 'Customer',
+                                        value: order.customerPhone,
+                                      ),
+                                    ),
+                                    if (showVendorLine)
+                                      Expanded(
+                                        child: _OrderCardDetailCell(
+                                          label: 'Vendor',
+                                          value: order.vendorName ?? '—',
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                              ),
-                              if (showVendorLine)
-                                Expanded(
-                                  child: _OrderCardDetailCell(
-                                    label: 'Vendor',
-                                    value: order.vendorName ?? '—',
-                                  ),
-                                ),
-                            ],
-                          ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -255,22 +273,37 @@ class OmsOrderCard extends StatelessWidget {
                                   : BorderSide.none,
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _OrderCardDetailCell(
-                                  label: 'Total',
-                                  value: _priceString(context),
+                          child: isMobile
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _OrderCardDetailCell(
+                                      label: 'Total',
+                                      value: _priceString(context),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _OrderCardDetailCell(
+                                      label: 'Date',
+                                      value: createdAtStr,
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  children: [
+                                    Expanded(
+                                      child: _OrderCardDetailCell(
+                                        label: 'Total',
+                                        value: _priceString(context),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: _OrderCardDetailCell(
+                                        label: 'Date',
+                                        value: createdAtStr,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              Expanded(
-                                child: _OrderCardDetailCell(
-                                  label: 'Date',
-                                  value: createdAtStr,
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                         if (order.addons.isNotEmpty)
                           Padding(

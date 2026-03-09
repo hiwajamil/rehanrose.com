@@ -23,6 +23,11 @@ class AppColors {
   /// Offers / Sale nav link: subtle red accent to draw attention
   static const Color navOffersAccent = Color(0xFFB8443A);
 
+  /// Premium badge / accent: pale gold background (luxury feel)
+  static const Color badgeGoldBackground = Color(0xFFF5F0E6);
+  /// Gold accent for premium elements (border, icon)
+  static const Color accentGold = Color(0xFFC9A962);
+
   /// Footer: dark green background, high contrast with white text
   static const Color footerBackground = Color(0xFF1B2E1F);
   /// Slightly darker than footer for the bottom bar

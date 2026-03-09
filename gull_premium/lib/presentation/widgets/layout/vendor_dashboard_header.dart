@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
-import '../../../core/services/notification_sound_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -342,9 +341,8 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
       child: PopupMenuButton<String?>(
         offset: const Offset(-8, 44),
         onOpened: () {
-        widget.onNotificationsViewed?.call();
-        if (hasNewOrders) playOrderNotificationSound();
-      },
+          widget.onNotificationsViewed?.call();
+        },
       onSelected: (String? value) {
         if (value == null) return;
         switch (value) {

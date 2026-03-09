@@ -32,7 +32,16 @@ class FlowerModel {
   /// Optional admin notes when rejecting. Shown to vendor.
   final String? rejectionNote;
 
-  /// Canonical status for UI and logic. Values: 'pending', 'approved', 'rejected'.
+  /// Server timestamp when admin approved. Set on approve action.
+  final DateTime? approvedAt;
+
+  /// Server timestamp when admin rejected. Set on reject action.
+  final DateTime? rejectedAt;
+
+  /// Server timestamp when admin soft-deleted. Set on delete action.
+  final DateTime? deletedAt;
+
+  /// Canonical status for UI and logic. Values: 'pending', 'approved', 'rejected', 'deleted'.
   /// Defaults to 'approved' when [approvalStatus] is null (legacy docs).
   String get status => approvalStatus ?? 'approved';
 
@@ -60,6 +69,9 @@ class FlowerModel {
     this.approvalStatus,
     this.rejectionReason,
     this.rejectionNote,
+    this.approvedAt,
+    this.rejectedAt,
+    this.deletedAt,
     this.createdAt,
     this.isOnSale = false,
     this.discountPrice,
@@ -77,6 +89,9 @@ class FlowerModel {
 
   /// True when bouquet is waiting for super admin approval.
   bool get isPendingApproval => approvalStatus == 'pending';
+
+  /// True when bouquet was soft-deleted by admin.
+  bool get isDeleted => approvalStatus == 'deleted';
 
   /// Best URL for listing/card: full-size image for premium look (no tiny thumb).
   /// Prefer [imageUrls]; fall back to [thumbnailUrls] only when full-size is missing.
@@ -130,6 +145,9 @@ class FlowerModel {
     final approvalStatus = json['approvalStatus']?.toString();
     final rejectionReasonVal = json['rejectionReason']?.toString();
     final rejectionNoteVal = json['rejectionNote']?.toString();
+    final approvedAtVal = _createdAtFromJson(json['approvedAt']);
+    final rejectedAtVal = _createdAtFromJson(json['rejectedAt']);
+    final deletedAtVal = _createdAtFromJson(json['deletedAt']);
     return FlowerModel(
       id: id,
       name: json['name']?.toString() ?? '',
@@ -144,6 +162,9 @@ class FlowerModel {
       approvalStatus: approvalStatus,
       rejectionReason: rejectionReasonVal,
       rejectionNote: rejectionNoteVal,
+      approvedAt: approvedAtVal,
+      rejectedAt: rejectedAtVal,
+      deletedAt: deletedAtVal,
       createdAt: _createdAtFromJson(json['createdAt']),
       isOnSale: isOnSale,
       discountPrice: discountPrice,

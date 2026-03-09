@@ -2,6 +2,7 @@
 library;
 
 export 'add_on_controller.dart';
+export 'admin_vendors_controller.dart';
 export 'analytics_controller.dart';
 export 'auth_controller.dart';
 export 'bouquets_controller.dart';

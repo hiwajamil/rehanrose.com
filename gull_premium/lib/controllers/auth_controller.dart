@@ -50,6 +50,18 @@ final pendingVendorApplicationsStreamProvider =
   return ref.watch(authRepositoryProvider).watchVendorApplications();
 });
 
+/// Stream of currently online vendors (role == 'vendor', isOnline == true) for admin dashboard.
+final onlineVendorsStreamProvider =
+    StreamProvider<QuerySnapshot<Map<String, dynamic>>>((ref) {
+  return ref.watch(authRepositoryProvider).watchOnlineVendors();
+});
+
+/// Stream of approved vendors (role == 'vendor', vendorStatus == 'approved') for admin.
+final approvedVendorsStreamProvider =
+    StreamProvider<QuerySnapshot<Map<String, dynamic>>>((ref) {
+  return ref.watch(authRepositoryProvider).watchApprovedVendors();
+});
+
 /// One-time fetch of all approved vendors (designers/florists) for the public list page.
 final vendorsListProvider = FutureProvider.autoDispose<List<VendorListModel>>((ref) {
   return ref.read(authRepositoryProvider).getVendors();

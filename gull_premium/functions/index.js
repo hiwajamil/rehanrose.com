@@ -157,10 +157,17 @@ exports.placesAutocomplete = onRequest(
     try {
       const r = await fetch(url.toString());
       const data = await r.json();
+      const status = data?.status;
+      const errorMessage = data?.error_message;
+      if (status && status !== 'OK' && status !== 'ZERO_RESULTS') {
+        console.error('[placesAutocomplete] Google Places API error: status=%s, error_message=%s', status, errorMessage || '(none)');
+        console.error('[placesAutocomplete] Possible causes: REQUEST_DENIED, BILLING_NOT_ENABLED, OVER_QUERY_LIMIT, INVALID_REQUEST');
+      }
       res.set('Access-Control-Allow-Origin', '*');
       res.status(200).json(data);
     } catch (e) {
-      console.error('placesAutocomplete proxy error', e);
+      console.error('[placesAutocomplete] Proxy error (network/CORS/fetch failure):', e.message || e);
+      console.error('[placesAutocomplete] Stack:', e.stack);
       res.set('Access-Control-Allow-Origin', '*');
       res.status(502).json({ status: 'ERROR', error: String(e.message || e) });
     }

@@ -10,12 +10,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:rehan_rose/main.dart';
+import 'package:rehan_rose/core/routing/app_router.dart';
+import 'package:rehan_rose/core/routing/auth_redirect_notifier.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
+    final authRedirectNotifier = AuthRedirectNotifier();
+    final router = AppRouter.createRouter(authRedirectNotifier);
     // Build our app and trigger a frame.
     await tester.pumpWidget(
-      const ProviderScope(child: MainAppWithSplash()),
+      ProviderScope(
+        child: MainAppWithSplash(
+          router: router,
+          authRedirectNotifier: authRedirectNotifier,
+        ),
+      ),
     );
 
     // Verify that the app builds (MaterialApp is present).

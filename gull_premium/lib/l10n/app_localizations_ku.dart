@@ -756,6 +756,20 @@ class AppLocalizationsKu extends AppLocalizations {
   String get adminNoPendingApplications => 'هیچ داواکاری چاوەڕوان نییە.';
 
   @override
+  String get adminOnlineVendors => 'فرۆشیارانی ئۆنڵاین';
+
+  @override
+  String adminOnlineVendorsCount(int count) {
+    return '$count ئۆنڵاین';
+  }
+
+  @override
+  String get adminNoOnlineVendors => 'ئێستا هیچ فرۆشیارێک ئۆنڵاین نییە.';
+
+  @override
+  String get adminLoadingOnlineVendors => 'بارکردن…';
+
+  @override
   String get adminStudio => 'ئستۆدیۆ';
 
   @override
@@ -986,6 +1000,49 @@ class AppLocalizationsKu extends AppLocalizations {
   String get adminMembersCrm => 'CRM ئەندامان';
 
   @override
+  String get adminVendorsManagement => 'بەڕێوەبردنی فرۆشیاران';
+
+  @override
+  String get adminVendorsManagementSubtitle =>
+      'فرۆشیارانی پەسەندکراو و کاراییان';
+
+  @override
+  String get adminVendorRegDate => 'تۆمارکردن';
+
+  @override
+  String get adminVendorPublishedBouquets => 'دەستەگوڵی بڵاوکراوە';
+
+  @override
+  String get adminVendorCompletedOrders => 'داواکاریی تەواوکراوەکان';
+
+  @override
+  String get adminVendorTotalGrossSales => 'کۆی فرۆشتنە گشتییەکان';
+
+  @override
+  String get adminVendorRehanCommission => 'کۆمیشنی ڕێحان ڕۆز (١٥٪)';
+
+  @override
+  String get adminVendorEarnings => 'داهاتی فرۆشیار (٨٥٪)';
+
+  @override
+  String get adminVendorActive => 'چالاک';
+
+  @override
+  String get adminVendorOffline => 'ئۆفلاین';
+
+  @override
+  String get adminVendorWhatsAppCall => 'واتسئەپ / تەلەفۆن';
+
+  @override
+  String get adminVendorOptions => 'هەڵبژاردنەکان';
+
+  @override
+  String get adminVendorSuspend => 'وەستاندن';
+
+  @override
+  String get adminVendorEdit => 'دەستکاریکردن';
+
+  @override
   String get adminTotalMembers => 'کۆی ئەندامان';
 
   @override
@@ -1113,4 +1170,10 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get remove => 'لابردن';
+
+  @override
+  String get adminNoApprovedVendors => 'هێشتا فرۆشیاری پەسەندکراو نییە.';
+
+  @override
+  String get adminLoadingVendors => 'بارکردنی فرۆشیاران…';
 }

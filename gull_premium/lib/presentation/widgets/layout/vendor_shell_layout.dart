@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../vendor/vendor_new_order_sound_listener.dart';
 import 'vendor_dashboard_header.dart';
+import 'vendor_presence_controller.dart';
 
 /// Vendor dashboard shell: fixed header + left sidebar (desktop) or drawer (mobile) + content.
 class VendorShellLayout extends ConsumerWidget {
@@ -20,12 +21,14 @@ class VendorShellLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
+    final user = ref.watch(authStateProvider).value;
 
     // Premium B2B SaaS: soft off-white content area
     const Color vendorContentBg = Color(0xFFF4F5F7);
 
+    Widget scaffold;
     if (isMobile) {
-      return VendorNewOrderSoundListener(
+      scaffold = VendorNewOrderSoundListener(
         child: Scaffold(
           drawer: _VendorDrawer(),
           body: Column(
@@ -48,33 +51,39 @@ class VendorShellLayout extends ConsumerWidget {
           ),
         ),
       );
-    }
-
-    return VendorNewOrderSoundListener(
-      child: Scaffold(
-        backgroundColor: vendorContentBg,
-        body: Column(
-          children: [
-            _buildHeader(context, ref),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _VendorSidebar(width: _sidebarWidth.toDouble()),
-                  Expanded(
-                    child: Material(
-                      color: vendorContentBg,
-                      child: ClipRect(
-                        child: child,
+    } else {
+      scaffold = VendorNewOrderSoundListener(
+        child: Scaffold(
+          backgroundColor: vendorContentBg,
+          body: Column(
+            children: [
+              _buildHeader(context, ref),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _VendorSidebar(width: _sidebarWidth.toDouble()),
+                    Expanded(
+                      child: Material(
+                        color: vendorContentBg,
+                        child: ClipRect(
+                          child: child,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      );
+    }
+
+    if (user == null) return scaffold;
+    return VendorPresenceController(
+      vendorUid: user.uid,
+      child: scaffold,
     );
   }
 

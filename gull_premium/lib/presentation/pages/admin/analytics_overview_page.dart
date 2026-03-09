@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/flower_model.dart';
@@ -88,70 +89,112 @@ class AnalyticsOverviewPage extends ConsumerWidget {
         final top10Orders = topByOrders.take(10).toList();
         final top10Views = topByViews.take(10).toList();
 
+        final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+        final spacing = isMobile ? 16.0 : 24.0;
+        final sectionSpacing = isMobile ? 24.0 : 32.0;
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    'Analytics Overview',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.ink,
+              isMobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Analytics Overview',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink,
+                              ),
                         ),
-                  ),
-                  const Spacer(),
-                  PrimaryButton(
-                    label: 'Refresh',
-                    onPressed: () =>
-                        ref.invalidate(adminAnalyticsBouquetsProvider),
-                    variant: PrimaryButtonVariant.outline,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: _SummaryCard(
-                      icon: Icons.visibility_outlined,
-                      iconTint: const Color(0xFF2E7D32),
-                      title: 'Product Views',
-                      value: totalViews.toString(),
+                        SizedBox(height: spacing),
+                        PrimaryButton(
+                          label: 'Refresh',
+                          onPressed: () =>
+                              ref.invalidate(adminAnalyticsBouquetsProvider),
+                          variant: PrimaryButtonVariant.outline,
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Text(
+                          'Analytics Overview',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink,
+                              ),
+                        ),
+                        const Spacer(),
+                        PrimaryButton(
+                          label: 'Refresh',
+                          onPressed: () =>
+                              ref.invalidate(adminAnalyticsBouquetsProvider),
+                          variant: PrimaryButtonVariant.outline,
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: _SummaryCard(
-                      icon: Icons.chat_outlined,
-                      iconTint: AppColors.rosePrimary,
-                      title: 'WhatsApp Clicks',
-                      value: totalClicks.toString(),
+              SizedBox(height: spacing),
+              isMobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SummaryCard(
+                          icon: Icons.visibility_outlined,
+                          iconTint: const Color(0xFF2E7D32),
+                          title: 'Product Views',
+                          value: totalViews.toString(),
+                        ),
+                        SizedBox(height: spacing),
+                        _SummaryCard(
+                          icon: Icons.chat_outlined,
+                          iconTint: AppColors.rosePrimary,
+                          title: 'WhatsApp Clicks',
+                          value: totalClicks.toString(),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: _SummaryCard(
+                            icon: Icons.visibility_outlined,
+                            iconTint: const Color(0xFF2E7D32),
+                            title: 'Product Views',
+                            value: totalViews.toString(),
+                          ),
+                        ),
+                        SizedBox(width: spacing),
+                        Expanded(
+                          child: _SummaryCard(
+                            icon: Icons.chat_outlined,
+                            iconTint: AppColors.rosePrimary,
+                            title: 'WhatsApp Clicks',
+                            value: totalClicks.toString(),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
+              SizedBox(height: sectionSpacing),
               Text(
                 'Top Performing Products',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: spacing / 2),
               _ProductList(
                 products: top10Orders,
                 subtitleBuilder: (p) => 'Ordered: ${p.orderCount} times',
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: sectionSpacing),
               Text(
                 'Most Viewed Products',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: spacing / 2),
               _ProductList(
                 products: top10Views,
                 subtitleBuilder: (p) => 'Viewed: ${p.viewCount} times',
@@ -179,8 +222,10 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+    final padding = isMobile ? 16.0 : 24.0;
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),

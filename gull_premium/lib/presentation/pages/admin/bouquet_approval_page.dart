@@ -13,7 +13,7 @@ import '../../../data/models/flower_model.dart';
 import '../../widgets/admin/bouquet_approval/bouquet_approval.dart';
 import '../../widgets/common/primary_button.dart';
 
-/// Admin page for Bouquet Approval System. Tab-based UI: Pending, Approved, Rejected.
+/// Admin page for Bouquet Approval System. Premium tab-based UI: Pending, Approved, Rejected, Deleted.
 class BouquetApprovalPage extends ConsumerStatefulWidget {
   const BouquetApprovalPage({super.key});
 
@@ -29,7 +29,7 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -110,6 +110,22 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
     } catch (e, st) {
       if (mounted) {
         debugPrint('Delete bouquet error: $e $st');
+        _showMessage('Unable to delete bouquet. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _processingIds.remove(bouquetId));
+    }
+  }
+
+  Future<void> _softDelete(String bouquetId) async {
+    setState(() => _processingIds.add(bouquetId));
+    try {
+      await _ensureSuperAdmin();
+      await ref.read(bouquetRepositoryProvider).softDeleteBouquet(bouquetId);
+      if (mounted) _showMessage('Bouquet moved to Deleted.');
+    } catch (e, st) {
+      if (mounted) {
+        debugPrint('Soft delete bouquet error: $e $st');
         _showMessage('Unable to delete bouquet. Please try again.');
       }
     } finally {
@@ -238,19 +254,7 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
         const SizedBox(height: 24),
         _OperationalOverview(isMobile: isMobile),
         const SizedBox(height: 24),
-        TabBar(
-          controller: _tabController,
-          isScrollable: isMobile,
-          labelStyle: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: GoogleFonts.montserrat(),
-          indicatorColor: AppColors.rosePrimary,
-          labelColor: AppColors.ink,
-          tabs: const [
-            Tab(child: _TabBadge(providerKey: _TabProviderKey.pending)),
-            Tab(child: _TabBadge(providerKey: _TabProviderKey.approved)),
-            Tab(child: _TabBadge(providerKey: _TabProviderKey.rejected)),
-          ],
-        ),
+        _BouquetPillTabBar(controller: _tabController),
         const SizedBox(height: 16),
         RepaintBoundary(
           child: SizedBox(
@@ -267,6 +271,7 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
                   onDeletePermanently: (bouquet) {
                     unawaited(_confirmDelete(context, bouquet));
                   },
+                  onSoftDelete: null,
                   emptyMessage: 'No pending bouquets.',
                 ),
                 _TabContent(
@@ -278,6 +283,7 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
                   onDeletePermanently: (bouquet) {
                     unawaited(_confirmDelete(context, bouquet));
                   },
+                  onSoftDelete: _softDelete,
                   emptyMessage: 'No approved bouquets.',
                 ),
                 _TabContent(
@@ -289,7 +295,20 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
                   onDeletePermanently: (bouquet) {
                     unawaited(_confirmDelete(context, bouquet));
                   },
+                  onSoftDelete: null,
                   emptyMessage: 'No rejected bouquets.',
+                ),
+                _TabContent(
+                  providerKey: _TabProviderKey.deleted,
+                  variant: ApprovalCardVariant.deleted,
+                  processingIds: _processingIds,
+                  onApprove: _approve,
+                  onReject: _showRejectDialog,
+                  onDeletePermanently: (bouquet) {
+                    unawaited(_confirmDelete(context, bouquet));
+                  },
+                  onSoftDelete: null,
+                  emptyMessage: 'No deleted bouquets.',
                 ),
               ],
             ),
@@ -300,7 +319,68 @@ class _BouquetApprovalPageState extends ConsumerState<BouquetApprovalPage>
   }
 }
 
-enum _TabProviderKey { pending, approved, rejected }
+enum _TabProviderKey { pending, approved, rejected, deleted }
+
+/// Premium pill-shaped segmented control for bouquet approval tabs.
+/// Scrollable horizontal row so all 4 tabs fit on mobile without overflow.
+class _BouquetPillTabBar extends StatelessWidget {
+  const _BouquetPillTabBar({required this.controller});
+
+  final TabController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TabBar(
+          controller: controller,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          indicator: BoxDecoration(
+            color: AppColors.rosePrimary.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.rosePrimary.withValues(alpha: 0.35),
+              width: 1,
+            ),
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          labelColor: AppColors.rosePrimary,
+          unselectedLabelColor: AppColors.inkMuted,
+          labelStyle: GoogleFonts.montserrat(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+          unselectedLabelStyle: GoogleFonts.montserrat(
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+          ),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          tabs: const [
+            Tab(child: _TabBadge(providerKey: _TabProviderKey.pending)),
+            Tab(child: _TabBadge(providerKey: _TabProviderKey.approved)),
+            Tab(child: _TabBadge(providerKey: _TabProviderKey.rejected)),
+            Tab(child: _TabBadge(providerKey: _TabProviderKey.deleted)),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 /// Combined approval statistics for the Operational Overview. Updates in real time from streams.
 class _ApprovalStats {
@@ -323,18 +403,21 @@ final _approvalStatsProvider = Provider<AsyncValue<_ApprovalStats>>((ref) {
   final pending = ref.watch(pendingBouquetsStreamProvider);
   final approved = ref.watch(approvedBouquetsStreamProvider);
   final rejected = ref.watch(rejectedBouquetsStreamProvider);
+  final deleted = ref.watch(deletedBouquetsStreamProvider);
 
-  if (pending.isLoading || approved.isLoading || rejected.isLoading) {
+  if (pending.isLoading || approved.isLoading || rejected.isLoading || deleted.isLoading) {
     return const AsyncValue.loading();
   }
   if (pending.hasError) return AsyncValue.error(pending.error!, pending.stackTrace ?? StackTrace.current);
   if (approved.hasError) return AsyncValue.error(approved.error!, approved.stackTrace ?? StackTrace.current);
   if (rejected.hasError) return AsyncValue.error(rejected.error!, rejected.stackTrace ?? StackTrace.current);
+  if (deleted.hasError) return AsyncValue.error(deleted.error!, deleted.stackTrace ?? StackTrace.current);
 
   final p = pending.asData?.value ?? <FlowerModel>[];
   final a = approved.asData?.value ?? <FlowerModel>[];
   final r = rejected.asData?.value ?? <FlowerModel>[];
-  final total = p.length + a.length + r.length;
+  final d = deleted.asData?.value ?? <FlowerModel>[];
+  final total = p.length + a.length + r.length + d.length;
   final qualityIndexPercent = total > 0 ? (a.length / total * 100) : 0.0;
 
   return AsyncValue.data(_ApprovalStats(
@@ -616,6 +699,7 @@ class _TabBadge extends ConsumerWidget {
     _TabProviderKey.pending: 'Pending',
     _TabProviderKey.approved: 'Approved',
     _TabProviderKey.rejected: 'Rejected',
+    _TabProviderKey.deleted: 'Deleted',
   };
 
   @override
@@ -635,6 +719,9 @@ final _bouquetCountProvider = Provider.family<int, _TabProviderKey>((ref, key) {
       ),
     _TabProviderKey.rejected => ref.watch(
         rejectedBouquetsStreamProvider.select((a) => a.asData?.value.length ?? 0),
+      ),
+    _TabProviderKey.deleted => ref.watch(
+        deletedBouquetsStreamProvider.select((a) => a.asData?.value.length ?? 0),
       ),
   };
 });
@@ -680,6 +767,7 @@ class _TabContent extends ConsumerWidget {
     required this.onApprove,
     required this.onReject,
     required this.onDeletePermanently,
+    this.onSoftDelete,
     required this.emptyMessage,
   });
 
@@ -689,6 +777,7 @@ class _TabContent extends ConsumerWidget {
   final ValueSetter<String> onApprove;
   final ValueSetter<String> onReject;
   final ValueSetter<FlowerModel> onDeletePermanently;
+  final ValueSetter<String>? onSoftDelete;
   final String emptyMessage;
 
   @override
@@ -697,6 +786,7 @@ class _TabContent extends ConsumerWidget {
       _TabProviderKey.pending => ref.watch(pendingBouquetsStreamProvider),
       _TabProviderKey.approved => ref.watch(approvedBouquetsStreamProvider),
       _TabProviderKey.rejected => ref.watch(rejectedBouquetsStreamProvider),
+      _TabProviderKey.deleted => ref.watch(deletedBouquetsStreamProvider),
     };
     return streamAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -809,6 +899,7 @@ class _TabContent extends ConsumerWidget {
               onApprove: () => onApprove(bouquet.id),
               onReject: () => onReject(bouquet.id),
               onDeletePermanently: () => onDeletePermanently(bouquet),
+              onSoftDelete: onSoftDelete != null ? () => onSoftDelete!(bouquet.id) : null,
             );
           },
         );

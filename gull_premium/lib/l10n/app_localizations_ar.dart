@@ -744,6 +744,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get adminNoPendingApplications => 'لا توجد طلبات معلقة.';
 
   @override
+  String get adminOnlineVendors => 'البائعون المتصلون';
+
+  @override
+  String adminOnlineVendorsCount(int count) {
+    return '$count متصل';
+  }
+
+  @override
+  String get adminNoOnlineVendors => 'لا يوجد بائعون متصلون حالياً.';
+
+  @override
+  String get adminLoadingOnlineVendors => 'جاري التحميل…';
+
+  @override
   String get adminStudio => 'استوديو';
 
   @override
@@ -971,6 +985,48 @@ class AppLocalizationsAr extends AppLocalizations {
   String get adminMembersCrm => 'إدارة الأعضاء';
 
   @override
+  String get adminVendorsManagement => 'إدارة البائعين';
+
+  @override
+  String get adminVendorsManagementSubtitle => 'البائعون المعتمدون وأداؤهم';
+
+  @override
+  String get adminVendorRegDate => 'تاريخ التسجيل';
+
+  @override
+  String get adminVendorPublishedBouquets => 'الباقات المنشورة';
+
+  @override
+  String get adminVendorCompletedOrders => 'الطلبات المكتملة';
+
+  @override
+  String get adminVendorTotalGrossSales => 'إجمالي المبيعات';
+
+  @override
+  String get adminVendorRehanCommission => 'عمولة ريحان روز (15%)';
+
+  @override
+  String get adminVendorEarnings => 'أرباح البائع (85%)';
+
+  @override
+  String get adminVendorActive => 'نشط';
+
+  @override
+  String get adminVendorOffline => 'غير متصل';
+
+  @override
+  String get adminVendorWhatsAppCall => 'واتساب / مكالمة';
+
+  @override
+  String get adminVendorOptions => 'خيارات';
+
+  @override
+  String get adminVendorSuspend => 'تعليق';
+
+  @override
+  String get adminVendorEdit => 'تعديل';
+
+  @override
   String get adminTotalMembers => 'إجمالي الأعضاء';
 
   @override
@@ -1095,4 +1151,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get remove => 'إزالة';
+
+  @override
+  String get adminNoApprovedVendors => 'لا يوجد بائعون معتمدون بعد.';
+
+  @override
+  String get adminLoadingVendors => 'جاري تحميل البائعين…';
 }

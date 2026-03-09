@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/price_format_utils.dart';
@@ -12,7 +13,12 @@ import '../../../../data/models/vendor_list_model.dart';
 import '../../common/app_cached_image.dart';
 
 /// Tab variant for Bouquet Approval card actions.
-enum ApprovalCardVariant { pending, approved, rejected }
+enum ApprovalCardVariant { pending, approved, rejected, deleted }
+
+/// Formats a timestamp as "12 Oct 2025, 02:30 PM".
+String _formatTimestamp(DateTime dt) {
+  return DateFormat('d MMM yyyy, hh:mm a').format(dt);
+}
 
 String ordinalSuffix(int n) {
   if (n >= 11 && n <= 13) return 'th';
@@ -48,6 +54,7 @@ class BouquetApprovalCard extends ConsumerWidget {
     required this.onApprove,
     required this.onReject,
     required this.onDeletePermanently,
+    this.onSoftDelete,
   });
 
   final FlowerModel bouquet;
@@ -56,6 +63,8 @@ class BouquetApprovalCard extends ConsumerWidget {
   final VoidCallback onApprove;
   final VoidCallback onReject;
   final VoidCallback onDeletePermanently;
+  /// Optional: soft delete (Approved tab). Sets status to 'deleted'.
+  final VoidCallback? onSoftDelete;
 
   static const double _thumbSize = 96;
   static const double _thumbSizeWide = 120;
@@ -181,6 +190,8 @@ class BouquetApprovalCard extends ConsumerWidget {
                 iqdPriceString(bouquet.priceIqd),
                 style: montserrat.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.rosePrimary),
               ),
+              const SizedBox(height: 10),
+              _buildTimestamps(montserrat),
             ],
           ),
         ),
@@ -262,6 +273,8 @@ class BouquetApprovalCard extends ConsumerWidget {
                     iqdPriceString(bouquet.priceIqd),
                     style: montserrat.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.rosePrimary),
                   ),
+                  const SizedBox(height: 10),
+                  _buildTimestamps(montserrat),
                 ],
               ),
             ),
@@ -270,6 +283,90 @@ class BouquetApprovalCard extends ConsumerWidget {
         const SizedBox(height: 12),
         _buildActions(context, montserrat),
       ],
+    );
+  }
+
+  Widget _buildTimestamps(TextStyle montserrat) {
+    final submittedAt = bouquet.createdAt;
+    final lines = <Widget>[];
+    final baseStyle = montserrat.copyWith(fontSize: 12, color: AppColors.inkMuted);
+    if (submittedAt != null) {
+      lines.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.schedule, size: 14, color: AppColors.inkMuted),
+            const SizedBox(width: 6),
+            Text('Submitted: ${_formatTimestamp(submittedAt)}', style: baseStyle),
+          ],
+        ),
+      );
+    }
+    switch (variant) {
+      case ApprovalCardVariant.approved:
+        final approvedAt = bouquet.approvedAt;
+        if (approvedAt != null) {
+          lines.add(const SizedBox(height: 4));
+          lines.add(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle_outline, size: 14, color: const Color(0xFF2E7D32)),
+                const SizedBox(width: 6),
+                Text(
+                  'Approved at: ${_formatTimestamp(approvedAt)}',
+                  style: baseStyle.copyWith(color: const Color(0xFF2E7D32)),
+                ),
+              ],
+            ),
+          );
+        }
+        break;
+      case ApprovalCardVariant.rejected:
+        final rejectedAt = bouquet.rejectedAt;
+        if (rejectedAt != null) {
+          lines.add(const SizedBox(height: 4));
+          lines.add(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cancel_outlined, size: 14, color: const Color(0xFFC62828)),
+                const SizedBox(width: 6),
+                Text(
+                  'Rejected at: ${_formatTimestamp(rejectedAt)}',
+                  style: baseStyle.copyWith(color: const Color(0xFFC62828)),
+                ),
+              ],
+            ),
+          );
+        }
+        break;
+      case ApprovalCardVariant.deleted:
+        final deletedAt = bouquet.deletedAt;
+        if (deletedAt != null) {
+          lines.add(const SizedBox(height: 4));
+          lines.add(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.delete_outline, size: 14, color: Colors.grey.shade600),
+                const SizedBox(width: 6),
+                Text(
+                  'Deleted at: ${_formatTimestamp(deletedAt)}',
+                  style: baseStyle,
+                ),
+              ],
+            ),
+          );
+        }
+        break;
+      case ApprovalCardVariant.pending:
+        break;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: lines,
     );
   }
 
@@ -326,6 +423,33 @@ class BouquetApprovalCard extends ConsumerWidget {
             ),
           ),
         ),
+        if (variant == ApprovalCardVariant.approved && onSoftDelete != null) ...[
+          const SizedBox(height: 8),
+          Tooltip(
+            message: 'Delete',
+            child: OutlinedButton.icon(
+              onPressed: isProcessing ? null : onSoftDelete,
+              icon: Icon(
+                isProcessing ? Icons.hourglass_empty : Icons.delete_outline,
+                size: 18,
+                color: isProcessing ? Colors.grey : const Color(0xFFB71C1C),
+              ),
+              label: Text(
+                isProcessing ? 'Working…' : 'Delete',
+                style: montserrat.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isProcessing ? Colors.grey : const Color(0xFFB71C1C),
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: isProcessing ? Colors.grey : const Color(0xFFB71C1C)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
         if (variant == ApprovalCardVariant.pending) ...[
           const SizedBox(height: 8),
           Row(

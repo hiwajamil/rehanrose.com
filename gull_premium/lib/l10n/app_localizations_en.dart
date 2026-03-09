@@ -753,6 +753,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminNoPendingApplications => 'No pending applications.';
 
   @override
+  String get adminOnlineVendors => 'Online Vendors';
+
+  @override
+  String adminOnlineVendorsCount(int count) {
+    return '$count online';
+  }
+
+  @override
+  String get adminNoOnlineVendors => 'No vendors online right now.';
+
+  @override
+  String get adminLoadingOnlineVendors => 'Loading…';
+
+  @override
   String get adminStudio => 'Studio';
 
   @override
@@ -981,6 +995,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminMembersCrm => 'Members CRM';
 
   @override
+  String get adminVendorsManagement => 'Vendors Management';
+
+  @override
+  String get adminVendorsManagementSubtitle =>
+      'Approved florists and their performance';
+
+  @override
+  String get adminVendorRegDate => 'Registered';
+
+  @override
+  String get adminVendorPublishedBouquets => 'Published Bouquets';
+
+  @override
+  String get adminVendorCompletedOrders => 'Completed Orders';
+
+  @override
+  String get adminVendorTotalGrossSales => 'Total Gross Sales';
+
+  @override
+  String get adminVendorRehanCommission => 'Rehan Rose Commission (15%)';
+
+  @override
+  String get adminVendorEarnings => 'Vendor Earnings (85%)';
+
+  @override
+  String get adminVendorActive => 'Active';
+
+  @override
+  String get adminVendorOffline => 'Offline';
+
+  @override
+  String get adminVendorWhatsAppCall => 'WhatsApp / Call';
+
+  @override
+  String get adminVendorOptions => 'Options';
+
+  @override
+  String get adminVendorSuspend => 'Suspend';
+
+  @override
+  String get adminVendorEdit => 'Edit';
+
+  @override
   String get adminTotalMembers => 'Total Members';
 
   @override
@@ -1104,4 +1161,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remove => 'Remove';
+
+  @override
+  String get adminNoApprovedVendors => 'No approved vendors yet.';
+
+  @override
+  String get adminLoadingVendors => 'Loading vendors…';
 }

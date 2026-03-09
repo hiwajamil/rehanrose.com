@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -115,6 +116,7 @@ class _DeliveryMapPickerPageState extends State<DeliveryMapPickerPage> {
       final lng = _center.longitude;
       final Uri uri;
       final base = _placesProxyBaseUrl;
+      final isWebProxy = base != null;
       if (base != null) {
         uri = Uri.parse('$base/placesAutocomplete').replace(
           queryParameters: {
@@ -134,9 +136,14 @@ class _DeliveryMapPickerPageState extends State<DeliveryMapPickerPage> {
       }
       final response = await http.get(uri);
       if (!mounted) return;
+
       if (response.statusCode != 200) {
+        developer.log(
+          'Places Autocomplete HTTP error: statusCode=$response.statusCode, body=${response.body}',
+          name: 'PlacesAutocomplete',
+        );
         String message = 'Could not load suggestions.';
-        if (response.statusCode == 502 && base != null) {
+        if (response.statusCode == 502 && isWebProxy) {
           message = 'Search service temporarily unavailable. Try again.';
         }
         setState(() {
@@ -149,7 +156,8 @@ class _DeliveryMapPickerPageState extends State<DeliveryMapPickerPage> {
       Map<String, dynamic>? json;
       try {
         json = jsonDecode(response.body) as Map<String, dynamic>?;
-      } on FormatException {
+      } on FormatException catch (e) {
+        developer.log('Places Autocomplete JSON parse error: $e, body=${response.body}', name: 'PlacesAutocomplete');
         if (mounted) {
           setState(() {
             _predictions = [];
@@ -167,7 +175,12 @@ class _DeliveryMapPickerPageState extends State<DeliveryMapPickerPage> {
         return;
       }
       final status = json['status'] as String?;
+      final errorMessage = json['error_message'] as String?;
       if (status != null && status != 'OK' && status != 'ZERO_RESULTS') {
+        developer.log(
+          'Places API error: status=$status, error_message=$errorMessage (e.g. REQUEST_DENIED, BILLING_NOT_ENABLED, OVER_QUERY_LIMIT)',
+          name: 'PlacesAutocomplete',
+        );
         setState(() {
           _predictions = [];
           _placesLoading = false;
@@ -192,7 +205,13 @@ class _DeliveryMapPickerPageState extends State<DeliveryMapPickerPage> {
         _placesLoading = false;
         _placesError = null;
       });
-    } catch (e) {
+    } catch (e, st) {
+      developer.log(
+        'Places Autocomplete exception (network/CORS/etc): $e',
+        name: 'PlacesAutocomplete',
+        error: e,
+        stackTrace: st,
+      );
       if (mounted) {
         setState(() {
           _predictions = [];

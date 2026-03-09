@@ -1498,6 +1498,30 @@ abstract class AppLocalizations {
   /// **'No pending applications.'**
   String get adminNoPendingApplications;
 
+  /// No description provided for @adminOnlineVendors.
+  ///
+  /// In en, this message translates to:
+  /// **'Online Vendors'**
+  String get adminOnlineVendors;
+
+  /// No description provided for @adminOnlineVendorsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} online'**
+  String adminOnlineVendorsCount(int count);
+
+  /// No description provided for @adminNoOnlineVendors.
+  ///
+  /// In en, this message translates to:
+  /// **'No vendors online right now.'**
+  String get adminNoOnlineVendors;
+
+  /// No description provided for @adminLoadingOnlineVendors.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get adminLoadingOnlineVendors;
+
   /// No description provided for @adminStudio.
   ///
   /// In en, this message translates to:
@@ -1924,6 +1948,90 @@ abstract class AppLocalizations {
   /// **'Members CRM'**
   String get adminMembersCrm;
 
+  /// No description provided for @adminVendorsManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Vendors Management'**
+  String get adminVendorsManagement;
+
+  /// No description provided for @adminVendorsManagementSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved florists and their performance'**
+  String get adminVendorsManagementSubtitle;
+
+  /// No description provided for @adminVendorRegDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered'**
+  String get adminVendorRegDate;
+
+  /// No description provided for @adminVendorPublishedBouquets.
+  ///
+  /// In en, this message translates to:
+  /// **'Published Bouquets'**
+  String get adminVendorPublishedBouquets;
+
+  /// No description provided for @adminVendorCompletedOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed Orders'**
+  String get adminVendorCompletedOrders;
+
+  /// No description provided for @adminVendorTotalGrossSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Gross Sales'**
+  String get adminVendorTotalGrossSales;
+
+  /// No description provided for @adminVendorRehanCommission.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehan Rose Commission (15%)'**
+  String get adminVendorRehanCommission;
+
+  /// No description provided for @adminVendorEarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Vendor Earnings (85%)'**
+  String get adminVendorEarnings;
+
+  /// No description provided for @adminVendorActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get adminVendorActive;
+
+  /// No description provided for @adminVendorOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get adminVendorOffline;
+
+  /// No description provided for @adminVendorWhatsAppCall.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp / Call'**
+  String get adminVendorWhatsAppCall;
+
+  /// No description provided for @adminVendorOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get adminVendorOptions;
+
+  /// No description provided for @adminVendorSuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend'**
+  String get adminVendorSuspend;
+
+  /// No description provided for @adminVendorEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get adminVendorEdit;
+
   /// No description provided for @adminTotalMembers.
   ///
   /// In en, this message translates to:
@@ -2151,6 +2259,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove'**
   String get remove;
+
+  /// No description provided for @adminNoApprovedVendors.
+  ///
+  /// In en, this message translates to:
+  /// **'No approved vendors yet.'**
+  String get adminNoApprovedVendors;
+
+  /// No description provided for @adminLoadingVendors.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading vendors…'**
+  String get adminLoadingVendors;
 }
 
 class _AppLocalizationsDelegate

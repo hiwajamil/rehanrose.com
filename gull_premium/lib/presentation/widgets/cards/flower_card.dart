@@ -49,7 +49,7 @@ class _FlowerCardState extends ConsumerState<FlowerCard> {
   /// Soft diffuse shadow for luxury feel.
   static List<BoxShadow> get _cardShadow => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.05),
+          color: Colors.black.withValues(alpha: 0.05),
           blurRadius: 15,
           offset: const Offset(0, 4),
           spreadRadius: 0,
@@ -58,7 +58,7 @@ class _FlowerCardState extends ConsumerState<FlowerCard> {
 
   static List<BoxShadow> get _cardShadowHover => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.08),
+          color: Colors.black.withValues(alpha: 0.08),
           blurRadius: 20,
           offset: const Offset(0, 6),
           spreadRadius: 0,
@@ -270,10 +270,10 @@ class _VoiceQrBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.25),
+            color: Colors.white.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               width: 1,
             ),
           ),
@@ -283,7 +283,7 @@ class _VoiceQrBadge extends StatelessWidget {
               Icon(
                 Icons.mic_none_rounded,
                 size: 14,
-                color: Colors.white.withOpacity(0.95),
+                color: Colors.white.withValues(alpha: 0.95),
               ),
               const SizedBox(width: 6),
               Text(
@@ -291,7 +291,7 @@ class _VoiceQrBadge extends StatelessWidget {
                 style: GoogleFonts.montserrat(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white.withValues(alpha: 0.95),
                   letterSpacing: 0.3,
                 ),
               ),

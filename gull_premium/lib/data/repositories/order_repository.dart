@@ -272,6 +272,28 @@ class OmsOrderRepository {
     });
   }
 
+  /// Fetches delivered order count and total revenue for a vendor. Used by admin.
+  Future<({int count, num totalRevenue})> getVendorDeliveredStats(
+    String vendorId,
+  ) async {
+    final snap = await _firestore
+        .collection(_omsCollection)
+        .where('vendorId', isEqualTo: vendorId)
+        .limit(500)
+        .get()
+        .timeout(_timeout);
+    int count = 0;
+    num total = 0;
+    for (final doc in snap.docs) {
+      final model = OmsOrderModel.fromFirestore(doc.id, doc.data());
+      if (model != null && model.status == OmsOrderStatus.delivered) {
+        count++;
+        total += model.totalPrice;
+      }
+    }
+    return (count: count, totalRevenue: total);
+  }
+
   /// Updates OMS order status (e.g. pending → preparing, preparing → ready).
   Future<void> updateOmsOrderStatus({
     required String orderId,

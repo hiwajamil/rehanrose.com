@@ -1,21 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../controllers/controllers.dart';
 import '../../../core/services/notification_sound_service.dart';
 import '../../../data/models/order_model.dart';
 
-/// Listens to vendor OMS orders and plays a sound when the number of pending (new) orders increases.
-/// Skips sound when the vendor is already on the Orders page. Place inside the vendor shell.
+/// Listens to vendor OMS orders and plays the notification sound as soon as a NEW
+/// pending order is detected (semantically: DocumentChangeType.added for this vendor).
+/// Sound is triggered by the stream here, not by UI clicks. Plays on all routes so the
+/// "Ding" is guaranteed the moment the database receives the order (Mobile, Tablet, Web).
 class VendorNewOrderSoundListener extends ConsumerWidget {
   const VendorNewOrderSoundListener({super.key, required this.child});
 
   final Widget child;
 
+  /// Order IDs present in [prevList]. Empty set if no previous data (initial load → no sound).
+  static Set<String> _orderIds(List<OmsOrderModel> list) {
+    return list.map((o) => o.orderId).toSet();
+  }
 
-  static int _pendingCount(List<OmsOrderModel> list) {
-    return list.where((o) => o.status == OmsOrderStatus.pending).length;
+  /// True when at least one pending order in [nextList] is newly added (not in [prevList]).
+  static bool _hasNewPendingOrders(
+    List<OmsOrderModel>? prevList,
+    List<OmsOrderModel> nextList,
+  ) {
+    if (prevList == null) return false; // Initial load: do not play
+    final prevIds = _orderIds(prevList);
+    return nextList.any((o) =>
+        o.status == OmsOrderStatus.pending && !prevIds.contains(o.orderId));
   }
 
   @override
@@ -25,15 +37,10 @@ class VendorNewOrderSoundListener extends ConsumerWidget {
       (previous, next) {
         next.when(
           data: (nextList) {
-            final count = _pendingCount(nextList);
-            final prevCount = previous?.value != null
-                ? _pendingCount(previous!.value!)
-                : null;
-            if (prevCount == null || count <= prevCount) return;
-            if (context.mounted &&
-                GoRouterState.of(context).uri.path != '/vendor/orders') {
-              playOrderNotificationSound();
-            }
+            final prevList = previous?.value;
+            if (!_hasNewPendingOrders(prevList, nextList)) return;
+            // New order(s) detected → play sound immediately (cross-platform).
+            playOrderNotificationSound();
           },
           loading: () {},
           error: (_, __) {},
