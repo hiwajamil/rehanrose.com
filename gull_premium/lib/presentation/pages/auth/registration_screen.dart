@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
@@ -55,15 +56,16 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
 
   String? _selectedCity;
   String? _verificationId;
+  String? _fullPhoneNumber; // Complete number with country code from IntlPhoneField
   bool _codeSent = false;
   bool _isSendingCode = false;
   bool _isRegistering = false;
   bool _isGoogleLoading = false;
+  bool _isPasswordVisible = false;
 
   @override
   void initState() {
@@ -80,7 +82,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _phoneController.dispose();
     _otpController.dispose();
     super.dispose();
   }
@@ -97,12 +98,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   }
 
   Future<void> _sendCode() async {
-    final phone = _phoneController.text.trim();
+    final phone = (_fullPhoneNumber ?? '').trim();
     if (phone.isEmpty) {
       _showSnackBar('Please enter your phone number.', isError: true);
       return;
     }
-    // Ensure country code format (e.g. +964)
+    // _fullPhoneNumber from IntlPhoneField is already in E.164 format (e.g. +964...)
     final normalizedPhone = phone.startsWith('+') ? phone : '+$phone';
     if (_isSendingCode) return;
     setState(() => _isSendingCode = true);
@@ -152,9 +153,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final city = _selectedCity;
-    final phoneNumber = _phoneController.text.trim();
     final otp = _otpController.text.trim();
-
+    final phoneNumber = (_fullPhoneNumber ?? '').trim();
     if (fullName.isEmpty || email.isEmpty || password.isEmpty) {
       _showSnackBar('Please fill in all fields.', isError: true);
       return;
@@ -214,7 +214,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final city = _selectedCity!;
-    final phoneNumber = _phoneController.text.trim();
+    final phoneNumber = (_fullPhoneNumber ?? '').trim();
     final normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : '+$phoneNumber';
     final otp = _otpController.text.trim();
 
@@ -415,19 +415,28 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   const SizedBox(height: 20),
                   TextFormField(
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: !_isPasswordVisible,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.newPassword],
                     decoration: _inputDecoration(
                       label: 'Password',
                       hint: 'At least 6 characters',
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    ).copyWith(
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.grey.shade600,
+                          size: 22,
+                        ),
+                        onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                      ),
                     ),
                     validator: _validatePassword,
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedCity,
+                    value: _selectedCity,
                     decoration: _inputDecoration(
                       label: 'City',
                       hint: 'Select city',
@@ -444,16 +453,52 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.next,
-                    decoration: _inputDecoration(
-                      label: 'Phone Number',
-                      hint: '+964 7XX XXX XXXX',
-                      prefixIcon: const Icon(Icons.phone_outlined),
+                  IntlPhoneField(
+                    initialCountryCode: 'IQ',
+                    decoration: InputDecoration(
+                      labelText: 'Phone Number',
+                      hintText: '7XX XXX XXXX',
+                      labelStyle: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 14,
+                      ),
+                      filled: true,
+                      fillColor: _inputFillColor,
+                      border: OutlineInputBorder(borderRadius: _inputBorderRadius),
+                      enabledBorder: _inputEnabledBorder,
+                      focusedBorder: _inputFocusedBorder,
+                      errorBorder: _inputErrorBorder,
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: _inputBorderRadius,
+                        borderSide: BorderSide(color: Colors.red.shade400, width: 1.2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     ),
-                    validator: (v) => _validateRequired(v, 'your phone number'),
+                    dropdownDecoration: BoxDecoration(
+                      color: _inputFillColor,
+                      borderRadius: _inputBorderRadius,
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    dropdownIcon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade600),
+                    dropdownTextStyle: TextStyle(
+                      color: AppColors.inkCharcoal,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    showCountryFlag: true,
+                    showDropdownIcon: true,
+                    onChanged: (phone) => setState(() => _fullPhoneNumber = phone.completeNumber),
+                    validator: (phone) {
+                      if (phone == null || phone.number.trim().isEmpty) {
+                        return 'Please enter your phone number';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 24),
                   SizedBox(

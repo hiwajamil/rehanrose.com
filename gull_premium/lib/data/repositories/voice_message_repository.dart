@@ -1,10 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:uuid/uuid.dart';
 
 /// Uploads voice message bytes to Firebase Storage and returns the download URL.
-/// Path: voice_messages/{uniqueId}.m4a so the vendor can use the URL for QR.
+/// Path: voice_messages/{userId}/message_{timestamp}.m4a for accountability.
 class VoiceMessageRepository {
   VoiceMessageRepository({
     FirebaseStorage? storage,
@@ -14,17 +13,18 @@ class VoiceMessageRepository {
   static const String _pathPrefix = 'voice_messages';
 
   /// Uploads [bytes] (e.g. m4a or wav) and returns the download URL.
-  /// [uniqueId] if provided is used; otherwise a new UUID is generated.
+  /// [userId] is the authenticated user's UID (required for secure, accountable storage).
   /// [extension] and [contentType] default to m4a/audio-mp4 for native; use
   /// .wav and audio/wav for web recordings.
   Future<String> uploadVoiceMessage({
     required Uint8List bytes,
-    String? uniqueId,
+    required String userId,
     String extension = 'm4a',
     String contentType = 'audio/mp4',
   }) async {
-    final id = uniqueId ?? const Uuid().v4();
-    final ref = _storage.ref('$_pathPrefix/$id.$extension');
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final path = '$_pathPrefix/$userId/message_$timestamp.$extension';
+    final ref = _storage.ref(path);
     await ref
         .putData(
           bytes,

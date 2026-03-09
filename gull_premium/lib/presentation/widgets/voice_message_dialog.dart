@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -13,8 +15,171 @@ import '../../controllers/controllers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/voice_file_reader.dart';
 
+/// Returns true if we should use a full-screen dialog (web/desktop) for auth required.
+bool get _useAuthDialogInsteadOfBottomSheet {
+  if (kIsWeb) return true;
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.windows:
+    case TargetPlatform.macOS:
+    case TargetPlatform.linux:
+      return true;
+    default:
+      return false;
+  }
+}
+
+/// Shows the "Account Required" UX when an unauthenticated user tries to use voice recording.
+/// Uses ModalBottomSheet on mobile, AlertDialog on Web/Desktop. Sign In / Sign Up push to auth
+/// routes so the user can return and finish their order.
+void showVoiceMessageAuthRequired(BuildContext context) {
+  if (_useAuthDialogInsteadOfBottomSheet) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => _VoiceMessageAuthRequiredContent(
+        onSignIn: () {
+          Navigator.of(ctx).pop();
+          context.push('/login');
+        },
+        onSignUp: () {
+          Navigator.of(ctx).pop();
+          context.push('/register');
+        },
+      ),
+    );
+  } else {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _VoiceMessageAuthRequiredContent(
+        onSignIn: () {
+          Navigator.of(ctx).pop();
+          context.push('/login');
+        },
+        onSignUp: () {
+          Navigator.of(ctx).pop();
+          context.push('/register');
+        },
+      ),
+    );
+  }
+}
+
+/// Premium "Account Required" UI: icon, title, message, Sign In / Sign Up buttons.
+class _VoiceMessageAuthRequiredContent extends StatelessWidget {
+  final VoidCallback onSignIn;
+  final VoidCallback onSignUp;
+
+  const _VoiceMessageAuthRequiredContent({
+    required this.onSignIn,
+    required this.onSignUp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final playfair = GoogleFonts.playfairDisplay(
+      fontWeight: FontWeight.w600,
+      color: AppColors.ink,
+    );
+    final padding = MediaQuery.paddingOf(context);
+    final isSheet = !_useAuthDialogInsteadOfBottomSheet;
+
+    final content = Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(isSheet ? 24 : 0)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, isSheet ? 20 : 28, 24, padding.bottom + 24),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSheet)
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            if (isSheet) const SizedBox(height: 20),
+            Icon(
+              Icons.mic_rounded,
+              size: 48,
+              color: AppColors.rosePrimary.withValues(alpha: 0.9),
+            ),
+            const SizedBox(height: 8),
+            Icon(
+              Icons.shield_rounded,
+              size: 28,
+              color: AppColors.sage.withValues(alpha: 0.8),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Account Required',
+              style: playfair.copyWith(fontSize: 22),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'To ensure security and save your personalized messages, please Sign In or Create an Account to use the Voice Message feature.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.inkMuted,
+                    height: 1.4,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onSignIn,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.rosePrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Sign In'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onSignUp,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.ink,
+                  side: const BorderSide(color: AppColors.border, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Sign Up'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (_useAuthDialogInsteadOfBottomSheet) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: content,
+      );
+    }
+    return content;
+  }
+}
+
 /// Sub-dialog for recording a voice message (max 60s), uploading it, and showing QR preview.
 /// Returns the voice message URL when done, or null if cancelled / not supported.
+/// Call only when user is authenticated (auth check is done at tap in add-on modal).
 Future<String?> showVoiceMessageDialog(BuildContext context) async {
   return showModalBottomSheet<String?>(
     context: context,
@@ -49,6 +214,12 @@ class _VoiceMessageDialogContentState
   @override
   void initState() {
     super.initState();
+    if (FirebaseAuth.instance.currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pop(null);
+      });
+      return;
+    }
     _checkPermission();
   }
 
@@ -159,9 +330,11 @@ class _VoiceMessageDialogContentState
         });
         return;
       }
+      final uid = FirebaseAuth.instance.currentUser!.uid;
       final repo = ref.read(voiceMessageRepositoryProvider);
       final url = await repo.uploadVoiceMessage(
         bytes: Uint8List.fromList(bytes),
+        userId: uid,
         extension: isWebRecording ? 'wav' : 'm4a',
         contentType: isWebRecording ? 'audio/wav' : 'audio/mp4',
       );
@@ -173,7 +346,7 @@ class _VoiceMessageDialogContentState
     } catch (e) {
       setState(() {
         _isUploading = false;
-        _error = 'Upload failed. Try again.';
+        _error = 'Error: ${e.toString()}';
       });
     }
   }
@@ -279,16 +452,22 @@ class _VoiceMessageDialogContentState
                   child: const Text('Done'),
                 ),
               ),
-            ] else ...[
+            ]             else ...[
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    _error!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.red[700],
-                        ),
-                    textAlign: TextAlign.center,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        _error!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.red[700],
+                              fontSize: 12,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   ),
                 ),
               if (_isUploading)

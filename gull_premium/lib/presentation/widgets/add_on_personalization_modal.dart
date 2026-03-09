@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -137,6 +138,10 @@ class _AddOnPersonalizationSheetState
   }
 
   Future<void> _openVoiceMessage() async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      showVoiceMessageAuthRequired(context);
+      return;
+    }
     final url = await showVoiceMessageDialog(context);
     if (url != null && mounted) setState(() => _voiceMessageUrl = url);
   }
