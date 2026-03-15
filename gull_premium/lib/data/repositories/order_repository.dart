@@ -187,6 +187,10 @@ class OmsOrderRepository {
       'bouquetName': data.bouquetName,
       'vendorName': data.vendorName,
       'bouquetImageUrl': data.bouquetImageUrl,
+      if (data.bouquetDetails.isNotEmpty) 'bouquetDetails': data.bouquetDetails,
+      if (data.voiceMessageLink.isNotEmpty) 'voiceMessageLink': data.voiceMessageLink,
+      if (data.deliveryLocationLink.isNotEmpty) 'deliveryLocationLink': data.deliveryLocationLink,
+      if (data.orderDate.isNotEmpty) 'orderDate': data.orderDate,
     }).timeout(_timeout);
     return orderId;
   }

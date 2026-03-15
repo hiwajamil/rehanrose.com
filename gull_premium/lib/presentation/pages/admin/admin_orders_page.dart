@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/price_format_utils.dart';
+import '../../../core/utils/whatsapp_order_parser.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/flower_model.dart';
 import '../../../data/models/order_model.dart';
@@ -36,6 +36,32 @@ InputDecoration _adminInputDecoration({
   );
 }
 
+Widget _labeledField(
+  BuildContext context,
+  String label,
+  TextEditingController controller, {
+  String? hint,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.ink,
+            ),
+      ),
+      const SizedBox(height: 8),
+      TextField(
+        controller: controller,
+        decoration: _adminInputDecoration(hintText: hint ?? ''),
+        maxLines: label.toLowerCase().contains('link') ? 2 : 1,
+      ),
+    ],
+  );
+}
+
 /// Admin OMS: Create Order (search by bouquet code + form) and Order Tracking (tabs by status).
 class AdminOrdersPage extends ConsumerStatefulWidget {
   const AdminOrdersPage({super.key});
@@ -48,11 +74,17 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addonsController = TextEditingController();
+  final TextEditingController _whatsAppPasteController = TextEditingController();
+  final TextEditingController _bouquetDetailsController = TextEditingController();
+  final TextEditingController _totalPriceController = TextEditingController();
+  final TextEditingController _voiceMessageLinkController = TextEditingController();
+  final TextEditingController _deliveryLocationLinkController = TextEditingController();
+  final TextEditingController _orderDateController = TextEditingController();
 
   FlowerModel? _foundBouquet;
   String? _vendorName;
   VendorListModel? _selectedVendor;
-  bool _isSearching = false;
+  bool _isLoadingBouquet = false;
   bool _isSubmitting = false;
   bool _didPreSelectVendor = false;
 
@@ -61,7 +93,70 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
     _searchController.dispose();
     _phoneController.dispose();
     _addonsController.dispose();
+    _whatsAppPasteController.dispose();
+    _bouquetDetailsController.dispose();
+    _totalPriceController.dispose();
+    _voiceMessageLinkController.dispose();
+    _deliveryLocationLinkController.dispose();
+    _orderDateController.dispose();
     super.dispose();
+  }
+
+  void _onAutoExtract() {
+    final extract = parseWhatsAppOrderMessage(_whatsAppPasteController.text);
+    _phoneController.text = extract.customerPhone;
+    _orderDateController.text = extract.orderDate;
+    _bouquetDetailsController.text = extract.bouquetDetails;
+    _searchController.text = extract.bouquetCode;
+    _totalPriceController.text = extract.totalPriceRaw;
+    _voiceMessageLinkController.text = extract.voiceMessageLink;
+    _deliveryLocationLinkController.text = extract.deliveryLocationLink;
+    setState(() {});
+    _fetchBouquetByCode();
+  }
+
+  Future<void> _fetchBouquetByCode() async {
+    final code = _searchController.text.trim();
+    if (code.isEmpty) {
+      setState(() {
+        _foundBouquet = null;
+        _vendorName = null;
+        _isLoadingBouquet = false;
+      });
+      return;
+    }
+    setState(() {
+      _isLoadingBouquet = true;
+      _foundBouquet = null;
+      _vendorName = null;
+      _didPreSelectVendor = false;
+      _selectedVendor = null;
+    });
+    try {
+      final bouquetRepo = ref.read(bouquetRepositoryProvider);
+      final bouquet = await bouquetRepo.getByBouquetCode(code);
+      String? vendorName;
+      if (bouquet != null && bouquet.vendorId != null && bouquet.vendorId!.isNotEmpty) {
+        final authRepo = ref.read(authRepositoryProvider);
+        final vendor = await authRepo.getVendorById(bouquet.vendorId!);
+        vendorName = vendor?.shopName;
+      }
+      if (mounted) {
+        setState(() {
+          _foundBouquet = bouquet;
+          _vendorName = vendorName;
+          _isLoadingBouquet = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _foundBouquet = null;
+          _vendorName = null;
+          _isLoadingBouquet = false;
+        });
+      }
+    }
   }
 
   void _maybePreSelectVendor(List<VendorListModel> vendors) {
@@ -77,48 +172,7 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
     }
   }
 
-  Future<void> _searchBouquet() async {
-    final code = _searchController.text.trim();
-    if (code.isEmpty) return;
-    setState(() {
-      _isSearching = true;
-      _foundBouquet = null;
-      _vendorName = null;
-      _selectedVendor = null;
-      _didPreSelectVendor = false;
-    });
-    try {
-      final bouquetRepo = ref.read(bouquetRepositoryProvider);
-      final bouquet = await bouquetRepo.getByBouquetCode(code);
-      String? vendorName;
-      if (bouquet != null && bouquet.vendorId != null && bouquet.vendorId!.isNotEmpty) {
-        final authRepo = ref.read(authRepositoryProvider);
-        final vendor = await authRepo.getVendorById(bouquet.vendorId!);
-        vendorName = vendor?.shopName;
-      }
-      if (mounted) {
-        _didPreSelectVendor = false;
-        setState(() {
-          _foundBouquet = bouquet;
-          _vendorName = vendorName;
-          _isSearching = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _foundBouquet = null;
-          _vendorName = null;
-          _selectedVendor = null;
-          _isSearching = false;
-        });
-      }
-    }
-  }
-
   Future<void> _sendForPreparation() async {
-    final bouquet = _foundBouquet;
-    if (bouquet == null) return;
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -129,7 +183,14 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
     final vendor = _selectedVendor;
     if (vendor == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a vendor from the dropdown.')),
+        const SnackBar(content: Text('Please select a vendor.')),
+      );
+      return;
+    }
+    final bouquetCode = _searchController.text.trim();
+    if (bouquetCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bouquet code is required.')),
       );
       return;
     }
@@ -137,29 +198,45 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
     try {
       final repo = ref.read(omsOrderRepositoryProvider);
       final orderId = repo.generateOrderId();
-      final price = bouquet.discountPrice != null && bouquet.discountPrice! > 0
-          ? bouquet.discountPrice!
-          : bouquet.priceIqd;
+      final extractedPrice = parseTotalPriceFromRaw(_totalPriceController.text.trim());
+      final bouquet = _foundBouquet;
+      final price = extractedPrice > 0
+          ? extractedPrice
+          : (bouquet != null
+              ? (bouquet.discountPrice != null && bouquet.discountPrice! > 0
+                  ? bouquet.discountPrice!
+                  : bouquet.priceIqd)
+              : 0);
       await repo.createOmsOrder(
         orderId: orderId,
         data: CreateOmsOrderData(
-          bouquetId: bouquet.id,
-          bouquetCode: bouquet.bouquetCode,
+          bouquetId: bouquet?.id ?? '',
+          bouquetCode: bouquet?.bouquetCode ?? bouquetCode,
           vendorId: vendor.id,
           customerPhone: phone,
           addons: _addonsController.text.trim(),
           totalPrice: price,
-          bouquetName: bouquet.name,
+          bouquetName: bouquet?.name ?? bouquetCode,
           vendorName: vendor.shopName,
-          bouquetImageUrl: bouquet.listingImageUrl,
+          bouquetImageUrl: bouquet?.listingImageUrl ?? '',
+          bouquetDetails: _bouquetDetailsController.text.trim(),
+          voiceMessageLink: _voiceMessageLinkController.text.trim(),
+          deliveryLocationLink: _deliveryLocationLinkController.text.trim(),
+          orderDate: _orderDateController.text.trim(),
         ),
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order $orderId created and assigned to vendor.')),
+          SnackBar(content: Text('Order $orderId created and sent for preparation.')),
         );
         _phoneController.clear();
         _addonsController.clear();
+        _bouquetDetailsController.clear();
+        _totalPriceController.clear();
+        _voiceMessageLinkController.clear();
+        _deliveryLocationLinkController.clear();
+        _orderDateController.clear();
+        _searchController.clear();
         setState(() {
           _isSubmitting = false;
           _foundBouquet = null;
@@ -184,7 +261,6 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
     final vendorsAsync = ref.watch(vendorsListProvider);
     final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
     final spacing = isMobile ? 16.0 : 24.0;
-    final contentHeight = MediaQuery.sizeOf(context).height - (isMobile ? 320.0 : 280.0);
     return DefaultTabController(
       length: 2,
       child: Column(
@@ -215,23 +291,28 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
               ],
             ),
             SizedBox(height: spacing),
-            SizedBox(
-              height: contentHeight.clamp(isMobile ? 280.0 : 400.0, 1000.0),
+            Expanded(
               child: TabBarView(
                 children: [
                   _BuildCreateOrderTab(
                     searchController: _searchController,
                     phoneController: _phoneController,
                     addonsController: _addonsController,
+                    whatsAppPasteController: _whatsAppPasteController,
+                    bouquetDetailsController: _bouquetDetailsController,
+                    totalPriceController: _totalPriceController,
+                    voiceMessageLinkController: _voiceMessageLinkController,
+                    deliveryLocationLinkController: _deliveryLocationLinkController,
+                    orderDateController: _orderDateController,
                     foundBouquet: _foundBouquet,
                     vendorName: _vendorName,
                     vendorsAsync: vendorsAsync,
                     selectedVendor: _selectedVendor,
                     onVendorSelected: (v) => setState(() => _selectedVendor = v),
                     onVendorsLoadedForPreSelect: _maybePreSelectVendor,
-                    isSearching: _isSearching,
+                    isLoadingBouquet: _isLoadingBouquet,
                     isSubmitting: _isSubmitting,
-                    onSearch: _searchBouquet,
+                    onAutoExtract: _onAutoExtract,
                     onSendForPreparation: _sendForPreparation,
                     l10n: l10n,
                   ),
@@ -249,15 +330,21 @@ class _BuildCreateOrderTab extends StatelessWidget {
   final TextEditingController searchController;
   final TextEditingController phoneController;
   final TextEditingController addonsController;
+  final TextEditingController whatsAppPasteController;
+  final TextEditingController bouquetDetailsController;
+  final TextEditingController totalPriceController;
+  final TextEditingController voiceMessageLinkController;
+  final TextEditingController deliveryLocationLinkController;
+  final TextEditingController orderDateController;
   final FlowerModel? foundBouquet;
   final String? vendorName;
   final AsyncValue<List<VendorListModel>> vendorsAsync;
   final VendorListModel? selectedVendor;
   final ValueChanged<VendorListModel?> onVendorSelected;
   final void Function(List<VendorListModel>)? onVendorsLoadedForPreSelect;
-  final bool isSearching;
+  final bool isLoadingBouquet;
   final bool isSubmitting;
-  final VoidCallback onSearch;
+  final VoidCallback onAutoExtract;
   final VoidCallback onSendForPreparation;
   final AppLocalizations l10n;
 
@@ -265,15 +352,21 @@ class _BuildCreateOrderTab extends StatelessWidget {
     required this.searchController,
     required this.phoneController,
     required this.addonsController,
+    required this.whatsAppPasteController,
+    required this.bouquetDetailsController,
+    required this.totalPriceController,
+    required this.voiceMessageLinkController,
+    required this.deliveryLocationLinkController,
+    required this.orderDateController,
     required this.foundBouquet,
     required this.vendorName,
     required this.vendorsAsync,
     required this.selectedVendor,
     required this.onVendorSelected,
     this.onVendorsLoadedForPreSelect,
-    required this.isSearching,
+    required this.isLoadingBouquet,
     required this.isSubmitting,
-    required this.onSearch,
+    required this.onAutoExtract,
     required this.onSendForPreparation,
     required this.l10n,
   });
@@ -289,176 +382,115 @@ class _BuildCreateOrderTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ----- Paste WhatsApp message & Auto-Extract -----
                 Text(
-                  'Search by bouquet code (e.g. #BQT-102)',
+                  'Paste WhatsApp Message Here',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         color: AppColors.inkMuted,
                         fontWeight: FontWeight.w600,
                       ),
                 ),
                 const SizedBox(height: 8),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < kAdminShellDrawerBreakpoint;
-                    final searchField = TextField(
-                      controller: searchController,
-                      decoration: _adminInputDecoration(
-                        hintText: '#BQT-102',
-                        prefixIcon: const Icon(Icons.search, color: AppColors.inkMuted),
+                TextField(
+                  controller: whatsAppPasteController,
+                  maxLines: 6,
+                  decoration: _adminInputDecoration(
+                    hintText: 'Paste the full WhatsApp order message (Flower:, Bouquet Code:, Total Price:, etc.)',
+                    prefixIcon: null,
+                    alignLabelWithHint: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onAutoExtract,
+                    icon: const Text('✨'),
+                    label: const Text('Auto-Extract Information'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.rosePrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // ----- Individual extracted fields -----
+                _labeledField(context, 'Customer Phone', phoneController, hint: '+964... or Not provided'),
+                const SizedBox(height: 16),
+                _labeledField(context, 'Order Date', orderDateController, hint: 'e.g. 2026-03-09 14:30'),
+                const SizedBox(height: 16),
+                _labeledField(context, 'Bouquet Details', bouquetDetailsController, hint: 'e.g. Bouquet - IQD 35,000'),
+                const SizedBox(height: 16),
+                _labeledField(context, 'Bouquet Code', searchController, hint: 'e.g. AN-2 or #BQT-102'),
+                const SizedBox(height: 12),
+                _BouquetImagePreview(
+                  isLoading: isLoadingBouquet,
+                  imageUrl: foundBouquet?.listingImageUrl,
+                  hasCode: searchController.text.trim().isNotEmpty,
+                ),
+                const SizedBox(height: 16),
+                _labeledField(context, 'Total Price', totalPriceController, hint: 'e.g. IQD 35,000'),
+                const SizedBox(height: 16),
+                _labeledField(context, 'Voice Message Link', voiceMessageLinkController, hint: 'https://...'),
+                const SizedBox(height: 16),
+                _labeledField(context, 'Delivery Location Link', deliveryLocationLinkController, hint: 'http://...'),
+                const SizedBox(height: 24),
+                Text(
+                  'Select Vendor',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink,
                       ),
-                      onSubmitted: (_) => onSearch(),
-                    );
-                    final searchBtn = PrimaryButton(
-                      label: isSearching ? 'Searching...' : 'Search',
-                      onPressed: isSearching ? () {} : onSearch,
-                    );
-                    if (isNarrow) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          searchField,
-                          const SizedBox(height: 12),
-                          searchBtn,
-                        ],
-                      );
+                ),
+                const SizedBox(height: 8),
+                vendorsAsync.when(
+                  loading: () => _VendorDropdownLoading(),
+                  error: (_, __) => _VendorDropdownError(),
+                  data: (vendors) {
+                    if (onVendorsLoadedForPreSelect != null &&
+                        foundBouquet != null &&
+                        selectedVendor == null) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        onVendorsLoadedForPreSelect!(vendors);
+                      });
                     }
-                    return Row(
-                      children: [
-                        Expanded(child: searchField),
-                        const SizedBox(width: 12),
-                        searchBtn,
-                      ],
+                    return _VendorSearchDropdown(
+                      vendors: vendors,
+                      selectedVendor: selectedVendor,
+                      onVendorSelected: onVendorSelected,
                     );
                   },
                 ),
+                const SizedBox(height: 24),
+                Text(
+                  'Requested Add-ons (Notes)',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: addonsController,
+                  maxLines: 3,
+                  decoration: _adminInputDecoration(
+                    hintText: 'e.g. Vase, card message...',
+                    prefixIcon: null,
+                    alignLabelWithHint: true,
+                  ),
+                ),
                 const SizedBox(height: 32),
-                if (foundBouquet != null) ...[
-                  _BouquetCard(
-                    bouquet: foundBouquet!,
-                    vendorName: vendorName ?? '—',
-                    l10n: l10n,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Assign to vendor',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.ink,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  vendorsAsync.when(
-                    loading: () => _VendorDropdownLoading(),
-                    error: (_, __) => _VendorDropdownError(),
-                    data: (vendors) {
-                      if (onVendorsLoadedForPreSelect != null &&
-                          foundBouquet != null &&
-                          selectedVendor == null) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          onVendorsLoadedForPreSelect!(vendors);
-                        });
-                      }
-                      return _VendorSearchDropdown(
-                        vendors: vendors,
-                        selectedVendor: selectedVendor,
-                        onVendorSelected: onVendorSelected,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Customer Phone Number',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.ink,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: _adminInputDecoration(
-                      hintText: '+964... or local number',
-                      prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.inkMuted),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Requested Add-ons (Notes)',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.ink,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: addonsController,
-                    maxLines: 3,
-                    decoration: _adminInputDecoration(
-                      hintText: 'e.g. Vase, card message...',
-                      prefixIcon: null,
-                      alignLabelWithHint: true,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                ] else if (isSearching)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(48),
-                      child: CircularProgressIndicator(color: AppColors.rose),
-                    ),
-                  )
-                else
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 56),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: AppColors.inkMuted.withValues(alpha: 0.08),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.search,
-                              size: 48,
-                              color: AppColors.inkMuted.withValues(alpha: 0.7),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Enter a bouquet code and tap Search.',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: AppColors.inkMuted,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
         ),
-        if (foundBouquet != null)
-          Container(
+        SafeArea(
+          top: false,
+          child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -475,7 +507,7 @@ class _BuildCreateOrderTab extends StatelessWidget {
                   child: PrimaryButton(
                     label: isSubmitting
                         ? 'Creating...'
-                        : 'Send The Bouquet For Preparation',
+                        : 'Send the bouquet For preparation',
                     onPressed: isSubmitting ? () {} : onSendForPreparation,
                     variant: PrimaryButtonVariant.primary,
                   ),
@@ -483,7 +515,86 @@ class _BuildCreateOrderTab extends StatelessWidget {
               ],
             ),
           ),
+        ),
       ],
+    );
+  }
+}
+
+/// Minimalist bouquet image preview below Bouquet Code (loading / image / not found).
+class _BouquetImagePreview extends StatelessWidget {
+  final bool isLoading;
+  final String? imageUrl;
+  final bool hasCode;
+
+  const _BouquetImagePreview({
+    required this.isLoading,
+    this.imageUrl,
+    required this.hasCode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!hasCode) return const SizedBox.shrink();
+    const size = 140.0;
+    const radius = 16.0;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: isLoading
+            ? Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.rose.withValues(alpha: 0.8),
+                  ),
+                ),
+              )
+            : (imageUrl != null && imageUrl!.isNotEmpty)
+                ? AppCachedImage(
+                    imageUrl: imageUrl!,
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 280,
+                    memCacheHeight: 280,
+                    borderRadius: BorderRadius.circular(radius),
+                  )
+                : Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 32,
+                          color: AppColors.inkMuted.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Image not found',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.inkMuted,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+      ),
     );
   }
 }
@@ -763,122 +874,6 @@ class _VendorPickerSheetState extends State<_VendorPickerSheet> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _BouquetCard extends StatelessWidget {
-  final FlowerModel bouquet;
-  final String vendorName;
-  final AppLocalizations l10n;
-
-  const _BouquetCard({
-    required this.bouquet,
-    required this.vendorName,
-    required this.l10n,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final price = bouquet.discountPrice != null && bouquet.discountPrice! > 0
-        ? bouquet.discountPrice!
-        : bouquet.priceIqd;
-    final priceStr = '${l10n.currencyIqd} ${formatPriceIqd(price)}';
-    final imageUrl = bouquet.listingImageUrl;
-    final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
-    final padding = isMobile ? 16.0 : 20.0;
-
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          bouquet.name,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.ink,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Code: #${bouquet.bouquetCode}',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.inkMuted,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Vendor: $vendorName',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.ink,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          priceStr,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.rosePrimary,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-      ],
-    );
-
-    return Container(
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: isMobile && imageUrl.isNotEmpty
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: AppCachedImage(
-                      imageUrl: imageUrl,
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 240,
-                      memCacheHeight: 240,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                content,
-              ],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (imageUrl.isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: AppCachedImage(
-                      imageUrl: imageUrl,
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 240,
-                      memCacheHeight: 240,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                ],
-                Expanded(child: content),
-              ],
-            ),
     );
   }
 }

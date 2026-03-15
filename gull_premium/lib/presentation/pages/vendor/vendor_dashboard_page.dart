@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
@@ -207,8 +206,6 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
 
   Widget _buildMarketing(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final horizontalPadding = isMobile ? 16.0 : 48.0;
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -224,25 +221,7 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
       ),
       child: Column(
         children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () => context.go('/admin'),
-                child: Text(
-                  l10n.vendorAdminLink,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.inkMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SectionContainer(
+          SectionContainer(
           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 72),
           child: LayoutBuilder(
             builder: (context, constraints) {

@@ -143,6 +143,15 @@ class AuthRepository {
     return doc.data()?['role']?.toString();
   }
 
+  /// Role used for post-sign-in routing: 'admin' | 'vendor' | null (customer).
+  /// Uses [users].role first; if not admin/vendor, treats [isAdmin] as admin.
+  Future<String?> getRoleForRouting(String uid) async {
+    final role = await getUserRole(uid);
+    if (role == 'admin' || role == 'vendor') return role;
+    if (await isAdmin(uid)) return 'admin';
+    return null;
+  }
+
   /// Whether the user is an admin (exists in admins collection or is super admin email).
   Future<bool> isAdmin(String uid) async {
     final superEmail = AppEnv.superAdminEmail.trim();
@@ -185,6 +194,16 @@ class AuthRepository {
       'city': city,
       if (photoURL != null && photoURL.isNotEmpty) 'photoURL': photoURL,
     };
+  }
+
+  /// Returns true if the user has premium/VIP status in Firestore (isVip, vip, or premiumMember).
+  Future<bool> isPremiumMember(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    final data = doc.data();
+    if (data == null) return false;
+    return data['isVip'] == true ||
+        data['vip'] == true ||
+        data['premiumMember'] == true;
   }
 
   /// Get stored language preference for user. Returns null if not set.

@@ -58,8 +58,13 @@ class MembersRepository {
 
     final list = <CustomerMemberModel>[];
     for (final doc in pageDocs) {
-      final model = CustomerMemberModel.fromFirestore(doc.id, doc.data());
-      if (model != null) list.add(model);
+      try {
+        final model = CustomerMemberModel.fromFirestore(doc.id, doc.data());
+        if (model != null) list.add(model);
+      } catch (_) {
+        // Skip malformed documents so one bad doc doesn't fail the whole page
+        continue;
+      }
     }
 
     return PaginatedCustomersResult(

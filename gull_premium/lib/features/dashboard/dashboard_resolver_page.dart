@@ -94,7 +94,14 @@ class _RoleResolverState extends ConsumerState<_RoleResolver> {
           }
           return const _LoadingView();
         }
-        return _UnauthorizedView(onGoHome: () => context.go('/'));
+        // Customer or unknown role: go to home (member/customer experience).
+        if (!_redirectScheduled) {
+          _redirectScheduled = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) context.go('/');
+          });
+        }
+        return const _LoadingView();
       },
     );
   }
@@ -113,27 +120,3 @@ class _LoadingView extends StatelessWidget {
   }
 }
 
-class _UnauthorizedView extends StatelessWidget {
-  final VoidCallback onGoHome;
-
-  const _UnauthorizedView({required this.onGoHome});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Unauthorized'),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: onGoHome,
-              child: const Text('Go to Home'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

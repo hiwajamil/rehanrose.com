@@ -35,4 +35,12 @@ class AppColors {
   static const Color footerText = Color(0xFFF5F5F0);
   static const Color footerTextMuted = Color(0xFFB8C4BA);
   static const Color footerDivider = Color(0xFF2D4530);
+
+  /// Account / Rehan Rose luxury palette
+  /// Forest green for headers and accents
+  static const Color forestGreen = Color(0xFF2D4A3E);
+  /// Soft cream for account screen backgrounds
+  static const Color creamBackground = Color(0xFFFAF7F2);
+  /// Rose gold (alias; use accentGold for consistency)
+  static const Color roseGold = Color(0xFFC9A962);
 }

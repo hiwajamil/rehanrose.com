@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../controllers/controllers.dart';
-import '../../../core/services/whatsapp_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/app_scaffold.dart';
@@ -38,6 +38,7 @@ class AccountPage extends ConsumerWidget {
             fallbackDisplayName: user.displayName?.trim().isNotEmpty == true
                 ? user.displayName!
                 : (user.email ?? l10n.appTitle),
+            fallbackEmail: user.email ?? '',
             fallbackPhotoUrl: user.photoURL,
             onSignOut: () async => ref.read(authRepositoryProvider).signOut(),
           );
@@ -111,18 +112,21 @@ class _CustomerDashboardView extends ConsumerWidget {
   const _CustomerDashboardView({
     required this.uid,
     required this.fallbackDisplayName,
+    required this.fallbackEmail,
     required this.fallbackPhotoUrl,
     required this.onSignOut,
   });
 
   final String uid;
   final String fallbackDisplayName;
+  final String fallbackEmail;
   final String? fallbackPhotoUrl;
   final Future<void> Function() onSignOut;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider(uid));
+    final premiumAsync = ref.watch(userPremiumStatusProvider(uid));
 
     return profileAsync.when(
       data: (profile) {
@@ -130,54 +134,67 @@ class _CustomerDashboardView extends ConsumerWidget {
             ? profile!['fullName']!
             : fallbackDisplayName;
         final phone = profile?['phone'] ?? '';
-        final email = profile?['email'] ?? '';
+        final profileEmail = profile?['email']?.trim() ?? '';
+        final email = profileEmail.isNotEmpty ? profileEmail : fallbackEmail;
         final city = profile?['city'] ?? '';
         final photoUrl = profile?['photoURL'] ?? fallbackPhotoUrl;
+        final isPremium = premiumAsync.value ?? false;
 
         return _DashboardContent(
+          uid: uid,
           fullName: fullName,
           phone: phone,
           email: email,
           city: city,
           photoUrl: photoUrl,
+          isPremium: isPremium,
           onSignOut: onSignOut,
         );
       },
       loading: () => const _ProfileLoadingShimmer(),
-      error: (_, __) => _DashboardContent(
-        fullName: fallbackDisplayName,
-        phone: '',
-        email: '',
-        city: '',
-        photoUrl: fallbackPhotoUrl,
-        onSignOut: onSignOut,
-      ),
+      error: (_, __) {
+        final isPremium = premiumAsync.value ?? false;
+        return _DashboardContent(
+          uid: uid,
+          fullName: fallbackDisplayName,
+          phone: '',
+          email: fallbackEmail,
+          city: '',
+          photoUrl: fallbackPhotoUrl,
+          isPremium: isPremium,
+          onSignOut: onSignOut,
+        );
+      },
     );
   }
 }
 
-class _DashboardContent extends StatefulWidget {
+class _DashboardContent extends ConsumerStatefulWidget {
   const _DashboardContent({
+    required this.uid,
     required this.fullName,
     required this.phone,
     required this.email,
     required this.city,
     required this.photoUrl,
+    required this.isPremium,
     required this.onSignOut,
   });
 
+  final String uid;
   final String fullName;
   final String phone;
   final String email;
   final String city;
   final String? photoUrl;
+  final bool isPremium;
   final Future<void> Function() onSignOut;
 
   @override
-  State<_DashboardContent> createState() => _DashboardContentState();
+  ConsumerState<_DashboardContent> createState() => _DashboardContentState();
 }
 
-class _DashboardContentState extends State<_DashboardContent> {
+class _DashboardContentState extends ConsumerState<_DashboardContent> {
   bool _isSigningOut = false;
 
   Future<void> _handleSignOut() async {
@@ -201,10 +218,68 @@ class _DashboardContentState extends State<_DashboardContent> {
   }
 
   Future<void> _openWhatsAppSupport() async {
-    final uri = Uri.parse('https://wa.me/$kWhatsAppOrderNumber');
+    const number = '9647709818181';
+    final uri = Uri.parse('https://wa.me/$number');
     if (await canLaunchUrl(uri)) {
-      launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  Future<void> _handleChangePassword() async {
+    final email = widget.email.trim();
+    if (email.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No email on file. Please contact support.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    try {
+      await ref.read(authRepositoryProvider).sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Check your inbox — we\'ve sent a link to reset your password.',
+          ),
+          backgroundColor: AppColors.forestGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not send reset email: ${e.toString()}'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _showAddOccasionModal() {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AddOccasionSheet(
+        onSave: (name, date) async {
+          await ref.read(userOccasionsRepositoryProvider).addOccasion(
+                widget.uid,
+                name: name,
+                date: date,
+              );
+          if (ctx.mounted) Navigator.of(ctx).pop();
+        },
+        l10n: l10n,
+      ),
+    );
   }
 
   void _showComingSoon() {
@@ -219,27 +294,33 @@ class _DashboardContentState extends State<_DashboardContent> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    const cardRadius = 16.0;
-    const sectionSpacing = 28.0;
-    final softGrey = Colors.grey.shade600;
-    final borderColor = Colors.grey.withValues(alpha: 0.1);
+    const cardRadius = 20.0;
+    const sectionSpacing = 24.0;
+    final softGrey = AppColors.inkMuted;
+    final borderColor = AppColors.border;
+    final occasionsAsync = ref.watch(userOccasionsStreamProvider(widget.uid));
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ——— Section A: User Identity & VIP Status (Rehan Rose premium) ———
+          // ——— Section A: User Identity & Premium badge (Rehan Rose luxury) ———
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(cardRadius),
               border: Border.all(color: borderColor),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
+                  color: AppColors.forestGreen.withValues(alpha: 0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -250,26 +331,30 @@ class _DashboardContentState extends State<_DashboardContent> {
                   alignment: Alignment.topCenter,
                   clipBehavior: Clip.none,
                   children: [
-                    // Elegant ring around avatar (rose/gold)
                     Container(
-                      padding: const EdgeInsets.all(3),
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.accentGold,
+                          color: widget.isPremium
+                              ? AppColors.accentGold
+                              : AppColors.forestGreen.withValues(alpha: 0.4),
                           width: 2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.accentGold.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 1),
+                            color: (widget.isPremium
+                                    ? AppColors.accentGold
+                                    : AppColors.forestGreen)
+                                .withValues(alpha: 0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.grey.shade100,
+                        radius: 42,
+                        backgroundColor: AppColors.creamBackground,
                         backgroundImage: widget.photoUrl != null &&
                                 widget.photoUrl!.isNotEmpty
                             ? CachedNetworkImageProvider(widget.photoUrl!)
@@ -280,31 +365,35 @@ class _DashboardContentState extends State<_DashboardContent> {
                                     ? widget.fullName[0].toUpperCase()
                                     : '?',
                                 style: GoogleFonts.playfairDisplay(
-                                  fontSize: 28,
+                                  fontSize: 32,
                                   fontWeight: FontWeight.w600,
-                                  color: softGrey,
+                                  color: AppColors.forestGreen,
                                 ),
                               )
                             : null,
                       ),
                     ),
                     Positioned(
-                      bottom: -6,
+                      bottom: -8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
+                            horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: AppColors.badgeGoldBackground,
-                          borderRadius: BorderRadius.circular(20),
+                          color: widget.isPremium
+                              ? AppColors.badgeGoldBackground
+                              : AppColors.forestGreen.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: AppColors.accentGold.withValues(alpha: 0.4),
+                            color: widget.isPremium
+                                ? AppColors.accentGold.withValues(alpha: 0.5)
+                                : AppColors.forestGreen.withValues(alpha: 0.3),
                             width: 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 6,
-                              offset: const Offset(0, 1),
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
@@ -312,17 +401,25 @@ class _DashboardContentState extends State<_DashboardContent> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.workspace_premium_rounded,
+                              widget.isPremium
+                                  ? Icons.workspace_premium_rounded
+                                  : Icons.person_rounded,
                               size: 16,
-                              color: AppColors.accentGold,
+                              color: widget.isPremium
+                                  ? AppColors.accentGold
+                                  : AppColors.forestGreen,
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              l10n.profilePremiumMember,
+                              widget.isPremium
+                                  ? l10n.profilePremiumMember
+                                  : 'Member',
                               style: GoogleFonts.montserrat(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.ink,
+                                color: widget.isPremium
+                                    ? AppColors.ink
+                                    : AppColors.forestGreen,
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -336,78 +433,87 @@ class _DashboardContentState extends State<_DashboardContent> {
                 Text(
                   widget.fullName,
                   style: GoogleFonts.playfairDisplay(
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: FontWeight.w600,
                     color: AppColors.inkCharcoal,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
-                // Contact info with subtle icons (soft dark grey)
-                if (widget.phone.isNotEmpty)
-                  _ContactRow(
-                    icon: Icons.phone_outlined,
-                    text: widget.phone,
-                    softGrey: softGrey,
-                  ),
-                if (widget.phone.isNotEmpty && (widget.email.isNotEmpty || widget.city.isNotEmpty))
-                  const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 if (widget.email.isNotEmpty)
                   _ContactRow(
                     icon: Icons.email_outlined,
                     text: widget.email,
                     softGrey: softGrey,
                   ),
-                if (widget.email.isNotEmpty && widget.city.isNotEmpty)
-                  const SizedBox(height: 8),
-                if (widget.city.isNotEmpty)
+                if (widget.phone.isNotEmpty) ...[
+                  if (widget.email.isNotEmpty) const SizedBox(height: 6),
+                  _ContactRow(
+                    icon: Icons.phone_outlined,
+                    text: widget.phone,
+                    softGrey: softGrey,
+                  ),
+                ],
+                if (widget.city.isNotEmpty) ...[
+                  if (widget.email.isNotEmpty || widget.phone.isNotEmpty)
+                    const SizedBox(height: 6),
                   _ContactRow(
                     icon: Icons.location_on_outlined,
                     text: widget.city,
                     softGrey: softGrey,
                   ),
+                ],
               ],
             ),
           ),
           const SizedBox(height: sectionSpacing),
 
-          // ——— Section B: Quick Actions ———
+          // ——— Section B: My Orders & Saved Addresses (summary cards) ———
           Row(
             children: [
               Expanded(
-                child: _QuickActionCard(
-                  icon: CupertinoIcons.doc_text,
+                child: _SummaryCard(
+                  icon: CupertinoIcons.doc_text_fill,
                   label: l10n.profileMyOrders,
-                  onTap: () => _showComingSoon(),
+                  onTap: () => context.push('/orders'),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
-                child: _QuickActionCard(
-                  icon: CupertinoIcons.location,
+                child: _SummaryCard(
+                  icon: CupertinoIcons.location_fill,
                   label: l10n.profileSavedAddresses,
-                  onTap: () => _showComingSoon(),
+                  onTap: () => context.push('/addresses'),
                 ),
               ),
             ],
           ),
           const SizedBox(height: sectionSpacing),
 
-          // ——— Section C: Special Occasions (premium card) ———
+          // ——— Section C: My Special Occasions (elegant banner card) ———
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.surface,
+                  AppColors.rose.withValues(alpha: 0.06),
+                  AppColors.forestGreen.withValues(alpha: 0.04),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(cardRadius),
+              border: Border.all(color: borderColor),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 12,
+                  color: AppColors.rose.withValues(alpha: 0.08),
+                  blurRadius: 20,
                   offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: AppColors.rose.withValues(alpha: 0.04),
-                  blurRadius: 20,
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -419,18 +525,25 @@ class _DashboardContentState extends State<_DashboardContent> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.rose.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppColors.rose.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.rose.withValues(alpha: 0.12),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Icon(
                         Icons.card_giftcard_rounded,
                         color: AppColors.rose,
-                        size: 26,
+                        size: 28,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 18),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -438,18 +551,18 @@ class _DashboardContentState extends State<_DashboardContent> {
                           Text(
                             l10n.profileMySpecialOccasions,
                             style: GoogleFonts.playfairDisplay(
-                              fontSize: 18,
+                              fontSize: 19,
                               fontWeight: FontWeight.w600,
                               color: AppColors.inkCharcoal,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Text(
                             l10n.profileOccasionsSubtitle,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: softGrey,
                                   fontSize: 13,
-                                  height: 1.4,
+                                  height: 1.45,
                                 ),
                           ),
                         ],
@@ -457,31 +570,63 @@ class _DashboardContentState extends State<_DashboardContent> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
+                occasionsAsync.when(
+                  data: (occasions) {
+                    if (occasions.isNotEmpty) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ...occasions.map(
+                            (o) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _OccasionChip(
+                                name: o.name,
+                                date: o.date,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.only(bottom: 14),
+                    child: Center(child: SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _showComingSoon,
+                  child: FilledButton.icon(
+                    onPressed: _showAddOccasionModal,
                     icon: Icon(
                       Icons.add_rounded,
-                      size: 20,
-                      color: AppColors.rose,
+                      size: 22,
+                      color: AppColors.surface,
                     ),
                     label: Text(
                       l10n.profileAddOccasion,
                       style: GoogleFonts.montserrat(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.rose,
+                        color: AppColors.surface,
                       ),
                     ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.rose,
-                      side: BorderSide(color: AppColors.rose, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.forestGreen,
+                      foregroundColor: AppColors.surface,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      elevation: 0,
                     ),
                   ),
                 ),
@@ -490,7 +635,7 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
           const SizedBox(height: sectionSpacing),
 
-          // ——— Section D: Settings list (premium) ———
+          // ——— Section D: Settings list (elegant tiles with trailing arrows) ———
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
@@ -498,43 +643,43 @@ class _DashboardContentState extends State<_DashboardContent> {
               border: Border.all(color: borderColor),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 6,
-                  offset: const Offset(0, 1),
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: Column(
               children: [
                 _SettingsTile(
-                  icon: CupertinoIcons.chat_bubble_2,
+                  icon: Icons.chat_bubble_outline_rounded,
                   label: l10n.profileContactSupportWhatsApp,
                   onTap: _openWhatsAppSupport,
                 ),
-                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.08), indent: 72, endIndent: 20),
+                _DividerIndent(indent: 72),
                 _SettingsTile(
-                  icon: CupertinoIcons.settings,
+                  icon: Icons.settings_outlined,
                   label: l10n.profileSettings,
                   onTap: _showComingSoon,
                 ),
-                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.08), indent: 72, endIndent: 20),
+                _DividerIndent(indent: 72),
                 _SettingsTile(
-                  icon: CupertinoIcons.lock_open,
+                  icon: Icons.lock_outline_rounded,
                   label: l10n.profileChangePassword,
-                  onTap: _showComingSoon,
+                  onTap: _handleChangePassword,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 54,
             child: OutlinedButton(
               onPressed: _isSigningOut ? null : _handleSignOut,
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red.shade400,
-                side: BorderSide(color: Colors.red.shade300),
+                side: BorderSide(color: Colors.red.shade300, width: 1.2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(cardRadius),
                 ),
@@ -551,7 +696,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                   : Text(
                       l10n.signOut,
                       style: GoogleFonts.montserrat(
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         fontSize: 15,
                         color: Colors.red.shade400,
                       ),
@@ -598,8 +743,9 @@ class _ContactRow extends StatelessWidget {
   }
 }
 
-class _QuickActionCard extends StatelessWidget {
-  const _QuickActionCard({
+/// Prominent clickable summary card for My Orders / Saved Addresses.
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -611,45 +757,112 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 18),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.forestGreen.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 28, color: AppColors.rose),
-                const SizedBox(height: 12),
-                Text(
-                  label,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.inkCharcoal,
-                  ),
-                  textAlign: TextAlign.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.forestGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-              ],
-            ),
+                child: Icon(icon, size: 28, color: AppColors.forestGreen),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                label,
+                style: GoogleFonts.montserrat(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.inkCharcoal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DividerIndent extends StatelessWidget {
+  const _DividerIndent({required this.indent});
+
+  final double indent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      color: Colors.grey.withValues(alpha: 0.12),
+      indent: indent,
+      endIndent: 20,
+    );
+  }
+}
+
+class _OccasionChip extends StatelessWidget {
+  const _OccasionChip({required this.name, required this.date});
+
+  final String name;
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.cake_rounded, size: 20, color: AppColors.rose),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: GoogleFonts.montserrat(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.inkCharcoal,
+              ),
+            ),
+          ),
+          Text(
+            DateFormat.yMMMd().format(date),
+            style: GoogleFonts.montserrat(
+              fontSize: 12,
+              color: AppColors.inkMuted,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -668,18 +881,17 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final softTint = AppColors.blush.withValues(alpha: 0.25);
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       leading: Container(
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: softTint,
-          shape: BoxShape.circle,
+          color: AppColors.forestGreen.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: Icon(icon, size: 22, color: AppColors.inkMuted),
+        child: Icon(icon, size: 22, color: AppColors.forestGreen),
       ),
       title: Text(
         label,
@@ -690,11 +902,217 @@ class _SettingsTile extends StatelessWidget {
         ),
       ),
       trailing: Icon(
-        Icons.chevron_right_rounded,
-        size: 22,
-        color: Colors.grey.shade400,
+        Icons.arrow_forward_ios_rounded,
+        size: 14,
+        color: AppColors.inkMuted,
       ),
       onTap: onTap,
+    );
+  }
+}
+
+/// Modal bottom sheet to add an occasion (name + date). Saves to Firestore via [onSave].
+class _AddOccasionSheet extends StatefulWidget {
+  const _AddOccasionSheet({
+    required this.onSave,
+    required this.l10n,
+  });
+
+  final Future<void> Function(String name, DateTime date) onSave;
+  final AppLocalizations l10n;
+
+  @override
+  State<_AddOccasionSheet> createState() => _AddOccasionSheetState();
+}
+
+class _AddOccasionSheetState extends State<_AddOccasionSheet> {
+  final _nameController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.forestGreen,
+                ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && mounted) setState(() => _selectedDate = picked);
+  }
+
+  Future<void> _submit() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please enter an occasion name.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(name, _selectedDate);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Occasion saved.'),
+          backgroundColor: AppColors.forestGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not save: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: 24 + MediaQuery.paddingOf(context).bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.creamBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.l10n.profileAddOccasion,
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: AppColors.inkCharcoal,
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              labelText: 'Occasion name (e.g. Birthday, Anniversary)',
+              hintText: 'Birthday, Anniversary, Mother\'s Day…',
+              filled: true,
+              fillColor: AppColors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.forestGreen, width: 1.5),
+              ),
+            ),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 20),
+          InkWell(
+            onTap: _saving ? null : _pickDate,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded, color: AppColors.forestGreen, size: 22),
+                  const SizedBox(width: 14),
+                  Text(
+                    DateFormat.yMMMd().format(_selectedDate),
+                    style: GoogleFonts.montserrat(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.inkCharcoal,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _saving ? null : () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    side: BorderSide(color: AppColors.border),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  onPressed: _saving ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.forestGreen,
+                    foregroundColor: AppColors.surface,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Save'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

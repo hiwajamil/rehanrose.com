@@ -68,6 +68,7 @@ class PaginatedCustomersNotifier extends Notifier<PaginatedCustomersState> {
         hasMore: result.hasMore,
         isLoading: false,
         lastDocument: result.lastDocument,
+        error: null,
       );
     } catch (e, _) {
       state = state.copyWith(
@@ -89,6 +90,7 @@ class PaginatedCustomersNotifier extends Notifier<PaginatedCustomersState> {
         hasMore: result.hasMore,
         isLoadingMore: false,
         lastDocument: result.lastDocument,
+        error: null,
       );
     } catch (e, _) {
       state = state.copyWith(isLoadingMore: false);

@@ -281,6 +281,14 @@ class OmsOrderModel {
   final String? vendorName;
   /// First image URL of the bouquet for cards (optional).
   final String? bouquetImageUrl;
+  /// Human-readable flower/bouquet line from WhatsApp (e.g. "Bouquet - IQD 35,000").
+  final String? bouquetDetails;
+  /// Voice message / QR link from WhatsApp.
+  final String? voiceMessageLink;
+  /// Delivery location map link from WhatsApp.
+  final String? deliveryLocationLink;
+  /// Order date/time from WhatsApp message (e.g. "2026-03-09 14:30").
+  final String? orderDate;
 
   const OmsOrderModel({
     required this.orderId,
@@ -295,6 +303,10 @@ class OmsOrderModel {
     this.bouquetName,
     this.vendorName,
     this.bouquetImageUrl,
+    this.bouquetDetails,
+    this.voiceMessageLink,
+    this.deliveryLocationLink,
+    this.orderDate,
   });
 
   /// For local use only. Repository sets createdAt with serverTimestamp on create.
@@ -311,6 +323,10 @@ class OmsOrderModel {
         if (bouquetName != null) 'bouquetName': bouquetName!,
         if (vendorName != null) 'vendorName': vendorName!,
         if (bouquetImageUrl != null) 'bouquetImageUrl': bouquetImageUrl!,
+        if (bouquetDetails != null && bouquetDetails!.isNotEmpty) 'bouquetDetails': bouquetDetails!,
+        if (voiceMessageLink != null && voiceMessageLink!.isNotEmpty) 'voiceMessageLink': voiceMessageLink!,
+        if (deliveryLocationLink != null && deliveryLocationLink!.isNotEmpty) 'deliveryLocationLink': deliveryLocationLink!,
+        if (orderDate != null && orderDate!.isNotEmpty) 'orderDate': orderDate!,
       };
 
   static OmsOrderModel? fromFirestore(
@@ -346,6 +362,10 @@ class OmsOrderModel {
       bouquetName: data['bouquetName']?.toString(),
       vendorName: data['vendorName']?.toString(),
       bouquetImageUrl: data['bouquetImageUrl']?.toString(),
+      bouquetDetails: data['bouquetDetails']?.toString(),
+      voiceMessageLink: data['voiceMessageLink']?.toString(),
+      deliveryLocationLink: data['deliveryLocationLink']?.toString(),
+      orderDate: data['orderDate']?.toString(),
     );
   }
 }
@@ -361,6 +381,10 @@ class CreateOmsOrderData {
   final String bouquetName;
   final String vendorName;
   final String bouquetImageUrl;
+  final String bouquetDetails;
+  final String voiceMessageLink;
+  final String deliveryLocationLink;
+  final String orderDate;
 
   const CreateOmsOrderData({
     required this.bouquetId,
@@ -372,5 +396,9 @@ class CreateOmsOrderData {
     required this.bouquetName,
     required this.vendorName,
     this.bouquetImageUrl = '',
+    this.bouquetDetails = '',
+    this.voiceMessageLink = '',
+    this.deliveryLocationLink = '',
+    this.orderDate = '',
   });
 }

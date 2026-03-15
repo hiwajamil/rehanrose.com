@@ -1,7 +1,19 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/price_format_utils.dart';
 import '../../data/models/add_on_model.dart';
+
+/// Formats current date/time as "YYYY-MM-DD HH:mm" for WhatsApp order messages.
+String _orderDateTimeString() {
+  final now = DateTime.now();
+  final y = now.year;
+  final m = now.month.toString().padLeft(2, '0');
+  final d = now.day.toString().padLeft(2, '0');
+  final h = now.hour.toString().padLeft(2, '0');
+  final min = now.minute.toString().padLeft(2, '0');
+  return '$y-$m-$d $h:$min';
+}
 
 /// Hardcoded Super Admin WhatsApp number (no '00' or '+').
 const String kWhatsAppOrderNumber = '9647709818181';
@@ -44,8 +56,13 @@ Future<bool> launchOrderWhatsApp({
   bool freeDeliveryUnlocked = false,
   DeliveryLatLng? deliveryLocation,
 }) async {
+  final dateTimeStr = _orderDateTimeString();
+  final customerPhone =
+      FirebaseAuth.instance.currentUser?.phoneNumber ?? 'Not provided';
   final lines = <String>[
     'Hello, I would like to order:',
+    'Date & Time: $dateTimeStr',
+    'Customer Phone: $customerPhone',
     '',
     'Flower: $flowerName - $flowerPrice',
     if (bouquetCode != null && bouquetCode.isNotEmpty) 'Bouquet Code: $bouquetCode',

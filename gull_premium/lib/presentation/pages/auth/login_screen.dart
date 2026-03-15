@@ -145,6 +145,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// Navigate to the correct screen based on user role (admin → /admin, vendor → /vendor, else → home).
+  Future<void> _navigateAfterSignIn(String uid) async {
+    final role = await ref.read(authRepositoryProvider).getRoleForRouting(uid);
+    if (!mounted) return;
+    final path = role == 'admin'
+        ? '/admin'
+        : role == 'vendor'
+            ? '/vendor'
+            : '/';
+    context.go(path);
+  }
+
   Future<void> _signInWithGoogle() async {
     if (_isLoading) return;
     // Require Web client ID for Google Sign-In to work (Android, iOS, and web).
@@ -156,8 +168,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      await ref.read(authServiceProvider).signInWithGoogle();
-      _closeAfterSuccess();
+      final credential = await ref.read(authServiceProvider).signInWithGoogle();
+      final uid = credential.user?.uid;
+      if (uid != null) {
+        await _navigateAfterSignIn(uid);
+      } else {
+        _closeAfterSuccess();
+      }
     } catch (e, st) {
       debugPrint('Google sign-in error: $e');
       debugPrintStack(stackTrace: st);
@@ -175,12 +192,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final auth = ref.read(authServiceProvider);
       final email = _emailController.text.trim();
       final password = _passwordController.text;
-      if (_isRegisterMode) {
-        await auth.createUserWithEmailAndPassword(email: email, password: password);
+      final credential = _isRegisterMode
+          ? await auth.createUserWithEmailAndPassword(email: email, password: password)
+          : await auth.signInWithEmailAndPassword(email: email, password: password);
+      final uid = credential.user?.uid;
+      if (uid != null) {
+        await _navigateAfterSignIn(uid);
       } else {
-        await auth.signInWithEmailAndPassword(email: email, password: password);
+        _closeAfterSuccess();
       }
-      _closeAfterSuccess();
     } catch (e) {
       if (mounted) _showError(authErrorMessage(e));
     } finally {

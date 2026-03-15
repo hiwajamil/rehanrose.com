@@ -1,6 +1,7 @@
 /// Barrel file for MCR controller layer.
 library;
 
+export 'account_controller.dart';
 export 'add_on_controller.dart';
 export 'admin_vendors_controller.dart';
 export 'analytics_controller.dart';

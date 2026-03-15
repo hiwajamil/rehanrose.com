@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/florist_card_pdf.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/order_model.dart';
 import '../../../l10n/app_localizations.dart';
@@ -50,6 +53,45 @@ class _OrderCardDetailCell extends StatelessWidget {
               ),
         ),
       ],
+    );
+  }
+}
+
+/// Single label-value row for Florist Card.
+class _FloristRow extends StatelessWidget {
+  const _FloristRow({
+    required this.label,
+    required this.value,
+    required this.labelStyle,
+    required this.valueStyle,
+  });
+
+  final String label;
+  final String value;
+  final TextStyle? labelStyle;
+  final TextStyle? valueStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 88,
+            child: Text('$label:', style: labelStyle),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: valueStyle,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -130,8 +172,177 @@ class OmsOrderCard extends StatelessWidget {
         : '${order.totalPrice} IQD';
   }
 
+  bool get _isVendorView => onAccept != null || onReady != null;
+
   @override
   Widget build(BuildContext context) {
+    if (_isVendorView) {
+      return _buildFloristCard(context);
+    }
+    return _buildStandardCard(context);
+  }
+
+  /// Elegant Florist Card for vendor: premium typography, optional QR, Print button.
+  Widget _buildFloristCard(BuildContext context) {
+    final createdAtStr = order.createdAt != null
+        ? formatOmsOrderDate(order.createdAt!, short: showVendorLine)
+        : '—';
+    final orderDateStr = (order.orderDate != null && order.orderDate!.isNotEmpty)
+        ? order.orderDate!
+        : createdAtStr;
+    final hasVoiceLink = order.voiceMessageLink != null &&
+        order.voiceMessageLink!.trim().isNotEmpty;
+    final hasImage = order.bouquetImageUrl != null && order.bouquetImageUrl!.isNotEmpty;
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppColors.inkMuted,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.3,
+        );
+    final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.ink,
+          fontWeight: FontWeight.w500,
+        );
+
+    return RepaintBoundary(
+      key: ValueKey('florist-${order.orderId}'),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 20),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppColors.border, width: 1),
+        ),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      'Rehan Rose',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Order Card',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.inkMuted,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (hasImage) ...[
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AppCachedImage(
+                      key: ValueKey<String>(order.bouquetImageUrl!),
+                      imageUrl: order.bouquetImageUrl!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 200,
+                      memCacheHeight: 200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+              _FloristRow(label: 'Order', value: order.orderId, valueStyle: valueStyle, labelStyle: labelStyle),
+              _FloristRow(label: 'Date & Time', value: orderDateStr, valueStyle: valueStyle, labelStyle: labelStyle),
+              _FloristRow(label: 'Customer', value: order.customerPhone, valueStyle: valueStyle, labelStyle: labelStyle),
+              _FloristRow(label: 'Bouquet', value: order.bouquetName ?? '—', valueStyle: valueStyle, labelStyle: labelStyle),
+              _FloristRow(label: 'Code', value: order.bouquetCode, valueStyle: valueStyle, labelStyle: labelStyle),
+              if (order.bouquetDetails != null && order.bouquetDetails!.isNotEmpty)
+                _FloristRow(label: 'Details', value: order.bouquetDetails!, valueStyle: valueStyle, labelStyle: labelStyle),
+              _FloristRow(label: 'Total', value: _priceString(context), valueStyle: valueStyle, labelStyle: labelStyle),
+              if (order.addons.isNotEmpty)
+                _FloristRow(label: 'Add-ons', value: order.addons, valueStyle: valueStyle, labelStyle: labelStyle),
+              if (order.deliveryLocationLink != null && order.deliveryLocationLink!.isNotEmpty)
+                _FloristRow(label: 'Delivery', value: order.deliveryLocationLink!, valueStyle: valueStyle, labelStyle: labelStyle),
+              if (hasVoiceLink) ...[
+                const SizedBox(height: 20),
+                Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: QrImageView(
+                          data: order.voiceMessageLink!,
+                          version: QrVersions.auto,
+                          size: 120,
+                          backgroundColor: Colors.white,
+                          gapless: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Scan for voice message',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.inkMuted,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  if (onAccept != null)
+                    Expanded(
+                      child: PrimaryButton(label: 'Accept Order', onPressed: onAccept!),
+                    ),
+                  if (onAccept != null && onReady != null) const SizedBox(width: 12),
+                  if (onReady != null)
+                    Expanded(
+                      child: PrimaryButton(label: 'Bouquet Is Ready', onPressed: onReady!),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await printFloristCard(order);
+                  },
+                  icon: const Text('🖨️'),
+                  label: const Text('Print Order Card'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    foregroundColor: AppColors.ink,
+                    side: const BorderSide(color: AppColors.inkMuted),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStandardCard(BuildContext context) {
     final createdAtStr = order.createdAt != null
         ? formatOmsOrderDate(order.createdAt!, short: showVendorLine)
         : '—';

@@ -82,8 +82,8 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
                   ? Center(
                       child: _AdminEmptyState(
                         icon: Icons.cloud_off_outlined,
-                        message: 'Unable to load members.',
-                        subtitle: 'Please check your connection and try again.',
+                        message: 'Unable to load members',
+                        subtitle: state.error!,
                       ),
                     )
                   : state.list.isEmpty
@@ -94,42 +94,16 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
                             subtitle: 'Registered customers will appear here.',
                           ),
                         )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.only(bottom: 32),
-                          itemCount: state.list.length + (state.hasMore && state.isLoadingMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index >= state.list.length) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 24),
-                                child: Center(
-                                  child: SizedBox(
-                                    width: 28,
-                                    height: 28,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.rosePrimary,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                            final member = state.list[index];
-                            return RepaintBoundary(
-                              key: ValueKey(member.uid),
-                              child: Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _MemberCard(
-                                  member: member,
-                                  onOrderHistory: () => _showOrderHistoryBottomSheet(
-                                    context,
-                                    ref,
-                                    member,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
+                      : _MembersDataTable(
+                          members: state.list,
+                          scrollController: _scrollController,
+                          hasMore: state.hasMore,
+                          isLoadingMore: state.isLoadingMore,
+                          onOrderHistory: (member) => _showOrderHistoryBottomSheet(
+                            context,
+                            ref,
+                            member,
+                          ),
                         ),
         ),
       ],
@@ -255,150 +229,132 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
   }
 }
 
-/// Single member card: name, chip, city/phone/join date, total orders, Order History button.
-class _MemberCard extends ConsumerWidget {
-  final CustomerMemberModel member;
-  final VoidCallback onOrderHistory;
-
-  const _MemberCard({
-    required this.member,
+/// Premium CRM data table: Name, Email, Phone, Join Date, Actions.
+class _MembersDataTable extends StatelessWidget {
+  const _MembersDataTable({
+    required this.members,
+    required this.scrollController,
+    required this.hasMore,
+    required this.isLoadingMore,
     required this.onOrderHistory,
   });
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final orderCountAsync = ref.watch(orderCountForUserProvider(member.uid));
-    final joinDateStr = member.createdAt != null
-        ? DateFormat('MMM d, y').format(member.createdAt!)
-        : '—';
+  final List<CustomerMemberModel> members;
+  final ScrollController scrollController;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final void Function(CustomerMemberModel member) onOrderHistory;
 
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      controller: scrollController,
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 32),
+            child: _MembersTableContent(
+            members: members,
+              onOrderHistory: onOrderHistory,
+            ),
+          ),
+        ),
+        if (hasMore && isLoadingMore)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.rosePrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _MembersTableContent extends StatelessWidget {
+  const _MembersTableContent({
+    required this.members,
+    required this.onOrderHistory,
+  });
+
+  final List<CustomerMemberModel> members;
+  final void Function(CustomerMemberModel member) onOrderHistory;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
+            color: AppColors.shadow,
+            blurRadius: 12,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  member.fullName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: AppColors.ink,
-                      ),
-                ),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(
+            AppColors.forestGreen.withValues(alpha: 0.08),
+          ),
+          headingTextStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.forestGreen,
+                letterSpacing: 0.3,
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: member.isVip
-                      ? AppColors.rosePrimary.withValues(alpha: 0.12)
-                      : AppColors.sage.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: member.isVip ? AppColors.rosePrimary : AppColors.sage,
-                    width: 1,
+          dataRowMinHeight: 56,
+          dataRowMaxHeight: 72,
+          dataTextStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.ink,
+              ),
+          border: TableBorder.symmetric(
+            inside: BorderSide(color: AppColors.border.withValues(alpha: 0.8)),
+          ),
+          columnSpacing: 24,
+          horizontalMargin: 20,
+          columns: const [
+            DataColumn(label: Text('Name')),
+            DataColumn(label: Text('Email')),
+            DataColumn(label: Text('Phone Number')),
+            DataColumn(label: Text('Join Date')),
+            DataColumn(label: Text('Actions')),
+          ],
+          rows: members.map((member) {
+            final joinDateStr = member.createdAt != null
+                ? DateFormat('MMM d, y').format(member.createdAt!)
+                : '—';
+            return DataRow(
+              key: ValueKey(member.uid),
+              cells: [
+                DataCell(Text(member.fullName)),
+                DataCell(Text(member.email)),
+                DataCell(Text(member.phone)),
+                DataCell(Text(joinDateStr)),
+                DataCell(
+                  PrimaryButton(
+                    label: 'Order History',
+                    onPressed: () => onOrderHistory(member),
+                    variant: PrimaryButtonVariant.outline,
                   ),
                 ),
-                child: Text(
-                  member.isVip ? 'VIP' : 'Member',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: member.isVip ? AppColors.rosePrimary : AppColors.inkMuted,
-                      ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(Icons.location_on_outlined, size: 18, color: AppColors.inkMuted),
-              const SizedBox(width: 8),
-              Text(
-                member.city,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.inkMuted,
-                    ),
-              ),
-              const SizedBox(width: 20),
-              Icon(Icons.phone_outlined, size: 18, color: AppColors.inkMuted),
-              const SizedBox(width: 8),
-              Text(
-                member.phone,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.inkMuted,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.inkMuted),
-              const SizedBox(width: 8),
-              Text(
-                'Joined: $joinDateStr',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.inkMuted,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Text(
-                'Total Orders: ',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.inkMuted,
-                    ),
-              ),
-              orderCountAsync.when(
-                data: (count) => Text(
-                  '$count',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
-                      ),
-                ),
-                loading: () => Text(
-                  '—',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.inkMuted,
-                      ),
-                ),
-                error: (_, __) => Text(
-                  '—',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.inkMuted,
-                      ),
-                ),
-              ),
-              const Spacer(),
-              PrimaryButton(
-                label: 'Order History',
-                onPressed: onOrderHistory,
-                variant: PrimaryButtonVariant.outline,
-              ),
-            ],
-          ),
-        ],
+              ],
+            );
+          }).toList(),
+        ),
       ),
     );
   }

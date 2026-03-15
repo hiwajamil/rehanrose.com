@@ -39,6 +39,8 @@ import '../../presentation/pages/voice/voice_playback_page.dart';
 import '../../presentation/pages/auth/login_screen.dart';
 import '../../presentation/pages/auth/registration_screen.dart';
 import '../../presentation/pages/auth/account_page.dart';
+import '../../presentation/pages/account/customer_orders_page.dart';
+import '../../presentation/pages/account/customer_addresses_page.dart';
 
 class AppRouter {
   /// Creates the app router with [authNotifier] so redirect waits for auth to
@@ -67,14 +69,16 @@ class AppRouter {
             fa.FirebaseAuth.instance.currentUser;
 
         // Admin routes: allow unauthenticated access so /admin shows its own admin
-        // sign-in form; only redirect non-admin authenticated users away.
+        // sign-in form; only allow access if user has admin role or is in admins list.
         if (location.startsWith('/admin')) {
           if (user == null) {
             return null; // Let AdminDashboardPage show admin sign-in screen
           }
           final authRepo = AuthRepository();
           final isAdmin = await authRepo.isAdmin(user.uid);
-          if (!isAdmin) {
+          final role = await authRepo.getUserRole(user.uid);
+          final hasAdminAccess = isAdmin || role == 'admin';
+          if (!hasAdminAccess) {
             return '/';
           }
           return null;
@@ -118,6 +122,14 @@ class AppRouter {
       GoRoute(
         path: '/account',
         builder: (context, state) => const AccountPage(),
+      ),
+      GoRoute(
+        path: '/orders',
+        builder: (context, state) => const CustomerOrdersPage(),
+      ),
+      GoRoute(
+        path: '/addresses',
+        builder: (context, state) => const CustomerAddressesPage(),
       ),
       GoRoute(
         path: '/offers',

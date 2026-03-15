@@ -30,6 +30,12 @@ service cloud.firestore {
       allow read, write: if isAdmin() || isOwner(userId);
     }
 
+    // ─── users/{userId}/occasions (My Occasions) ───────────────────────────
+    // Authenticated users can read and write only their own occasions.
+    match /users/{userId}/occasions/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // ─── products ──────────────────────────────────────────────────────────
     // Read (Public): only when status == 'approved'.
     // Read (Vendor): own products (any status) so they can see pending items.

@@ -86,3 +86,9 @@ final userProfileProvider =
     FutureProvider.autoDispose.family<Map<String, String>?, String>((ref, uid) {
   return ref.read(authRepositoryProvider).getUserProfile(uid);
 });
+
+/// Premium member status from Firestore (isVip, vip, or premiumMember). Used on account page.
+final userPremiumStatusProvider =
+    FutureProvider.autoDispose.family<bool, String>((ref, uid) {
+  return ref.read(authRepositoryProvider).isPremiumMember(uid);
+});
