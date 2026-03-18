@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// Global font family for Kurdish/Arabic support.
-const String _kFontFamily = 'Rudaw';
+const String _kRudawFontFamily = 'Rudaw';
+
+String _fontFamilyForLocale(Locale locale) {
+  // Keep Rudaw for Kurdish/Arabic. Use Montserrat for English (premium/clean look).
+  switch (locale.languageCode) {
+    case 'ar':
+    case 'ku':
+      return _kRudawFontFamily;
+    default:
+      return GoogleFonts.montserrat().fontFamily ?? 'Montserrat';
+  }
+}
 
 class AppTheme {
   static ThemeData? _cachedLightEn;
@@ -42,6 +53,7 @@ class AppTheme {
   }
 
   static TextStyle _textStyle({
+    required String fontFamily,
     required double fontSize,
     required FontWeight fontWeight,
     double? letterSpacing,
@@ -49,7 +61,7 @@ class AppTheme {
     Color? color,
   }) {
     return TextStyle(
-      fontFamily: _kFontFamily,
+      fontFamily: fontFamily,
       fontSize: fontSize,
       fontWeight: fontWeight,
       letterSpacing: letterSpacing,
@@ -59,38 +71,47 @@ class AppTheme {
   }
 
   static ThemeData _buildLightTheme(Locale locale) {
-    final textTheme = TextTheme(
+    final fontFamily = _fontFamilyForLocale(locale);
+    final baseTextTheme = TextTheme(
       headlineLarge: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 56,
         fontWeight: FontWeight.w700,
         letterSpacing: -1.2,
         color: AppColors.ink,
       ),
       headlineMedium: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 36,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.6,
         color: AppColors.ink,
       ),
       titleLarge: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 22,
         fontWeight: FontWeight.w600,
         letterSpacing: -0.2,
         color: AppColors.ink,
       ),
       bodyLarge: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 18,
         fontWeight: FontWeight.w500,
         height: 1.5,
         color: AppColors.inkMuted,
       ),
       bodyMedium: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 16,
         fontWeight: FontWeight.w500,
         height: 1.5,
         color: AppColors.inkMuted,
       ),
     );
+    final textTheme = locale.languageCode == 'en'
+        ? GoogleFonts.montserratTextTheme(baseTextTheme)
+        : baseTextTheme;
 
     final colorScheme = ColorScheme.light(
       primary: AppColors.rose,
@@ -103,7 +124,7 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      fontFamily: _kFontFamily,
+      fontFamily: fontFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
       textTheme: textTheme,
@@ -129,6 +150,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(40),
           ),
           textStyle: _textStyle(
+            fontFamily: fontFamily,
             fontSize: 16,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,
@@ -139,43 +161,53 @@ class AppTheme {
   }
 
   static ThemeData _buildLightMobileTheme(Locale locale) {
-    final textTheme = TextTheme(
+    final fontFamily = _fontFamilyForLocale(locale);
+    final baseTextTheme = TextTheme(
       headlineLarge: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 28,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.6,
         color: AppColors.ink,
       ),
       headlineMedium: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 22,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.2,
         color: AppColors.ink,
       ),
       headlineSmall: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 20,
         fontWeight: FontWeight.w700,
         color: AppColors.ink,
       ),
       titleLarge: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 20,
         fontWeight: FontWeight.w600,
         letterSpacing: -0.2,
         color: AppColors.ink,
       ),
       bodyLarge: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 16,
         fontWeight: FontWeight.w500,
         height: 1.5,
         color: AppColors.inkMuted,
       ),
       bodyMedium: _textStyle(
+        fontFamily: fontFamily,
         fontSize: 16,
         fontWeight: FontWeight.w500,
         height: 1.5,
         color: AppColors.inkMuted,
       ),
     );
+    final textTheme = locale.languageCode == 'en'
+        ? GoogleFonts.montserratTextTheme(baseTextTheme)
+        : baseTextTheme;
 
     final colorScheme = ColorScheme.light(
       primary: AppColors.rose,
@@ -188,7 +220,7 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      fontFamily: _kFontFamily,
+      fontFamily: fontFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
       textTheme: textTheme,
@@ -215,6 +247,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           textStyle: _textStyle(
+            fontFamily: fontFamily,
             fontSize: 16,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,

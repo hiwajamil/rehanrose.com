@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as fa;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -182,7 +183,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   Future<void> _signUpWithGoogle() async {
     if (_isGoogleLoading) return;
     if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
-    if (DefaultFirebaseOptions.googleWebClientId.isEmpty) {
+    // Mobile Google Sign-In needs a Web client ID. Web uses FirebaseAuth popup flow.
+    if (!kIsWeb && DefaultFirebaseOptions.googleWebClientId.isEmpty) {
       _showSnackBar(
         'Google sign-in is not set up. Add the Web client ID from Firebase Console (Authentication → Google) or use email/password below.',
         isError: true,

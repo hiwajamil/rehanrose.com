@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -159,8 +160,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _signInWithGoogle() async {
     if (_isLoading) return;
-    // Require Web client ID for Google Sign-In to work (Android, iOS, and web).
-    if (DefaultFirebaseOptions.googleWebClientId.isEmpty) {
+    // Mobile Google Sign-In needs a Web client ID. Web uses FirebaseAuth popup flow.
+    if (!kIsWeb && DefaultFirebaseOptions.googleWebClientId.isEmpty) {
       _showError(
         'Google sign-in is not set up. To fix: add the Web client ID from Firebase Console (Authentication → Google) in lib/env/google_client_id.dart, or run with --dart-define=GOOGLE_WEB_CLIENT_ID=your-id. You can still sign in or register with email and password below.',
       );

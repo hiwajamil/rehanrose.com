@@ -1,1 +1,95 @@
-{"indexes":[{"collectionGroup":"users","queryScope":"COLLECTION","fields":[{"fieldPath":"role","order":"ASCENDING"},{"fieldPath":"vendorStatus","order":"ASCENDING"}]},{"collectionGroup":"users","queryScope":"COLLECTION","fields":[{"fieldPath":"role","order":"ASCENDING"},{"fieldPath":"isOnline","order":"ASCENDING"}]},{"collectionGroup":"oms_orders","queryScope":"COLLECTION","fields":[{"fieldPath":"vendorId","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},{"collectionGroup":"bouquets","queryScope":"COLLECTION","fields":[{"fieldPath":"occasion","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},{"collectionGroup":"bouquets","queryScope":"COLLECTION","fields":[{"fieldPath":"approvalStatus","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},{"collectionGroup":"bouquets","queryScope":"COLLECTION","fields":[{"fieldPath":"approvalStatus","order":"ASCENDING"},{"fieldPath":"emotionCategoryId","order":"ASCENDING"}]},{"collectionGroup":"bouquets","queryScope":"COLLECTION","fields":[{"fieldPath":"approvalStatus","order":"ASCENDING"},{"fieldPath":"emotionCategoryId","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},{"collectionGroup":"bouquets","queryScope":"COLLECTION","fields":[{"fieldPath":"approvalStatus","order":"ASCENDING"},{"fieldPath":"occasion","order":"ASCENDING"}]},{"collectionGroup":"bouquets","queryScope":"COLLECTION","fields":[{"fieldPath":"vendorId","order":"ASCENDING"},{"fieldPath":"approvalStatus","order":"ASCENDING"}]},{"collectionGroup":"bouquets","queryScope":"COLLECTION","fields":[{"fieldPath":"approvalStatus","order":"ASCENDING"},{"fieldPath":"occasion","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]}],"fieldOverrides":[]}
+{
+  "indexes": [
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "vendorStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "isOnline", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oms_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vendorId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "occasion", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "approvalStatus", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "approvalStatus", "order": "ASCENDING" },
+        { "fieldPath": "emotionCategoryId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "approvalStatus", "order": "ASCENDING" },
+        { "fieldPath": "emotionCategoryId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "approvalStatus", "order": "ASCENDING" },
+        { "fieldPath": "occasion", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vendorId", "order": "ASCENDING" },
+        { "fieldPath": "approvalStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bouquets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "approvalStatus", "order": "ASCENDING" },
+        { "fieldPath": "occasion", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

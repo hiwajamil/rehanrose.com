@@ -162,6 +162,7 @@ class OmsOrderRepository {
   final FirebaseFirestore _firestore;
 
   static const Duration _timeout = Duration(seconds: 15);
+  static const double _defaultCommissionRate = 0.15;
 
   /// Generates a unique OMS order ID (e.g. ORD-1730000000123).
   String generateOrderId() {
@@ -303,7 +304,85 @@ class OmsOrderRepository {
     required String orderId,
     required OmsOrderStatus status,
   }) async {
+    final orderRef = _firestore.collection(_omsCollection).doc(orderId);
+
+    await _firestore.runTransaction((tx) async {
+      final orderSnap = await tx.get(orderRef);
+      final orderData = orderSnap.data();
+      if (!orderSnap.exists || orderData == null) {
+        throw StateError('OMS order not found: $orderId');
+      }
+
+      final previousStatus = (orderData['status'] ?? '').toString();
+      if (previousStatus == status.value) return;
+
+      final bool wasFinancialsApplied = orderData['financialsApplied'] == true;
+
+      final bool newStatusIsCompletion =
+          status == OmsOrderStatus.ready || status == OmsOrderStatus.delivered;
+      final bool previousStatusWasCompletion =
+          previousStatus == OmsOrderStatus.ready.value ||
+              previousStatus == OmsOrderStatus.delivered.value;
+
+      // Always update status, but only apply financials once on first transition into "ready/delivered".
+      final shouldApplyFinancials =
+          newStatusIsCompletion && !previousStatusWasCompletion && !wasFinancialsApplied;
+
+      if (!shouldApplyFinancials) {
+        tx.update(orderRef, {'status': status.value});
+        return;
+      }
+
+      final vendorId = (orderData['vendorId'] ?? '').toString();
+      final totalPriceRaw = orderData['totalPrice'];
+      final num totalPrice = totalPriceRaw is num ? totalPriceRaw : 0;
+      if (vendorId.isEmpty || totalPrice <= 0) {
+        tx.update(orderRef, {'status': status.value});
+        return;
+      }
+
+      final vendorRef = _firestore.collection('users').doc(vendorId);
+      final vendorSnap = await tx.get(vendorRef);
+      final vendorData = vendorSnap.data();
+
+      final commissionRateRaw = vendorData?['commissionRate'];
+      final double commissionRate = (commissionRateRaw is num &&
+              commissionRateRaw.toDouble() >= 0 &&
+              commissionRateRaw.toDouble() <= 1)
+          ? commissionRateRaw.toDouble()
+          : _defaultCommissionRate;
+
+      final num rehanRoseCut = totalPrice * commissionRate;
+      final num vendorEarning = totalPrice - rehanRoseCut;
+
+      tx.set(
+        vendorRef,
+        {
+          'totalGrossSales': FieldValue.increment(totalPrice),
+          'rehanRoseCommission': FieldValue.increment(rehanRoseCut),
+          'vendorEarnings': FieldValue.increment(vendorEarning),
+          'completedOrders': FieldValue.increment(1),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      tx.update(orderRef, {
+        'status': status.value,
+        'financialsApplied': true,
+        'financialsAppliedAt': FieldValue.serverTimestamp(),
+        'commissionRateApplied': commissionRate,
+        'rehanRoseCut': rehanRoseCut,
+        'vendorEarning': vendorEarning,
+      });
+    }).timeout(_timeout);
+  }
+
+  /// Deletes an OMS order document (admin-only use; intended for pending orders).
+  Future<void> deleteOmsOrder({
+    required String orderId,
+  }) async {
     final ref = _firestore.collection(_omsCollection).doc(orderId);
-    await ref.update({'status': status.value}).timeout(_timeout);
+    await ref.delete().timeout(_timeout);
   }
 }

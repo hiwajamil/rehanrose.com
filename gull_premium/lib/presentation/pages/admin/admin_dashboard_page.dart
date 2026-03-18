@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/env/app_env.dart';
 import '../../../core/constants/breakpoints.dart';
@@ -249,7 +250,14 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           const SizedBox(height: 20),
           PrimaryButton(
             label: l10n.adminSignOut,
-            onPressed: () => ref.read(authRepositoryProvider).signOut(),
+            onPressed: () async {
+              try {
+                await ref.read(authRepositoryProvider).signOut();
+              } finally {
+                await fa.FirebaseAuth.instance.signOut();
+              }
+              if (context.mounted) context.go('/');
+            },
             variant: PrimaryButtonVariant.outline,
           ),
         ],

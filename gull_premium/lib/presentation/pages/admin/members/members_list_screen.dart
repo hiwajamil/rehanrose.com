@@ -8,7 +8,6 @@ import '../../../../controllers/controllers.dart';
 import '../../../../data/models/customer_member_model.dart';
 import '../../../../data/models/order_model.dart';
 import '../../../widgets/common/app_cached_image.dart';
-import '../../../widgets/common/primary_button.dart';
 
 /// Super Admin CRM: list of all registered customers (role == 'customer').
 /// Uses cursor-based pagination (20 per page) with infinite scroll.
@@ -94,7 +93,7 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
                             subtitle: 'Registered customers will appear here.',
                           ),
                         )
-                      : _MembersDataTable(
+                      : _MembersPremiumCards(
                           members: state.list,
                           scrollController: _scrollController,
                           hasMore: state.hasMore,
@@ -229,9 +228,9 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
   }
 }
 
-/// Premium CRM data table: Name, Email, Phone, Join Date, Actions.
-class _MembersDataTable extends StatelessWidget {
-  const _MembersDataTable({
+/// Premium CRM cards: responsive grid (desktop) / list (mobile).
+class _MembersPremiumCards extends StatelessWidget {
+  const _MembersPremiumCards({
     required this.members,
     required this.scrollController,
     required this.hasMore,
@@ -247,23 +246,60 @@ class _MembersDataTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      controller: scrollController,
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final bool useGrid = width >= 900;
+        final int crossAxisCount = useGrid ? (width >= 1200 ? 3 : 2) : 1;
+
+        final itemCount = members.length + ((hasMore && isLoadingMore) ? 1 : 0);
+
+        if (!useGrid) {
+          return ListView.builder(
+            controller: scrollController,
             padding: const EdgeInsets.only(bottom: 32),
-            child: _MembersTableContent(
-            members: members,
-              onOrderHistory: onOrderHistory,
-            ),
+            itemCount: itemCount,
+            itemBuilder: (context, index) {
+              if (index >= members.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.rosePrimary,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              final member = members[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _MemberPremiumCard(
+                  member: member,
+                  onOrderHistory: () => onOrderHistory(member),
+                ),
+              );
+            },
+          );
+        }
+
+        return GridView.builder(
+          controller: scrollController,
+          padding: const EdgeInsets.only(bottom: 32),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            mainAxisExtent: 220,
           ),
-        ),
-        if (hasMore && isLoadingMore)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
+          itemCount: itemCount,
+          itemBuilder: (context, index) {
+            if (index >= members.length) {
+              return const Center(
                 child: SizedBox(
                   width: 28,
                   height: 28,
@@ -272,93 +308,235 @@ class _MembersDataTable extends StatelessWidget {
                     color: AppColors.rosePrimary,
                   ),
                 ),
-              ),
-            ),
-          ),
-      ],
+              );
+            }
+            final member = members[index];
+            return _MemberPremiumCard(
+              member: member,
+              onOrderHistory: () => onOrderHistory(member),
+            );
+          },
+        );
+      },
     );
   }
 }
 
-class _MembersTableContent extends StatelessWidget {
-  const _MembersTableContent({
-    required this.members,
+class _MemberPremiumCard extends StatelessWidget {
+  const _MemberPremiumCard({
+    required this.member,
     required this.onOrderHistory,
   });
 
-  final List<CustomerMemberModel> members;
-  final void Function(CustomerMemberModel member) onOrderHistory;
+  final CustomerMemberModel member;
+  final VoidCallback onOrderHistory;
+
+  static String _initials(String fullName) {
+    final parts = fullName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.trim().isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    String takeFirstChar(String s) => s.isNotEmpty ? s.substring(0, 1) : '';
+    final a = takeFirstChar(parts.first).toUpperCase();
+    final b = parts.length > 1 ? takeFirstChar(parts.last).toUpperCase() : '';
+    return (a + b).trim();
+  }
+
+  static Color _avatarBg(String seed) {
+    // Soft luxury palette; deterministic per user.
+    const colors = [
+      Color(0xFFF4E7EC), // blush
+      Color(0xFFE8EEF6), // mist blue
+      Color(0xFFEAF4EF), // mint
+      Color(0xFFF6F1E7), // champagne
+      Color(0xFFEFEAF7), // lavender
+    ];
+    final hash = seed.codeUnits.fold<int>(0, (a, b) => (a * 31 + b) & 0x7fffffff);
+    return colors[hash % colors.length];
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    final name = member.fullName.trim().isNotEmpty ? member.fullName.trim() : 'No Name';
+    final emailRaw = member.email.trim();
+    final phoneRaw = member.phone.trim();
+
+    final email = (emailRaw.isEmpty ||
+            emailRaw.toLowerCase() == 'no email' ||
+            !emailRaw.contains('@'))
+        ? 'No Email Provided'
+        : emailRaw;
+
+    final phone = (phoneRaw.isEmpty ||
+            phoneRaw.toLowerCase() == 'n/a' ||
+            phoneRaw.toLowerCase() == 'na')
+        ? 'No Phone Provided'
+        : phoneRaw;
+
+    final joined = member.createdAt != null
+        ? 'Registered: ${DateFormat('MMM d, y').format(member.createdAt!)}'
+        : 'Registered: —';
+
+    final avatarBg = _avatarBg(member.uid);
+    final avatarFg = AppColors.inkCharcoal.withValues(alpha: 0.85);
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: AppColors.border.withValues(alpha: 0.9)),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(
-            AppColors.forestGreen.withValues(alpha: 0.08),
-          ),
-          headingTextStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.forestGreen,
-                letterSpacing: 0.3,
-              ),
-          dataRowMinHeight: 56,
-          dataRowMaxHeight: 72,
-          dataTextStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.ink,
-              ),
-          border: TableBorder.symmetric(
-            inside: BorderSide(color: AppColors.border.withValues(alpha: 0.8)),
-          ),
-          columnSpacing: 24,
-          horizontalMargin: 20,
-          columns: const [
-            DataColumn(label: Text('Name')),
-            DataColumn(label: Text('Email')),
-            DataColumn(label: Text('Phone Number')),
-            DataColumn(label: Text('Join Date')),
-            DataColumn(label: Text('Actions')),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
           ],
-          rows: members.map((member) {
-            final joinDateStr = member.createdAt != null
-                ? DateFormat('MMM d, y').format(member.createdAt!)
-                : '—';
-            return DataRow(
-              key: ValueKey(member.uid),
-              cells: [
-                DataCell(Text(member.fullName)),
-                DataCell(Text(member.email)),
-                DataCell(Text(member.phone)),
-                DataCell(Text(joinDateStr)),
-                DataCell(
-                  PrimaryButton(
-                    label: 'Order History',
-                    onPressed: () => onOrderHistory(member),
-                    variant: PrimaryButtonVariant.outline,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+                leading: CircleAvatar(
+                  radius: 22,
+                  backgroundColor: avatarBg,
+                  child: Text(
+                    _initials(name),
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6,
+                          color: avatarFg,
+                        ),
                   ),
                 ),
-              ],
-            );
-          }).toList(),
+                title: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
+                ),
+                subtitle: Text(
+                  email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.inkMuted,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F7F8),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border.withValues(alpha: 0.75)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.phone_outlined, size: 18, color: AppColors.inkMuted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            phone,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.ink,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_month_outlined, size: 18, color: AppColors.inkMuted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            joined,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.inkMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  PopupMenuButton<_MemberManageAction>(
+                    tooltip: 'Manage',
+                    onSelected: (value) {
+                      switch (value) {
+                        case _MemberManageAction.orderHistory:
+                          onOrderHistory();
+                        case _MemberManageAction.comingSoon:
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('More member tools coming soon.')),
+                          );
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: _MemberManageAction.orderHistory,
+                        child: Text('Order History'),
+                      ),
+                      PopupMenuItem(
+                        value: _MemberManageAction.comingSoon,
+                        child: Text('Coming Soon'),
+                      ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      child: Text(
+                        'Manage',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: AppColors.rosePrimary,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                            ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+enum _MemberManageAction { orderHistory, comingSoon }
 
 /// One row in the Order History bottom sheet: thumbnail, name/code, date, status.
 class _OrderHistoryTile extends StatelessWidget {

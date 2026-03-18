@@ -91,7 +91,9 @@ WhatsAppOrderExtract parseWhatsAppOrderMessage(String raw) {
   if (linkLine.isNotEmpty) {
     if (voiceMessageLink.isEmpty) {
       voiceMessageLink = linkLine;
-    } else if (deliveryLocationLink.isEmpty) deliveryLocationLink = linkLine;
+    } else if (deliveryLocationLink.isEmpty) {
+      deliveryLocationLink = linkLine;
+    }
   }
 
   return WhatsAppOrderExtract(

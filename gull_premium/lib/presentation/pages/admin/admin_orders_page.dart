@@ -949,7 +949,7 @@ class _AdminPillTabBar extends StatelessWidget {
       child: TabBar(
         controller: controller,
         isScrollable: true,
-        tabAlignment: TabAlignment.start,
+        tabAlignment: TabAlignment.center,
         indicator: BoxDecoration(
           color: AppColors.rosePrimary.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(10),
@@ -960,8 +960,8 @@ class _AdminPillTabBar extends StatelessWidget {
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
-        labelColor: AppColors.rosePrimary,
-        unselectedLabelColor: AppColors.inkMuted,
+        labelColor: AppColors.ink,
+        unselectedLabelColor: Colors.grey.shade500,
         labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -990,6 +990,59 @@ class _AdminOrderListByStatus extends ConsumerStatefulWidget {
 }
 
 class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus> {
+  int _crossAxisCountForWidth(double width) {
+    if (width > 1100) return 3;
+    if (width > 700) return 2;
+    return 1;
+  }
+
+  double _mainAxisExtentForWidth(double width) {
+    // Keep cards visually consistent in a grid and avoid overflow on narrower widths.
+    if (width > 1100) return 300;
+    if (width > 700) return 320;
+    return 340;
+  }
+
+  Future<void> _confirmAndDeletePendingOrder(OmsOrderModel order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Order?'),
+        content: const Text(
+          'Are you sure you want to delete this pending order? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('No, Keep it'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Yes, Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(omsOrderRepositoryProvider).deleteOmsOrder(orderId: order.orderId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order deleted successfully')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete order')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(omsOrdersForAdminStreamProvider);
@@ -1087,14 +1140,32 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
             ),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 24),
-          itemCount: orders.length,
-          itemBuilder: (context, index) {
-            return OmsOrderCard(
-              order: orders[index],
-              showVendorLine: true,
-              showOrderIdInSubtitle: true,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final crossAxisCount = _crossAxisCountForWidth(width);
+            final mainAxisExtent = _mainAxisExtentForWidth(width);
+
+            return GridView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              itemCount: orders.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                mainAxisExtent: mainAxisExtent,
+              ),
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                return OmsOrderCard(
+                  order: order,
+                  showVendorLine: true,
+                  showOrderIdInSubtitle: true,
+                  onDelete: widget.status == OmsOrderStatus.pending
+                      ? () => _confirmAndDeletePendingOrder(order)
+                      : null,
+                );
+              },
             );
           },
         );

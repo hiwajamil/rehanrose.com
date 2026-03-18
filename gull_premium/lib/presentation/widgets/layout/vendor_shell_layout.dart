@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fa;
 
 import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
@@ -104,6 +105,8 @@ class VendorShellLayout extends ConsumerWidget {
         try {
           await ref.read(authRepositoryProvider).signOut();
         } finally {
+          // Ensure Firebase session is cleared even if repo signOut had partial failure.
+          await fa.FirebaseAuth.instance.signOut();
           if (context.mounted) context.go('/');
         }
       },
@@ -147,6 +150,8 @@ class _HeaderInAppBar extends StatelessWidget {
           try {
             await ref.read(authRepositoryProvider).signOut();
           } finally {
+            // Ensure Firebase session is cleared even if repo signOut had partial failure.
+            await fa.FirebaseAuth.instance.signOut();
             if (context.mounted) context.go('/');
           }
         },

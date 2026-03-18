@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,10 @@ import '../../presentation/pages/admin/admin_orders_page.dart';
 import '../../presentation/pages/admin/manage_add_ons_landing_page.dart';
 import '../../presentation/pages/admin/members/members_list_screen.dart';
 import '../../presentation/pages/admin/admin_vendors_management_page.dart';
+import '../../presentation/pages/admin/drivers_management_screen.dart';
+import '../../presentation/pages/driver/driver_application_screen.dart';
+import '../../presentation/pages/driver/driver_dashboard_screen.dart';
+import '../../presentation/pages/driver/waiting_for_driver_approval_screen.dart';
 import '../../presentation/pages/product/order_customization_page.dart';
 import '../../presentation/pages/product/product_detail_page.dart';
 import '../../presentation/pages/product/product_listing_page.dart';
@@ -68,6 +73,17 @@ class AppRouter {
             ) ??
             fa.FirebaseAuth.instance.currentUser;
 
+        // Vendor routes should never be accessible when signed out. This also
+        // blocks browser back-navigation into vendor URLs after sign-out.
+        if (location.startsWith('/vendor') && user == null) {
+          return '/';
+        }
+
+        // Generic dashboard resolver requires auth; if signed out, go home.
+        if (location == '/dashboard' && user == null) {
+          return '/';
+        }
+
         // Admin routes: allow unauthenticated access so /admin shows its own admin
         // sign-in form; only allow access if user has admin role or is in admins list.
         if (location.startsWith('/admin')) {
@@ -91,6 +107,39 @@ class AppRouter {
             if (await authRepo.isAdmin(user.uid)) {
               return '/admin';
             }
+          }
+        }
+        // Driver onboarding: dashboard only for approved drivers; application & waiting gated.
+        if (location.startsWith('/driver')) {
+          if (user == null) return '/login';
+          final doc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+          final d = doc.data() ?? {};
+          final role = d['role']?.toString() ?? '';
+          final appStatus = d['applicationStatus']?.toString() ?? '';
+          final isApprovedDriver = role == 'driver' &&
+              (appStatus == 'approved' || appStatus.isEmpty);
+
+          if (location == '/driver' || location == '/driver/') {
+            if (isApprovedDriver) return null;
+            if (appStatus == 'pending_driver') return '/driver/waiting';
+            return '/driver/application';
+          }
+          if (location.startsWith('/driver/waiting')) {
+            if (isApprovedDriver) return '/driver';
+            if (appStatus != 'pending_driver') {
+              if (appStatus == 'rejected' || appStatus.isEmpty) {
+                return '/driver/application';
+              }
+            }
+            return null;
+          }
+          if (location.startsWith('/driver/application')) {
+            if (isApprovedDriver) return '/driver';
+            if (appStatus == 'pending_driver') return '/driver/waiting';
+            return null;
           }
         }
         return null;
@@ -122,6 +171,18 @@ class AppRouter {
       GoRoute(
         path: '/account',
         builder: (context, state) => const AccountPage(),
+      ),
+      GoRoute(
+        path: '/driver',
+        builder: (context, state) => const DriverDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/driver/application',
+        builder: (context, state) => const DriverApplicationScreen(),
+      ),
+      GoRoute(
+        path: '/driver/waiting',
+        builder: (context, state) => const WaitingForDriverApprovalScreen(),
       ),
       GoRoute(
         path: '/orders',
@@ -285,6 +346,10 @@ class AppRouter {
               GoRoute(
                 path: 'vendors',
                 builder: (_, __) => const AdminVendorsManagementPage(),
+              ),
+              GoRoute(
+                path: 'drivers',
+                builder: (_, __) => const DriversManagementScreen(),
               ),
             ],
           ),

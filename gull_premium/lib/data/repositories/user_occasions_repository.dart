@@ -31,6 +31,18 @@ class UserOccasionsRepository {
     return ref.id;
   }
 
+  /// Update an existing occasion by id.
+  Future<void> updateOccasion(
+    String uid,
+    String occasionId, {
+    required String name,
+    required DateTime date,
+  }) async {
+    await _occasionsRef(uid).doc(occasionId).update(
+          UserOccasionModel(id: occasionId, name: name, date: date).toFirestore(),
+        );
+  }
+
   /// Delete an occasion by id.
   Future<void> deleteOccasion(String uid, String occasionId) async {
     await _occasionsRef(uid).doc(occasionId).delete();

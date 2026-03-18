@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../controllers/controllers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/user_occasion_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/app_scaffold.dart';
 
@@ -40,7 +42,13 @@ class AccountPage extends ConsumerWidget {
                 : (user.email ?? l10n.appTitle),
             fallbackEmail: user.email ?? '',
             fallbackPhotoUrl: user.photoURL,
-            onSignOut: () async => ref.read(authRepositoryProvider).signOut(),
+            onSignOut: () async {
+              try {
+                await ref.read(authRepositoryProvider).signOut();
+              } finally {
+                await fa.FirebaseAuth.instance.signOut();
+              }
+            },
           );
         },
         loading: () => const _ProfileLoadingShimmer(),
@@ -269,17 +277,109 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _AddOccasionSheet(
+        titleText: l10n.profileAddOccasion,
+        submitText: 'Save',
+        successText: 'Occasion saved.',
         onSave: (name, date) async {
           await ref.read(userOccasionsRepositoryProvider).addOccasion(
                 widget.uid,
                 name: name,
                 date: date,
               );
-          if (ctx.mounted) Navigator.of(ctx).pop();
         },
         l10n: l10n,
       ),
     );
+  }
+
+  void _showEditOccasionModal(UserOccasionModel occasion) {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AddOccasionSheet(
+        titleText: 'Edit occasion',
+        submitText: 'Update',
+        successText: 'Occasion updated.',
+        initialName: occasion.name,
+        initialDate: occasion.date,
+        onSave: (name, date) async {
+          await ref.read(userOccasionsRepositoryProvider).updateOccasion(
+                widget.uid,
+                occasion.id,
+                name: name,
+                date: date,
+              );
+        },
+        l10n: l10n,
+      ),
+    );
+  }
+
+  Future<void> _confirmAndDeleteOccasion(UserOccasionModel occasion) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Text(
+            'Delete Occasion?',
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.inkCharcoal,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to remove this occasion?',
+            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red.shade400,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref
+          .read(userOccasionsRepositoryProvider)
+          .deleteOccasion(widget.uid, occasion.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Occasion removed.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not delete: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _showComingSoon() {
@@ -583,6 +683,8 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
                               child: _OccasionChip(
                                 name: o.name,
                                 date: o.date,
+                                onEdit: () => _showEditOccasionModal(o),
+                                onDelete: () => _confirmAndDeleteOccasion(o),
                               ),
                             ),
                           ),
@@ -827,10 +929,17 @@ class _DividerIndent extends StatelessWidget {
 }
 
 class _OccasionChip extends StatelessWidget {
-  const _OccasionChip({required this.name, required this.date});
+  const _OccasionChip({
+    required this.name,
+    required this.date,
+    this.onEdit,
+    this.onDelete,
+  });
 
   final String name;
   final DateTime date;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -862,6 +971,29 @@ class _OccasionChip extends StatelessWidget {
               color: AppColors.inkMuted,
             ),
           ),
+          const SizedBox(width: 6),
+          if (onEdit != null)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Edit',
+              onPressed: onEdit,
+              icon: Icon(
+                Icons.edit_rounded,
+                size: 18,
+                color: AppColors.inkMuted,
+              ),
+            ),
+          if (onDelete != null)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Delete',
+              onPressed: onDelete,
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                size: 19,
+                color: Colors.red.shade400,
+              ),
+            ),
         ],
       ),
     );
@@ -914,12 +1046,22 @@ class _SettingsTile extends StatelessWidget {
 /// Modal bottom sheet to add an occasion (name + date). Saves to Firestore via [onSave].
 class _AddOccasionSheet extends StatefulWidget {
   const _AddOccasionSheet({
+    required this.titleText,
+    required this.submitText,
+    required this.successText,
     required this.onSave,
     required this.l10n,
+    this.initialName,
+    this.initialDate,
   });
 
+  final String titleText;
+  final String submitText;
+  final String successText;
   final Future<void> Function(String name, DateTime date) onSave;
   final AppLocalizations l10n;
+  final String? initialName;
+  final DateTime? initialDate;
 
   @override
   State<_AddOccasionSheet> createState() => _AddOccasionSheetState();
@@ -931,6 +1073,18 @@ class _AddOccasionSheetState extends State<_AddOccasionSheet> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    final initialName = widget.initialName?.trim();
+    if (initialName != null && initialName.isNotEmpty) {
+      _nameController.text = initialName;
+    }
+    if (widget.initialDate != null) {
+      _selectedDate = widget.initialDate!;
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
@@ -940,8 +1094,8 @@ class _AddOccasionSheetState extends State<_AddOccasionSheet> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -973,11 +1127,12 @@ class _AddOccasionSheetState extends State<_AddOccasionSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Occasion saved.'),
+          content: Text(widget.successText),
           backgroundColor: AppColors.forestGreen,
           behavior: SnackBarBehavior.floating,
         ),
       );
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1010,7 +1165,7 @@ class _AddOccasionSheetState extends State<_AddOccasionSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            widget.l10n.profileAddOccasion,
+            widget.titleText,
             style: GoogleFonts.playfairDisplay(
               fontSize: 22,
               fontWeight: FontWeight.w600,
@@ -1106,7 +1261,7 @@ class _AddOccasionSheetState extends State<_AddOccasionSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Save'),
+                      : Text(widget.submitText),
                 ),
               ),
             ],

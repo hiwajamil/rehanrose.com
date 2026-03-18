@@ -27,8 +27,10 @@ import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/widgets/common/connectivity_banner.dart';
 import 'presentation/widgets/common/splash_screen.dart';
+import 'presentation/pages/admin/admin_vendors_management_page.dart';
 
 const String _localePrefKey = 'app_locale';
+const bool _debugOnlyShowVendorsManagementPage = true;
 
 /// Localization delegates with Kurdish (ku) fallbacks so Material/Cupertino
 /// widgets work when [GlobalMaterialLocalizations] / [GlobalCupertinoLocalizations]
@@ -67,8 +69,7 @@ Future<void> main() async {
                   const SizedBox(height: 16),
                   Text(
                     'Something went wrong',
-                    style: TextStyle(
-                      fontFamily: 'Rudaw',
+                    style: GoogleFonts.montserrat(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.grey[800],
@@ -79,8 +80,7 @@ Future<void> main() async {
                     showDetails
                         ? details.exceptionAsString()
                         : 'Please refresh the page or try again later.',
-                    style: TextStyle(
-                      fontFamily: 'Rudaw',
+                    style: GoogleFonts.montserrat(
                       fontSize: 12,
                       color: Colors.grey[700],
                     ),
@@ -199,38 +199,42 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
     });
     final locale = ref.watch(localeProvider);
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final baseTheme = isMobile
-        ? AppTheme.lightMobile(locale)
-        : AppTheme.light(locale);
-    // Hybrid Font System: Rudaw (Kurdish) default; Playfair Display (headers); Montserrat (body/prices + all input fields).
-    final montserratBody = GoogleFonts.montserrat(fontSize: 14);
-    final theme = baseTheme.copyWith(
-      textTheme: baseTheme.textTheme.apply(fontFamily: 'Rudaw').copyWith(
-        // Large Titles (Flower Names) -> Playfair Display (Luxury look)
-        displayLarge: GoogleFonts.playfairDisplay(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-        // Prices & Details -> Montserrat (Clean look)
-        bodyMedium: montserratBody,
-        // Input field typed text -> Montserrat (all blank filling)
-        bodyLarge: GoogleFonts.montserrat(fontSize: 16),
-      ),
-      // All input decoration text (labels, hints, errors) -> Montserrat
-      inputDecorationTheme: InputDecorationTheme(
-        labelStyle: GoogleFonts.montserrat(fontSize: 16),
-        hintStyle: GoogleFonts.montserrat(fontSize: 16, color: Colors.grey),
-        errorStyle: GoogleFonts.montserrat(fontSize: 12),
-        floatingLabelStyle: GoogleFonts.montserrat(fontSize: 16),
-        prefixStyle: GoogleFonts.montserrat(fontSize: 16),
-        suffixStyle: GoogleFonts.montserrat(fontSize: 16),
-        counterStyle: GoogleFonts.montserrat(fontSize: 12),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        filled: true,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    final theme = isMobile ? AppTheme.lightMobile(locale) : AppTheme.light(locale);
     final direction = textDirectionForLocale(locale);
+
+    if (kDebugMode && _debugOnlyShowVendorsManagementPage) {
+      return SeoController(
+        enabled: true,
+        tree: WidgetTree(context: context),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: _localizationsDelegates,
+          theme: theme,
+          builder: (context, child) => Directionality(
+            textDirection: direction,
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                child!,
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ConnectivityBanner(),
+                ),
+              ],
+            ),
+          ),
+          home: const Scaffold(
+            body: SafeArea(
+              child: AdminVendorsManagementPage(),
+            ),
+          ),
+        ),
+      );
+    }
 
     if (!_splashComplete) {
       return SeoController(

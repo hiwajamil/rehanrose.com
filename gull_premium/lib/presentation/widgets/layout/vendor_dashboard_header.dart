@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
@@ -39,11 +43,34 @@ class VendorDashboardHeader extends StatefulWidget {
 class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
   bool _isOnline = false;
   bool _searchExpanded = false;
+  bool _isUpdatingOnline = false;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _userDocSub;
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    _userDocSub = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .listen((doc) {
+      if (!mounted || _isUpdatingOnline) return;
+      final data = doc.data();
+      final bool online =
+          (data != null && data.containsKey('isOnline')) ? data['isOnline'] == true : false;
+      if (online != _isOnline) {
+        setState(() => _isOnline = online);
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _userDocSub?.cancel();
     _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
@@ -85,18 +112,42 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
                 Container(
                   height: 56,
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                  child: Row(
-                    children: [
-                      if (widget.leading != null) widget.leading!,
-                      _buildBrand(context),
-                      if (!isMobile) Expanded(child: _buildCenterSearch(context)),
-                      const Spacer(),
-                      if (isMobile) _buildMobileSearchTrigger(context),
-                      if (!isMobile) _buildStatusToggle(context),
-                      _buildNotificationBell(context),
-                      _buildUserMenu(context, isMobile),
-                    ],
-                  ),
+                  child: isMobile
+                      ? Row(
+                          children: [
+                            if (widget.leading != null) widget.leading!,
+                            _buildBrand(context),
+                            const Spacer(),
+                            _buildMobileSearchTrigger(context),
+                            _buildNotificationBell(context),
+                            _buildUserMenu(context, isMobile),
+                          ],
+                        )
+                      : Stack(
+                          children: [
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                children: [
+                                  if (widget.leading != null) widget.leading!,
+                                  _buildBrand(context),
+                                ],
+                              ),
+                            ),
+                            Center(child: _buildCenterSearch(context)),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildStatusToggle(context),
+                                  _buildNotificationBell(context),
+                                  _buildUserMenu(context, isMobile),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
                 if (isMobile && _searchExpanded) _buildMobileSearchBar(context),
               ],
@@ -279,10 +330,43 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: () {
-              setState(() => _isOnline = !_isOnline);
-              widget.onShopStatusChanged?.call(_isOnline);
-            },
+            onTap: _isUpdatingOnline
+                ? null
+                : () async {
+                    final newValue = !_isOnline;
+                    final previous = _isOnline;
+                    setState(() {
+                      _isOnline = newValue;
+                      _isUpdatingOnline = true;
+                    });
+                    widget.onShopStatusChanged?.call(newValue);
+
+                    try {
+                      final currentUser = FirebaseAuth.instance.currentUser;
+                      if (currentUser == null) {
+                        throw StateError('User not signed in');
+                      }
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(currentUser.uid)
+                          .update({'isOnline': newValue});
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      setState(() => _isOnline = previous);
+                      widget.onShopStatusChanged?.call(previous);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            AppLocalizations.of(context)!.somethingWentWrong,
+                          ),
+                        ),
+                      );
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isUpdatingOnline = false);
+                      }
+                    }
+                  },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 44,

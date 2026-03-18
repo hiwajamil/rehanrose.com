@@ -81,6 +81,19 @@ class AuthRepository {
   /// [role: 'customer'] (only if the user doc does not already exist).
   /// Throws on failure (e.g. [fa.FirebaseAuthException], sign-in cancelled).
   Future<fa.UserCredential> signInWithGoogle() async {
+    if (kIsWeb) {
+      final provider = fa.GoogleAuthProvider()
+        ..addScope('email')
+        ..addScope('profile')
+        ..setCustomParameters({'prompt': 'select_account'});
+      final userCredential = await _auth.signInWithPopup(provider);
+      final user = userCredential.user;
+      if (user != null) {
+        await ensureCustomerUserDocIfNeeded(user);
+      }
+      return userCredential;
+    }
+
     await _googleSignIn.signOut();
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {

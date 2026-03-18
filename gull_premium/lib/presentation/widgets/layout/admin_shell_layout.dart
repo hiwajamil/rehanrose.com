@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -36,7 +37,15 @@ class AdminShellLayout extends ConsumerWidget {
             if (!isAdmin) return Scaffold(body: child);
             return _ResponsiveAdminShell(
               currentPath: GoRouterState.of(context).uri.path,
-              onSignOut: () => ref.read(authRepositoryProvider).signOut(),
+              onSignOut: () async {
+                try {
+                  await ref.read(authRepositoryProvider).signOut();
+                } finally {
+                  // Ensure Firebase session is cleared even if repo signOut had partial failure.
+                  await fa.FirebaseAuth.instance.signOut();
+                }
+                if (context.mounted) context.go('/');
+              },
               child: child,
             );
           },
@@ -55,7 +64,7 @@ class _ResponsiveAdminShell extends StatefulWidget {
   });
 
   final String currentPath;
-  final VoidCallback onSignOut;
+  final Future<void> Function() onSignOut;
   final Widget child;
 
   @override
@@ -164,7 +173,7 @@ class _AdminSidebarContent extends StatelessWidget {
   });
 
   final String currentPath;
-  final VoidCallback onSignOut;
+  final Future<void> Function() onSignOut;
   /// Called after navigation (e.g. to close drawer). Null when used as permanent sidebar.
   final VoidCallback? onNavigate;
   /// When non-null, wrap in a fixed-width container for permanent sidebar.
@@ -293,6 +302,16 @@ class _AdminSidebarContent extends StatelessWidget {
                   onNavigate?.call();
                 },
               ),
+              _NavTile(
+                icon: Icons.local_shipping_outlined,
+                selectedIcon: Icons.local_shipping_rounded,
+                label: 'Delivery Fleet',
+                selected: _isSelected('/admin/drivers'),
+                onTap: () {
+                  context.push('/admin/drivers');
+                  onNavigate?.call();
+                },
+              ),
             ],
           ),
         ),
@@ -314,8 +333,8 @@ class _AdminSidebarContent extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            onTap: () {
-              onSignOut();
+            onTap: () async {
+              await onSignOut();
               onNavigate?.call();
             },
           ),

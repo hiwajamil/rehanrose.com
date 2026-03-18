@@ -1,6 +1,8 @@
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -868,6 +870,8 @@ class _MobileNavDrawer extends ConsumerWidget {
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(height: 12),
+                                  _buildJoinDeliveryFleetTile(context),
                                 ],
                               );
                             }
@@ -930,6 +934,8 @@ class _MobileNavDrawer extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
+                                const SizedBox(height: 12),
+                                _buildJoinDeliveryFleetTile(context),
                               ],
                             );
                           },
@@ -945,6 +951,122 @@ class _MobileNavDrawer extends ConsumerWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJoinDeliveryFleetTile(BuildContext context) {
+    const title = 'Drive with Rehan Rose';
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.5),
+            width: 1.2,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ListTile(
+          dense: true,
+          minVerticalPadding: 0,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+          leading: Icon(
+            Icons.local_shipping_outlined,
+            size: 22,
+            color: AppColors.rosePrimary,
+          ),
+          title: Text(
+            title,
+            style: GoogleFonts.montserrat(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              letterSpacing: 0.1,
+            ),
+          ),
+          onTap: () async {
+            final firebaseUser = fa.FirebaseAuth.instance.currentUser;
+
+            if (firebaseUser == null) {
+              onNavigate();
+              await showDialog<void>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  backgroundColor: AppColors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  title: Text(
+                    'Driver Sign-Up',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.inkCharcoal,
+                    ),
+                  ),
+                  content: Text(
+                    'Please log in or sign up first to apply as a driver',
+                    style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.inkMuted,
+                        ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        if (context.mounted) showLoginModalOrPush(context);
+                      },
+                      child: Text(
+                        'Log in',
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.rosePrimary,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
+              );
+              return;
+            }
+
+            final uid = firebaseUser.uid;
+            final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+            final data = userDoc.data();
+            final role = data?['role']?.toString().toLowerCase() ?? '';
+            final applicationStatus =
+                data?['applicationStatus']?.toString().toLowerCase() ?? '';
+
+            if (role == 'driver') {
+              if (context.mounted) context.go('/driver');
+              onNavigate();
+              return;
+            }
+
+            if (role == 'user' && applicationStatus == 'pending_driver') {
+              if (context.mounted) context.go('/driver/waiting');
+              onNavigate();
+              return;
+            }
+
+            // Fallback: if the app is already pending but role is missing/variant,
+            // still route to the waiting screen.
+            if (applicationStatus == 'pending_driver') {
+              if (context.mounted) context.go('/driver/waiting');
+              onNavigate();
+              return;
+            }
+
+            if (context.mounted) context.go('/driver/application');
+            onNavigate();
+          },
         ),
       ),
     );
@@ -998,6 +1120,8 @@ class _MobileNavDrawer extends ConsumerWidget {
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
         ),
+        const SizedBox(height: 12),
+        _buildJoinDeliveryFleetTile(context),
       ],
     );
   }

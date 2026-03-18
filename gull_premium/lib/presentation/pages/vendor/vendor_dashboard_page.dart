@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
@@ -195,7 +196,14 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
             ),
             const SizedBox(height: 24),
             TextButton(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+              onPressed: () async {
+                try {
+                  await ref.read(authRepositoryProvider).signOut();
+                } finally {
+                  await fa.FirebaseAuth.instance.signOut();
+                }
+                if (context.mounted) context.go('/');
+              },
               child: Text(l10n.vendorBackToSignIn),
             ),
           ],

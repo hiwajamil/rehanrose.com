@@ -154,6 +154,7 @@ class OmsOrderCard extends StatelessWidget {
   final int? preparedCount;
   final VoidCallback? onAccept;
   final VoidCallback? onReady;
+  final Future<void> Function()? onDelete;
 
   const OmsOrderCard({
     super.key,
@@ -163,6 +164,7 @@ class OmsOrderCard extends StatelessWidget {
     this.preparedCount,
     this.onAccept,
     this.onReady,
+    this.onDelete,
   });
 
   String _priceString(BuildContext context) {
@@ -351,6 +353,7 @@ class OmsOrderCard extends StatelessWidget {
         : '#${order.bouquetCode}';
     final hasImage = order.bouquetImageUrl != null && order.bouquetImageUrl!.isNotEmpty;
     final showPreparedCount = preparedCount != null && preparedCount! > 0;
+    final canDelete = onDelete != null;
     final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
     final padding = isMobile ? 16.0 : 20.0;
 
@@ -408,6 +411,17 @@ class OmsOrderCard extends StatelessWidget {
                                     ),
                               ),
                             ),
+                            if (canDelete)
+                              IconButton(
+                                onPressed: () async => await onDelete!(),
+                                tooltip: 'Delete',
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red.shade300,
+                                ),
+                                splashRadius: 18,
+                                visualDensity: VisualDensity.compact,
+                              ),
                             if (showPreparedCount)
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
