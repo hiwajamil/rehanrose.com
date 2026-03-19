@@ -737,7 +737,169 @@ class _RegisteredDriversTab extends StatelessWidget {
                                                       'Acknowledge',
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 6),
+                                                  const SizedBox(height: 10),
+                                                  OutlinedButton.icon(
+                                                    onPressed: () async {
+                                                      final shouldDelete =
+                                                          await showDialog<
+                                                              bool>(
+                                                        context: sheetContext,
+                                                        builder:
+                                                            (confirmContext) {
+                                                          return AlertDialog(
+                                                            title: const Text(
+                                                              'Delete driver?',
+                                                            ),
+                                                            content:
+                                                                const Text(
+                                                              'This will permanently remove the driver account.',
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                            confirmContext)
+                                                                        .pop(
+                                                                            false),
+                                                                child: const Text(
+                                                                  'Cancel',
+                                                                ),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                            confirmContext)
+                                                                        .pop(
+                                                                            true),
+                                                                child: const Text(
+                                                                  'Delete',
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          );
+                                                        },
+                                                      );
+
+                                                      if (shouldDelete != true) {
+                                                        return;
+                                                      }
+
+                                                      // After async work, ensure captured contexts are still mounted.
+                                                      if (!sheetContext.mounted ||
+                                                          !context.mounted) {
+                                                        return;
+                                                      }
+
+                                                      // Close the bottom sheet first.
+                                                      Navigator.of(sheetContext).pop();
+
+                                                      // Show a small blocking progress dialog.
+                                                      final progressDialog =
+                                                          showDialog<void>(
+                                                        context: context,
+                                                        barrierDismissible: false,
+                                                        builder: (_) {
+                                                          return const AlertDialog(
+                                                            content: Row(
+                                                              mainAxisSize:
+                                                                  MainAxisSize.min,
+                                                              children: [
+                                                                SizedBox(
+                                                                  width: 22,
+                                                                  height: 22,
+                                                                  child:
+                                                                      CircularProgressIndicator(
+                                                                    strokeWidth: 2,
+                                                                  ),
+                                                                ),
+                                                                SizedBox(width: 12),
+                                                                Text('Deleting...'),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        },
+                                                      );
+
+                                                      try {
+                                                        await FirebaseFirestore
+                                                            .instance
+                                                            .collection('users')
+                                                            .doc(doc.id)
+                                                            .delete();
+
+                                                        if (context
+                                                            .mounted) {
+                                                          ScaffoldMessenger.of(
+                                                                  context)
+                                                              .showSnackBar(
+                                                            const SnackBar(
+                                                              content:
+                                                                  Text(
+                                                                'Driver deleted.',
+                                                              ),
+                                                              backgroundColor:
+                                                                  AppColors
+                                                                      .forestGreen,
+                                                            ),
+                                                          );
+                                                        }
+                                                      } catch (_) {
+                                                        if (context
+                                                            .mounted) {
+                                                          ScaffoldMessenger.of(
+                                                                  context)
+                                                              .showSnackBar(
+                                                            SnackBar(
+                                                              content:
+                                                                  const Text(
+                                                                'Could not delete driver. Try again.',
+                                                              ),
+                                                              backgroundColor:
+                                                                  AppColors
+                                                                      .rosePrimary,
+                                                            ),
+                                                          );
+                                                        }
+                                                      } finally {
+                                                        if (context
+                                                            .mounted) {
+                                                          Navigator.of(
+                                                                  context)
+                                                              .pop();
+                                                        }
+                                                        await progressDialog;
+                                                      }
+                                                    },
+                                                    icon: const Icon(
+                                                      Icons.delete_outline_rounded,
+                                                      color: Colors.redAccent,
+                                                    ),
+                                                    label: const Text(
+                                                      'Delete',
+                                                      style: TextStyle(
+                                                        color: Colors.redAccent,
+                                                      ),
+                                                    ),
+                                                    style: OutlinedButton.styleFrom(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                        vertical: 14,
+                                                        horizontal: 18,
+                                                      ),
+                                                      side: BorderSide(
+                                                        color: Colors.red
+                                                            .shade300
+                                                            .withValues(
+                                                                alpha: 0.9),
+                                                      ),
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(14),
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
                                             ),

@@ -8,9 +8,12 @@ import 'auth_redirect_notifier.dart';
 import '../services/firebase_init.dart';
 import '../../controllers/controllers.dart';
 import '../../presentation/pages/landing/landing_page.dart';
-import '../../presentation/pages/about/about_page.dart';
+import '../../presentation/pages/about/about_us_screen.dart';
 import '../../presentation/pages/designers/designers_list_page.dart';
+import '../../presentation/pages/faq_screen.dart';
+import '../../presentation/pages/legal/contact_us_screen.dart';
 import '../../presentation/pages/legal/legal_page.dart';
+import '../../presentation/pages/legal/terms_conditions_screen.dart';
 import '../../presentation/pages/florists/vendor_profile_page.dart';
 import '../../presentation/pages/admin/admin_dashboard_page.dart';
 import '../../presentation/pages/admin/bouquet_approval_page.dart';
@@ -22,7 +25,9 @@ import '../../presentation/pages/admin/members/members_list_screen.dart';
 import '../../presentation/pages/admin/admin_vendors_management_page.dart';
 import '../../presentation/pages/admin/drivers_management_screen.dart';
 import '../../presentation/pages/driver/driver_application_screen.dart';
+import '../../presentation/pages/driver/driver_auth_screen.dart';
 import '../../presentation/pages/driver/driver_dashboard_screen.dart';
+import '../../presentation/pages/driver/driver_phone_auth_screen.dart';
 import '../../presentation/pages/driver/waiting_for_driver_approval_screen.dart';
 import '../../presentation/pages/product/order_customization_page.dart';
 import '../../presentation/pages/product/product_detail_page.dart';
@@ -35,6 +40,7 @@ import '../../presentation/pages/vendor/vendor_earnings_page.dart';
 import '../../presentation/pages/vendor/vendor_notifications_page.dart';
 import '../../presentation/pages/vendor/vendor_shop_settings_page.dart';
 import '../../presentation/pages/vendor/vendor_support_page.dart';
+import '../../presentation/pages/vendor/vendor_auth_screen.dart';
 import '../../presentation/widgets/layout/admin_shell_layout.dart';
 import '../../presentation/widgets/layout/vendor_shell_layout.dart';
 import '../../data/models/add_on_model.dart';
@@ -73,15 +79,31 @@ class AppRouter {
             ) ??
             fa.FirebaseAuth.instance.currentUser;
 
-        // Vendor routes should never be accessible when signed out. This also
-        // blocks browser back-navigation into vendor URLs after sign-out.
-        if (location.startsWith('/vendor') && user == null) {
+        // Vendor routes should never be accessible when signed out, except for
+        // the public vendor onboarding/auth screen.
+        final isVendorAuthPublic =
+            location == '/vendor-auth' || location == '/vendor-auth/';
+        if (location.startsWith('/vendor') && user == null && !isVendorAuthPublic) {
           return '/';
         }
 
         // Generic dashboard resolver requires auth; if signed out, go home.
         if (location == '/dashboard' && user == null) {
           return '/';
+        }
+
+        // If authenticated users hit public entry pages, route by role so they
+        // land directly in their workspace and do not re-enter customer flow.
+        if (user != null &&
+            (location == '/' ||
+                location == '/login' ||
+                location == '/register' ||
+                location == '/dashboard')) {
+          final authRepo = AuthRepository();
+          final role = await authRepo.getRoleForRouting(user.uid);
+          if (role == 'admin') return '/admin';
+          if (role == 'vendor') return '/vendor';
+          if (role == 'driver') return '/driver';
         }
 
         // Admin routes: allow unauthenticated access so /admin shows its own admin
@@ -111,6 +133,9 @@ class AppRouter {
         }
         // Driver onboarding: dashboard only for approved drivers; application & waiting gated.
         if (location.startsWith('/driver')) {
+          if (location == '/driver/phone-auth' || location == '/driver-auth') {
+            return null;
+          }
           if (user == null) return '/login';
           final doc = await FirebaseFirestore.instance
               .collection('users')
@@ -173,12 +198,24 @@ class AppRouter {
         builder: (context, state) => const AccountPage(),
       ),
       GoRoute(
+        path: '/vendor-auth',
+        builder: (context, state) => const VendorAuthScreen(),
+      ),
+      GoRoute(
         path: '/driver',
         builder: (context, state) => const DriverDashboardScreen(),
       ),
       GoRoute(
+        path: '/driver-auth',
+        builder: (context, state) => const DriverAuthScreen(),
+      ),
+      GoRoute(
         path: '/driver/application',
         builder: (context, state) => const DriverApplicationScreen(),
+      ),
+      GoRoute(
+        path: '/driver/phone-auth',
+        builder: (context, state) => const DriverPhoneAuthScreen(),
       ),
       GoRoute(
         path: '/driver/waiting',
@@ -198,7 +235,19 @@ class AppRouter {
       ),
       GoRoute(
         path: '/about',
-        builder: (context, state) => const AboutPage(),
+        builder: (context, state) => const AboutUsScreen(),
+      ),
+      GoRoute(
+        path: '/terms-conditions',
+        builder: (context, state) => const TermsConditionsScreen(),
+      ),
+      GoRoute(
+        path: '/faq',
+        builder: (context, state) => const FaqScreen(),
+      ),
+      GoRoute(
+        path: '/contact-us',
+        builder: (context, state) => const ContactUsScreen(),
       ),
       GoRoute(
         path: '/legal',

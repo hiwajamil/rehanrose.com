@@ -146,7 +146,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  /// Navigate to the correct screen based on user role (admin → /admin, vendor → /vendor, else → home).
+  /// Navigate to the correct screen based on user role
+  /// (admin → /admin, vendor → /vendor, driver → /driver, else → home).
   Future<void> _navigateAfterSignIn(String uid) async {
     final role = await ref.read(authRepositoryProvider).getRoleForRouting(uid);
     if (!mounted) return;
@@ -154,6 +155,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ? '/admin'
         : role == 'vendor'
             ? '/vendor'
+            : role == 'driver'
+                ? '/driver'
             : '/';
     context.go(path);
   }
@@ -220,135 +223,164 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         horizontal: isMobile ? 28 : 48,
         vertical: isMobile ? 28 : 48,
       ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: maxWidth),
-        child: Form(
-          key: _formKey,
-          child: AutofillGroup(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!widget.showAsModal) const SizedBox(height: 8),
-                Text(
-                  l10n.loginTitle,
-                  style: _loginTitleStyle,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  l10n.loginSubtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey.shade600,
-                        fontSize: 15,
-                        height: 1.5,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: maxWidth),
+          child: Form(
+            key: _formKey,
+            child: AutofillGroup(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!widget.showAsModal) const SizedBox(height: 8),
+                  Text(
+                    l10n.loginTitle,
+                    style: _loginTitleStyle,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.loginSubtitle,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                          fontSize: 15,
+                          height: 1.5,
+                        ),
+                  ),
+                  const SizedBox(height: 32),
+                  _GoogleSignInButton(
+                    label: l10n.continueWithGoogle,
+                    onPressed: _isLoading ? null : _signInWithGoogle,
+                    isLoading: _isLoading,
+                  ),
+                  const SizedBox(height: 28),
+                  _OrDivider(label: l10n.orSignInWithEmail),
+                  const SizedBox(height: 28),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: _inputDecoration(
+                      label: l10n.emailLabel,
+                      hint: l10n.emailHint,
+                      prefixIcon: const Icon(Icons.email_outlined),
+                    ),
+                    validator: _validateEmail,
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: _isRegisterMode
+                        ? [AutofillHints.newPassword]
+                        : [AutofillHints.password],
+                    onFieldSubmitted: (_) => _submitEmailPassword(),
+                    decoration: _inputDecoration(
+                      label: l10n.passwordLabel,
+                      hint: l10n.passwordHint,
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    ),
+                    validator: (v) => _validatePassword(v, _isRegisterMode),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _isLoading || _isRegisterMode
+                          ? null
+                          : _openForgotPassword,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade600,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                ),
-                const SizedBox(height: 32),
-                _GoogleSignInButton(
-                  label: l10n.continueWithGoogle,
-                  onPressed: _isLoading ? null : _signInWithGoogle,
-                  isLoading: _isLoading,
-                ),
-                const SizedBox(height: 28),
-                _OrDivider(label: l10n.orSignInWithEmail),
-                const SizedBox(height: 28),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.email],
-                  decoration: _inputDecoration(
-                    label: l10n.emailLabel,
-                    hint: l10n.emailHint,
-                    prefixIcon: const Icon(Icons.email_outlined),
+                      child: Text(
+                        l10n.forgotPassword,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: _isLoading || _isRegisterMode
+                              ? Colors.grey.shade400
+                              : AppColors.rose,
+                        ),
+                      ),
+                    ),
                   ),
-                  validator: _validateEmail,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  autofillHints: _isRegisterMode
-                      ? [AutofillHints.newPassword]
-                      : [AutofillHints.password],
-                  onFieldSubmitted: (_) => _submitEmailPassword(),
-                  decoration: _inputDecoration(
-                    label: l10n.passwordLabel,
-                    hint: l10n.passwordHint,
-                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  const SizedBox(height: 28),
+                  _SubmitButton(
+                    isRegisterMode: _isRegisterMode,
+                    isLoading: _isLoading,
+                    onPressed: _submitEmailPassword,
+                    signInLabel: l10n.signIn,
+                    registerLabel: l10n.register,
                   ),
-                  validator: (v) => _validatePassword(v, _isRegisterMode),
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _isLoading || _isRegisterMode
+                  const SizedBox(height: 24),
+                  TextButton(
+                    onPressed: _isLoading
                         ? null
-                        : _openForgotPassword,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey.shade600,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      l10n.forgotPassword,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: _isLoading || _isRegisterMode
-                            ? Colors.grey.shade400
-                            : AppColors.rose,
+                        : () {
+                            if (_isRegisterMode) {
+                              setState(() => _isRegisterMode = false);
+                            } else {
+                              context.push('/register');
+                            }
+                          },
+                    child: RichText(
+                      text: TextSpan(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey.shade600,
+                              fontSize: 15,
+                            ),
+                        children: [
+                          TextSpan(
+                            text: _isRegisterMode
+                                ? 'Already have an account? '
+                                : "Don't have an account? ",
+                          ),
+                          TextSpan(
+                            text: _isRegisterMode ? 'Sign in' : 'Create one',
+                            style: const TextStyle(
+                              color: AppColors.rose,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 28),
-                _SubmitButton(
-                  isRegisterMode: _isRegisterMode,
-                  isLoading: _isLoading,
-                  onPressed: _submitEmailPassword,
-                  signInLabel: l10n.signIn,
-                  registerLabel: l10n.register,
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          if (_isRegisterMode) {
-                            setState(() => _isRegisterMode = false);
-                          } else {
-                            context.push('/register');
-                          }
-                        },
-                  child: RichText(
-                    text: TextSpan(
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade600,
-                            fontSize: 15,
-                          ),
-                      children: [
-                        TextSpan(
-                          text: _isRegisterMode
-                              ? 'Already have an account? '
-                              : "Don't have an account? ",
+                  const SizedBox(height: 12),
+                  const _OrDivider(label: 'Or'),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : () => context.push('/driver/phone-auth'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.inkCharcoal,
+                        side: BorderSide(
+                          color: AppColors.rosePrimary.withValues(alpha: 0.45),
+                          width: 1.2,
                         ),
-                        TextSpan(
-                          text: _isRegisterMode ? 'Sign in' : 'Create one',
-                          style: const TextStyle(
-                            color: AppColors.rose,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ],
+                      ),
+                      icon: const Icon(Icons.phone_android_rounded, size: 20),
+                      label: Text(
+                        'Driver Login (Phone Number)',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

@@ -1,8 +1,6 @@
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +15,7 @@ import '../../../core/utils/locale_provider.dart';
 import '../../../core/utils/rtl_utils.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../pages/auth/login_screen.dart';
-import '../common/track_order_modal.dart';
+import '../../pages/track_order_screen.dart';
 import 'app_footer.dart';
 
 void showDeliveryAreasDialog(BuildContext context) {
@@ -61,25 +59,7 @@ void showContactUsDialog(BuildContext context) {
 }
 
 void showFaqDialog(BuildContext context) {
-  final l10n = AppLocalizations.of(context)!;
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(l10n.helpFaq),
-      content: SingleChildScrollView(
-        child: Text(
-          'Frequently asked questions will be listed here. Check back soon.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-      ],
-    ),
-  );
+  context.go('/faq');
 }
 
 /// Opens customer login: modal on mobile, push /login on desktop.
@@ -753,13 +733,17 @@ class _MobileNavDrawer extends ConsumerWidget {
                             thickness: 1,
                           ),
                           const SizedBox(height: 16),
-                          // Secondary nav (order: Track Order, Delivery Areas, FAQ, About, Contact Us)
+                          // Secondary nav (order: Track Order, Delivery Areas, About Us, Terms & Conditions, Contact Us)
                           _glassDrawerSecondaryItem(
                             context: context,
                             label: l10n.navTrackOrder,
                             onTap: () {
-                              showTrackOrderModal(context);
                               onNavigate();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const TrackOrderScreen(),
+                                ),
+                              );
                             },
                           ),
                           _glassDrawerSecondaryItem(
@@ -770,27 +754,122 @@ class _MobileNavDrawer extends ConsumerWidget {
                               onNavigate();
                             },
                           ),
-                          _glassDrawerSecondaryItem(
-                            context: context,
-                            label: l10n.helpFaq,
+                          const SizedBox(height: 16),
+                          Divider(
+                            height: 1,
+                            color: Colors.white.withValues(alpha: 0.15),
+                            thickness: 1,
+                          ),
+                          const SizedBox(height: 16),
+                          ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsetsDirectional.symmetric(
+                              horizontal: 0,
+                            ),
+                            leading: Icon(
+                              Icons.info_outline,
+                              size: 22,
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                            title: Text(
+                              l10n.footerAboutUs,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: Colors.white.withValues(alpha: 0.6),
+                            ),
+                            onTap: () {
+                              context.go('/about');
+                              onNavigate();
+                            },
+                          ),
+                          ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsetsDirectional.symmetric(
+                              horizontal: 0,
+                            ),
+                            leading: const Icon(
+                              Icons.help_outline,
+                              size: 22,
+                              color: Colors.white,
+                            ),
+                            title: Text(
+                              l10n.helpFaq,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: Colors.white.withValues(alpha: 0.6),
+                            ),
                             onTap: () {
                               showFaqDialog(context);
                               onNavigate();
                             },
                           ),
-                          _glassDrawerSecondaryItem(
-                            context: context,
-                            label: l10n.navAbout,
+                          ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsetsDirectional.symmetric(
+                              horizontal: 0,
+                            ),
+                            leading: Icon(
+                              Icons.description_outlined,
+                              size: 22,
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                            title: Text(
+                              'Terms & Conditions',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: Colors.white.withValues(alpha: 0.6),
+                            ),
                             onTap: () {
-                              context.go('/');
+                              context.go('/terms-conditions');
                               onNavigate();
                             },
                           ),
-                          _glassDrawerSecondaryItem(
-                            context: context,
-                            label: l10n.helpContactUs,
+                          ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsetsDirectional.symmetric(
+                              horizontal: 0,
+                            ),
+                            leading: Icon(
+                              Icons.support_agent_outlined,
+                              size: 22,
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                            title: Text(
+                              'Contact Us',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: Colors.white.withValues(alpha: 0.6),
+                            ),
                             onTap: () {
-                              showContactUsDialog(context);
+                              context.go('/contact-us');
                               onNavigate();
                             },
                           ),
@@ -845,7 +924,7 @@ class _MobileNavDrawer extends ConsumerWidget {
                                   const SizedBox(height: 12),
                                   OutlinedButton(
                                     onPressed: () {
-                                      context.go('/vendor');
+                                      context.go('/vendor-auth');
                                       onNavigate();
                                     },
                                     style: OutlinedButton.styleFrom(
@@ -909,7 +988,7 @@ class _MobileNavDrawer extends ConsumerWidget {
                                 const SizedBox(height: 12),
                                 OutlinedButton(
                                   onPressed: () {
-                                    context.go('/vendor');
+                                    context.go('/vendor-auth');
                                     onNavigate();
                                   },
                                   style: OutlinedButton.styleFrom(
@@ -987,84 +1066,8 @@ class _MobileNavDrawer extends ConsumerWidget {
               letterSpacing: 0.1,
             ),
           ),
-          onTap: () async {
-            final firebaseUser = fa.FirebaseAuth.instance.currentUser;
-
-            if (firebaseUser == null) {
-              onNavigate();
-              await showDialog<void>(
-                context: context,
-                builder: (dialogContext) => AlertDialog(
-                  backgroundColor: AppColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  title: Text(
-                    'Driver Sign-Up',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.inkCharcoal,
-                    ),
-                  ),
-                  content: Text(
-                    'Please log in or sign up first to apply as a driver',
-                    style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.inkMuted,
-                        ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop();
-                        if (context.mounted) showLoginModalOrPush(context);
-                      },
-                      child: Text(
-                        'Log in',
-                        style: GoogleFonts.montserrat(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.rosePrimary,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                  ],
-                ),
-              );
-              return;
-            }
-
-            final uid = firebaseUser.uid;
-            final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-            final data = userDoc.data();
-            final role = data?['role']?.toString().toLowerCase() ?? '';
-            final applicationStatus =
-                data?['applicationStatus']?.toString().toLowerCase() ?? '';
-
-            if (role == 'driver') {
-              if (context.mounted) context.go('/driver');
-              onNavigate();
-              return;
-            }
-
-            if (role == 'user' && applicationStatus == 'pending_driver') {
-              if (context.mounted) context.go('/driver/waiting');
-              onNavigate();
-              return;
-            }
-
-            // Fallback: if the app is already pending but role is missing/variant,
-            // still route to the waiting screen.
-            if (applicationStatus == 'pending_driver') {
-              if (context.mounted) context.go('/driver/waiting');
-              onNavigate();
-              return;
-            }
-
-            if (context.mounted) context.go('/driver/application');
+          onTap: () {
+            context.go('/driver-auth');
             onNavigate();
           },
         ),
@@ -1101,7 +1104,7 @@ class _MobileNavDrawer extends ConsumerWidget {
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: () {
-            context.go('/vendor');
+            context.go('/vendor-auth');
             onNavigate();
           },
           style: OutlinedButton.styleFrom(

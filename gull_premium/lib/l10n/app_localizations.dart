@@ -1360,6 +1360,18 @@ abstract class AppLocalizations {
   /// **'Fresh flowers, local talent, and a platform that connects you to both—that\'s the story behind Rehan Rose. Thank you for being part of it.'**
   String get aboutStoryParagraph3;
 
+  /// No description provided for @about_rehan_rose_title.
+  ///
+  /// In en, this message translates to:
+  /// **'About Rehan Rose'**
+  String get about_rehan_rose_title;
+
+  /// No description provided for @about_rehan_rose_body.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Rehan Rose, your premier destination for luxury floral arrangements. We believe that flowers are more than just gifts; they are an elegant expression of your deepest emotions. Our platform seamlessly connects you with the finest local florists, ensuring that every bouquet is crafted with passion and delivered with care. Whether you are celebrating a special occasion or simply making someone\'s day, Rehan Rose is dedicated to providing an unforgettable, premium gifting experience.'**
+  String get about_rehan_rose_body;
+
   /// No description provided for @noInternetConnection.
   ///
   /// In en, this message translates to:

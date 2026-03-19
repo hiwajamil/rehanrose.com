@@ -6,7 +6,7 @@ import '../../core/env/app_env.dart';
 import '../../controllers/controllers.dart';
 
 /// Resolves the current user's role from Firestore and redirects to the correct
-/// dashboard (Admin or Vendor). Use this as the single "Dashboard" destination
+/// dashboard (Admin, Vendor, or Driver). Use this as the single "Dashboard" destination
 /// so that every navigation re-checks the role and routes correctly.
 class DashboardResolverPage extends ConsumerWidget {
   const DashboardResolverPage({super.key});
@@ -90,6 +90,15 @@ class _RoleResolverState extends ConsumerState<_RoleResolver> {
             _redirectScheduled = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted) context.go('/vendor');
+            });
+          }
+          return const _LoadingView();
+        }
+        if (role == 'driver') {
+          if (!_redirectScheduled) {
+            _redirectScheduled = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) context.go('/driver');
             });
           }
           return const _LoadingView();

@@ -156,11 +156,11 @@ class AuthRepository {
     return doc.data()?['role']?.toString();
   }
 
-  /// Role used for post-sign-in routing: 'admin' | 'vendor' | null (customer).
-  /// Uses [users].role first; if not admin/vendor, treats [isAdmin] as admin.
+  /// Role used for post-sign-in routing: 'admin' | 'vendor' | 'driver' | null.
+  /// Uses [users].role first; if not a known role, treats [isAdmin] as admin.
   Future<String?> getRoleForRouting(String uid) async {
     final role = await getUserRole(uid);
-    if (role == 'admin' || role == 'vendor') return role;
+    if (role == 'admin' || role == 'vendor' || role == 'driver') return role;
     if (await isAdmin(uid)) return 'admin';
     return null;
   }

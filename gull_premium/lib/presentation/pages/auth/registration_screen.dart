@@ -351,273 +351,275 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           horizontal: isMobile ? 28 : 48,
           vertical: isMobile ? 28 : 48,
         ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: maxWidth),
-          child: Form(
-            key: _formKey,
-            child: AutofillGroup(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 8),
-                  Text(
-                    'Create account',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.inkCharcoal,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Sign up with your details and verify your phone.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                          fontSize: 15,
-                          height: 1.5,
-                        ),
-                  ),
-                  const SizedBox(height: 32),
-                  _SignUpWithGmailButton(
-                    label: AppLocalizations.of(context)!.signUpWithGmail,
-                    onPressed: (_isRegistering || _isSendingCode) ? null : _signUpWithGoogle,
-                    isLoading: _isGoogleLoading,
-                  ),
-                  const SizedBox(height: 28),
-                  _OrDivider(
-                    label: AppLocalizations.of(context)!.orSignUpWithDetails,
-                  ),
-                  const SizedBox(height: 28),
-                  TextFormField(
-                    controller: _fullNameController,
-                    textInputAction: TextInputAction.next,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: _inputDecoration(
-                      label: 'Full Name',
-                      hint: 'e.g. Ahmed Hassan',
-                      prefixIcon: const Icon(Icons.person_outline_rounded),
-                    ),
-                    validator: (v) => _validateRequired(v, 'your full name'),
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.email],
-                    decoration: _inputDecoration(
-                      label: 'Email',
-                      hint: 'you@example.com',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                    ),
-                    validator: _validateEmail,
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: !_isPasswordVisible,
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.newPassword],
-                    decoration: _inputDecoration(
-                      label: 'Password',
-                      hint: 'At least 6 characters',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                    ).copyWith(
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey.shade600,
-                          size: 22,
-                        ),
-                        onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: maxWidth),
+            child: Form(
+              key: _formKey,
+              child: AutofillGroup(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create account',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.inkCharcoal,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    validator: _validatePassword,
-                  ),
-                  const SizedBox(height: 20),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedCity,
-                    decoration: _inputDecoration(
-                      label: 'City',
-                      hint: 'Select city',
-                      prefixIcon: const Icon(Icons.location_on_outlined),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Sign up with your details and verify your phone.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey.shade600,
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
                     ),
-                    borderRadius: _inputBorderRadius,
-                    items: kRegistrationCities
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedCity = v),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Please select a city';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  IntlPhoneField(
-                    initialCountryCode: 'IQ',
-                    decoration: InputDecoration(
-                      labelText: 'Phone Number',
-                      hintText: '7XX XXX XXXX',
-                      labelStyle: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
+                    const SizedBox(height: 32),
+                    _SignUpWithGmailButton(
+                      label: AppLocalizations.of(context)!.signUpWithGmail,
+                      onPressed: (_isRegistering || _isSendingCode) ? null : _signUpWithGoogle,
+                      isLoading: _isGoogleLoading,
+                    ),
+                    const SizedBox(height: 28),
+                    _OrDivider(
+                      label: AppLocalizations.of(context)!.orSignUpWithDetails,
+                    ),
+                    const SizedBox(height: 28),
+                    TextFormField(
+                      controller: _fullNameController,
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: _inputDecoration(
+                        label: 'Full Name',
+                        hint: 'e.g. Ahmed Hassan',
+                        prefixIcon: const Icon(Icons.person_outline_rounded),
                       ),
-                      hintStyle: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 14,
-                      ),
-                      filled: true,
-                      fillColor: _inputFillColor,
-                      border: OutlineInputBorder(borderRadius: _inputBorderRadius),
-                      enabledBorder: _inputEnabledBorder,
-                      focusedBorder: _inputFocusedBorder,
-                      errorBorder: _inputErrorBorder,
-                      focusedErrorBorder: OutlineInputBorder(
-                        borderRadius: _inputBorderRadius,
-                        borderSide: BorderSide(color: Colors.red.shade400, width: 1.2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      validator: (v) => _validateRequired(v, 'your full name'),
                     ),
-                    dropdownDecoration: BoxDecoration(
-                      color: _inputFillColor,
-                      borderRadius: _inputBorderRadius,
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    dropdownIcon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade600),
-                    dropdownTextStyle: TextStyle(
-                      color: AppColors.inkCharcoal,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                    showCountryFlag: true,
-                    showDropdownIcon: true,
-                    onChanged: (phone) => setState(() => _fullPhoneNumber = phone.completeNumber),
-                    validator: (phone) {
-                      if (phone == null || phone.number.trim().isEmpty) {
-                        return 'Please enter your phone number';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: _isSendingCode ? null : _sendCode,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.rose,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: AppColors.rose.withValues(alpha: 0.5),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(27),
-                        ),
-                      ),
-                      child: _isSendingCode
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Send the Code',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                    ),
-                  ),
-                  if (_codeSent) ...[
                     const SizedBox(height: 20),
                     TextFormField(
-                      controller: _otpController,
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.done,
-                      maxLength: 6,
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.email],
                       decoration: _inputDecoration(
-                        label: 'Verification Code',
-                        hint: 'Enter 6-digit code',
-                        prefixIcon: const Icon(Icons.pin_outlined),
+                        label: 'Email',
+                        hint: 'you@example.com',
+                        prefixIcon: const Icon(Icons.email_outlined),
                       ),
+                      validator: _validateEmail,
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: !_isPasswordVisible,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.newPassword],
+                      decoration: _inputDecoration(
+                        label: 'Password',
+                        hint: 'At least 6 characters',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      ).copyWith(
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey.shade600,
+                            size: 22,
+                          ),
+                          onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                        ),
+                      ),
+                      validator: _validatePassword,
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedCity,
+                      decoration: _inputDecoration(
+                        label: 'City',
+                        hint: 'Select city',
+                        prefixIcon: const Icon(Icons.location_on_outlined),
+                      ),
+                      borderRadius: _inputBorderRadius,
+                      items: kRegistrationCities
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedCity = v),
                       validator: (v) {
-                        if (!_codeSent) return null;
-                        if (v == null || v.trim().isEmpty) return 'Enter the verification code';
-                        if (v.trim().length < 6) return 'Enter the full 6-digit code';
+                        if (v == null || v.isEmpty) return 'Please select a city';
                         return null;
                       },
                     ),
-                  ],
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: _isRegistering ? null : _register,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.rose,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: AppColors.rose.withValues(alpha: 0.5),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(27),
+                    const SizedBox(height: 20),
+                    IntlPhoneField(
+                      initialCountryCode: 'IQ',
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        hintText: '7XX XXX XXXX',
+                        labelStyle: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
                         ),
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 14,
+                        ),
+                        filled: true,
+                        fillColor: _inputFillColor,
+                        border: OutlineInputBorder(borderRadius: _inputBorderRadius),
+                        enabledBorder: _inputEnabledBorder,
+                        focusedBorder: _inputFocusedBorder,
+                        errorBorder: _inputErrorBorder,
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: _inputBorderRadius,
+                          borderSide: BorderSide(color: Colors.red.shade400, width: 1.2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
-                      child: _isRegistering
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Register',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
+                      dropdownDecoration: BoxDecoration(
+                        color: _inputFillColor,
+                        borderRadius: _inputBorderRadius,
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      dropdownIcon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade600),
+                      dropdownTextStyle: TextStyle(
+                        color: AppColors.inkCharcoal,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                      showCountryFlag: true,
+                      showDropdownIcon: true,
+                      onChanged: (phone) => setState(() => _fullPhoneNumber = phone.completeNumber),
+                      validator: (phone) {
+                        if (phone == null || phone.number.trim().isEmpty) {
+                          return 'Please enter your phone number';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Already have an account? ',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey.shade600,
-                              fontSize: 15,
-                            ),
-                      ),
-                      TextButton(
-                        onPressed: _isRegistering ? null : () => context.pop(),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text(
-                          'Sign in',
-                          style: TextStyle(
-                            color: AppColors.rose,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _isSendingCode ? null : _sendCode,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.rose,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: AppColors.rose.withValues(alpha: 0.5),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(27),
                           ),
                         ),
+                        child: _isSendingCode
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Send the Code',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                      ),
+                    ),
+                    if (_codeSent) ...[
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _otpController,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                        maxLength: 6,
+                        decoration: _inputDecoration(
+                          label: 'Verification Code',
+                          hint: 'Enter 6-digit code',
+                          prefixIcon: const Icon(Icons.pin_outlined),
+                        ),
+                        validator: (v) {
+                          if (!_codeSent) return null;
+                          if (v == null || v.trim().isEmpty) return 'Enter the verification code';
+                          if (v.trim().length < 6) return 'Enter the full 6-digit code';
+                          return null;
+                        },
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _isRegistering ? null : _register,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.rose,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: AppColors.rose.withValues(alpha: 0.5),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(27),
+                          ),
+                        ),
+                        child: _isRegistering
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Register',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Already have an account? ',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey.shade600,
+                                fontSize: 15,
+                              ),
+                        ),
+                        TextButton(
+                          onPressed: _isRegistering ? null : () => context.pop(),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Sign in',
+                            style: TextStyle(
+                              color: AppColors.rose,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
