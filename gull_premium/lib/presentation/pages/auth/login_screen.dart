@@ -352,33 +352,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const _OrDivider(label: 'Or'),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 52,
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : () => context.push('/driver/phone-auth'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.inkCharcoal,
-                        side: BorderSide(
-                          color: AppColors.rosePrimary.withValues(alpha: 0.45),
-                          width: 1.2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.phone_android_rounded, size: 20),
-                      label: Text(
-                        'Driver Login (Phone Number)',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

@@ -7,6 +7,9 @@ import '../../../core/theme/app_colors.dart';
 
 /// Live Google Map for all active drivers.
 ///
+/// Markers use [MarkerId] = Firestore document id (driver `uid`) so updates replace
+/// the same marker and the map can move pins instead of duplicating them.
+///
 /// NOTE: Add the Google Maps API key later for map tiles to render correctly:
 /// - AndroidManifest.xml
 /// - AppDelegate.swift (iOS)
@@ -125,6 +128,8 @@ class LiveFleetMapScreen extends StatelessWidget {
       // Marker styling: distinct colored pins (green for available, orange for on delivery).
       final hue = label == 'On Delivery' ? 30.0 : 120.0;
 
+      // Stable MarkerId (driver uid) is required so position updates animate/move
+      // the existing pin instead of stacking duplicates.
       markers.add(
         Marker(
           markerId: MarkerId(doc.id),

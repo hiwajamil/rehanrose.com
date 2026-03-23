@@ -31,8 +31,12 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
   final _phoneController = TextEditingController();
   final _vehicleController = TextEditingController();
   final _plateController = TextEditingController();
+  final _accountEmailController = TextEditingController();
+  final _accountPasswordController = TextEditingController();
+  final _accountPasswordConfirmController = TextEditingController();
 
   bool _loadingProfile = true;
+  bool _guestMode = false;
   bool _submitting = false;
   bool _justSubmitted = false;
   String? _loadError;
@@ -43,7 +47,19 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
     _phoneController.dispose();
     _vehicleController.dispose();
     _plateController.dispose();
+    _accountEmailController.dispose();
+    _accountPasswordController.dispose();
+    _accountPasswordConfirmController.dispose();
     super.dispose();
+  }
+
+  String _normalizePhoneForIraq(String rawInput) {
+    final digitsOnly = rawInput.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) return '';
+
+    if (digitsOnly.startsWith('964')) return '+$digitsOnly';
+    if (digitsOnly.startsWith('0')) return '+964${digitsOnly.substring(1)}';
+    return '+964$digitsOnly';
   }
 
   Future<void> _loadUserAndPrefill() async {
@@ -51,7 +67,7 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
     if (user == null) {
       setState(() {
         _loadingProfile = false;
-        _loadError = 'Please sign in to apply.';
+        _guestMode = true;
       });
       return;
     }
@@ -89,6 +105,7 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
       final display = d['displayName']?.toString() ?? '';
       final full = d['fullName']?.toString() ?? '';
       final phone = d['phoneNumber']?.toString() ?? '';
+      final email = d['email']?.toString() ?? user.email ?? '';
 
       setState(() {
         _loadingProfile = false;
@@ -96,6 +113,7 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
             ? full
             : (user.displayName ?? display);
         _phoneController.text = phone;
+        _accountEmailController.text = email;
       });
     } catch (e) {
       if (mounted) {
@@ -115,8 +133,24 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_guestMode &&
+        _accountPasswordController.text !=
+            _accountPasswordConfirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Passwords do not match.',
+            style: GoogleFonts.montserrat(),
+          ),
+          backgroundColor: AppColors.rosePrimary,
+        ),
+      );
+      return;
+    }
+
     final user = fa.FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    if (user == null && !_guestMode) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -128,10 +162,31 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
       );
       return;
     }
+
     setState(() => _submitting = true);
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
+      fa.User? effectiveUser = user;
+      if (_guestMode) {
+        final cred = await fa.FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _accountEmailController.text.trim(),
+          password: _accountPasswordController.text,
+        );
+        effectiveUser = cred.user;
+      }
+      if (effectiveUser == null) {
+        if (mounted) setState(() => _submitting = false);
+        return;
+      }
+
+      final normalizedPhone = _normalizePhoneForIraq(_phoneController.text);
+      final emailForDoc =
+          _guestMode ? _accountEmailController.text.trim() : (effectiveUser.email ?? '');
+
+      await FirebaseFirestore.instance.collection('users').doc(effectiveUser.uid).set(
         {
+          'fullName': _nameController.text.trim(),
+          'email': emailForDoc,
+          'phoneNumber': normalizedPhone,
           DriverApplicationFields.fullName: _nameController.text.trim(),
           DriverApplicationFields.phone: _phoneController.text.trim(),
           DriverApplicationFields.vehicleModel: _vehicleController.text.trim(),
@@ -146,6 +201,19 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
           _submitting = false;
           _justSubmitted = true;
         });
+      }
+    } on fa.FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.message ?? 'Could not create account. Try again.',
+              style: GoogleFonts.montserrat(fontSize: 14),
+            ),
+            backgroundColor: AppColors.rosePrimary,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -320,6 +388,82 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
                     ),
                   ),
                   const SizedBox(height: 28),
+                  if (_guestMode) ...[
+                    Text(
+                      'Account',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: AppColors.rosePrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _accountEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
+                      style: GoogleFonts.montserrat(
+                        fontSize: 15,
+                        color: AppColors.ink,
+                      ),
+                      decoration: _decoration(
+                        'Email',
+                        hint: 'you@example.com',
+                        icon: Icons.email_outlined,
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Enter your email';
+                        }
+                        if (!v.contains('@')) {
+                          return 'Enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    TextFormField(
+                      controller: _accountPasswordController,
+                      obscureText: true,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 15,
+                        color: AppColors.ink,
+                      ),
+                      decoration: _decoration(
+                        'Password',
+                        hint: 'At least 6 characters',
+                        icon: Icons.lock_outline_rounded,
+                      ),
+                      validator: (v) {
+                        if (v == null || v.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    TextFormField(
+                      controller: _accountPasswordConfirmController,
+                      obscureText: true,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 15,
+                        color: AppColors.ink,
+                      ),
+                      decoration: _decoration(
+                        'Confirm password',
+                        hint: 'Repeat password',
+                        icon: Icons.lock_outline_rounded,
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return 'Confirm your password';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 28),
+                  ],
                   Text(
                     'Application details',
                     style: GoogleFonts.montserrat(

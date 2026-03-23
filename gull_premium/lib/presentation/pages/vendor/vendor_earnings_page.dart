@@ -11,13 +11,20 @@ import '../../../controllers/auth_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/layout/section_container.dart';
 
-class VendorEarningsPage extends ConsumerWidget {
+class VendorEarningsPage extends ConsumerStatefulWidget {
   const VendorEarningsPage({super.key});
 
   static const double _commissionRate = 0.15;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VendorEarningsPage> createState() => _VendorEarningsPageState();
+}
+
+class _VendorEarningsPageState extends ConsumerState<VendorEarningsPage> {
+  int _streamRetryKey = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final authAsync = ref.watch(authStateProvider);
 
     return authAsync.when(
@@ -46,33 +53,32 @@ class VendorEarningsPage extends ConsumerWidget {
             .snapshots();
 
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          key: ValueKey('${user.uid}_$_streamRetryKey'),
           stream: stream,
           builder: (context, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
+            if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snap.hasError) {
+
+            final hasStreamError = snap.hasError;
+            if (hasStreamError) {
               debugPrint('VendorEarningsPage stream error: ${snap.error}');
-              final errorText = snap.error?.toString();
-              return _buildShell(
-                context,
-                child: _EmptyState(
-                  title: 'Could not load earnings',
-                  subtitle: (kDebugMode && errorText != null && errorText.isNotEmpty)
-                      ? errorText
-                      : 'Please refresh the page.',
-                ),
-              );
             }
 
-            final docs = snap.data?.docs ?? const [];
-            final transactions = docs
-                .map((d) => _TransactionRow.fromDoc(
-                      d,
-                      commissionRate: _commissionRate,
-                    ))
-                .where((t) => t.isCompleted)
-                .toList();
+            final docs = snap.hasData ? (snap.data?.docs ?? const []) : const [];
+
+            final transactions = <_TransactionRow>[];
+            for (final d in docs) {
+              try {
+                final row = _TransactionRow.fromDoc(
+                  d,
+                  commissionRate: VendorEarningsPage._commissionRate,
+                );
+                if (row.isCompleted) transactions.add(row);
+              } catch (e, st) {
+                debugPrint('VendorEarningsPage skip bad order doc ${d.id}: $e\n$st');
+              }
+            }
             transactions.sort((a, b) {
               final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
               final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
@@ -86,6 +92,13 @@ class VendorEarningsPage extends ConsumerWidget {
                 transactions.where((t) => !t.paidOut).fold<num>(0, (acc, t) => acc + t.myEarning);
             final last7DaysNet = _computeLast7DaysNetEarnings(transactions);
 
+            final bool noCompletedSales = completedOrders == 0;
+            final String? syncErrorMessage = hasStreamError
+                ? (kDebugMode
+                    ? snap.error?.toString()
+                    : 'We couldn\'t sync your orders. Check your connection and tap Retry.')
+                : null;
+
             return _buildShell(
               context,
               child: _EarningsBody(
@@ -95,6 +108,11 @@ class VendorEarningsPage extends ConsumerWidget {
                 pendingPayout: pendingPayout,
                 transactions: transactions.take(20).toList(),
                 last7DaysNet: last7DaysNet,
+                showNoSalesYet: noCompletedSales && !hasStreamError,
+                syncErrorMessage: syncErrorMessage,
+                onRetrySync: hasStreamError
+                    ? () => setState(() => _streamRetryKey++)
+                    : null,
               ),
             );
           },
@@ -121,6 +139,9 @@ class _EarningsBody extends StatelessWidget {
     required this.pendingPayout,
     required this.transactions,
     required this.last7DaysNet,
+    this.showNoSalesYet = false,
+    this.syncErrorMessage,
+    this.onRetrySync,
   });
 
   final num grossSales;
@@ -129,6 +150,9 @@ class _EarningsBody extends StatelessWidget {
   final num pendingPayout;
   final List<_TransactionRow> transactions;
   final List<num> last7DaysNet;
+  final bool showNoSalesYet;
+  final String? syncErrorMessage;
+  final VoidCallback? onRetrySync;
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +176,13 @@ class _EarningsBody extends StatelessWidget {
                 height: 1.35,
               ),
         ),
+        if (syncErrorMessage != null) ...[
+          const SizedBox(height: 16),
+          _SyncErrorBanner(
+            message: syncErrorMessage!,
+            onRetry: onRetrySync,
+          ),
+        ],
         const SizedBox(height: 24),
         _SummaryGrid(
           grossSales: grossSales,
@@ -159,6 +190,10 @@ class _EarningsBody extends StatelessWidget {
           completedOrders: completedOrders,
           pendingPayout: pendingPayout,
         ),
+        if (showNoSalesYet) ...[
+          const SizedBox(height: 20),
+          _NoSalesYetHint(),
+        ],
         const SizedBox(height: 20),
         _ChartSection(isNarrow: isNarrow, last7DaysNet: last7DaysNet),
         const SizedBox(height: 20),
@@ -167,6 +202,85 @@ class _EarningsBody extends StatelessWidget {
           transactions: transactions,
         ),
       ],
+    );
+  }
+}
+
+class _SyncErrorBanner extends StatelessWidget {
+  const _SyncErrorBanner({
+    required this.message,
+    this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.cloud_off_outlined, color: AppColors.inkMuted, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.ink,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NoSalesYetHint extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.rose.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.local_florist_outlined, color: AppColors.rosePrimary, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'You haven\'t made any sales yet. Add more bouquets to start earning!',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.ink,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -196,13 +310,23 @@ class _SummaryGrid extends StatelessWidget {
           columns = 2;
         }
 
-        return GridView.count(
-          crossAxisCount: columns,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 2.9,
+        // Fixed row height — aspect ratio was too wide (2.9), which made cells
+        // shorter than the icon + three text lines and caused RenderFlex overflow.
+        final mainExtent = switch (columns) {
+          4 => 182.0,
+          2 => 168.0,
+          _ => 156.0,
+        };
+
+        return GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            mainAxisExtent: mainExtent,
+          ),
           children: [
             _KpiCard(
               title: 'Total Gross Sales',
@@ -266,76 +390,86 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final border = isFeatured ? AppColors.accentGold.withValues(alpha: 0.55) : AppColors.border;
-    final shadowAlpha = isFeatured ? 0.07 : 0.05;
+    final shadowAlpha = isFeatured ? 0.09 : 0.06;
 
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: shadowAlpha),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: tint,
-              shape: BoxShape.circle,
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 18, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: border, width: isFeatured ? 1.25 : 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: shadowAlpha),
+              blurRadius: isFeatured ? 22 : 18,
+              offset: const Offset(0, 8),
             ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.inkMuted,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.ink,
-                    letterSpacing: -0.3,
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: tint,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 23),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.inkMuted,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.15,
+                          height: 1.25,
+                        ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.inkMuted,
-                        fontWeight: FontWeight.w500,
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink,
+                        letterSpacing: -0.35,
+                        height: 1.1,
                       ),
-                ),
-              ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.inkMuted,
+                          fontWeight: FontWeight.w500,
+                          height: 1.35,
+                          fontSize: 12.5,
+                        ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1092,7 +1226,17 @@ class _TransactionRow {
   final String status;
   final bool paidOut;
 
-  bool get isCompleted => status == 'ready' || status == 'delivered';
+  /// Counts revenue only after an order is finished (OMS: ready/delivered; legacy: completed).
+  bool get isCompleted {
+    switch (status) {
+      case 'ready':
+      case 'delivered':
+      case 'completed':
+        return true;
+      default:
+        return false;
+    }
+  }
 
   static _TransactionRow fromDoc(
     QueryDocumentSnapshot<Map<String, dynamic>> doc, {
@@ -1107,8 +1251,7 @@ class _TransactionRow {
     if (ts is DateTime) createdAt = ts;
     if (ts != null && createdAt == null) createdAt = DateTime.tryParse(ts.toString());
 
-    final totalRaw = data['totalPrice'];
-    final num total = totalRaw is num ? totalRaw : num.tryParse(totalRaw?.toString() ?? '') ?? 0;
+    final num total = _parseNum(data['totalPrice']);
 
     final paidOutRaw = data['paidOut'];
     final paidOut = paidOutRaw == true;
@@ -1116,8 +1259,12 @@ class _TransactionRow {
     final num cut = total * commissionRate;
     final num my = total * (1 - commissionRate);
 
+    final orderIdField = data['orderId'];
+    final orderIdStr = orderIdField?.toString() ?? '';
+    final orderId = orderIdStr.trim().isNotEmpty ? orderIdStr.trim() : doc.id;
+
     return _TransactionRow(
-      orderId: (data['orderId']?.toString().isNotEmpty ?? false) ? data['orderId'].toString() : doc.id,
+      orderId: orderId,
       createdAt: createdAt,
       totalPrice: total,
       rehanRoseCut: cut,
@@ -1126,6 +1273,12 @@ class _TransactionRow {
       paidOut: paidOut,
     );
   }
+}
+
+num _parseNum(dynamic value) {
+  if (value == null) return 0;
+  if (value is num) return value;
+  return num.tryParse(value.toString().trim()) ?? 0;
 }
 
 List<num> _computeLast7DaysNetEarnings(List<_TransactionRow> transactions) {

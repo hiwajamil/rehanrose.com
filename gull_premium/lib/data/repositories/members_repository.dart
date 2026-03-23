@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../models/customer_member_model.dart';
 
@@ -15,13 +16,20 @@ class PaginatedCustomersResult {
   });
 }
 
+/// Same region as [gull_premium/functions/index.js] callable exports.
+const String _functionsRegion = 'europe-west1';
+
 /// Repository for Super Admin CRM: customers (users with role == 'customer').
 class MembersRepository {
   MembersRepository({
     FirebaseFirestore? firestore,
-  }) : _firestore = firestore ?? FirebaseFirestore.instance;
+    FirebaseFunctions? functions,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions ??
+            FirebaseFunctions.instanceFor(region: _functionsRegion);
 
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
   static const String _usersCollection = 'users';
   static const int _pageSize = 20;
@@ -72,5 +80,11 @@ class MembersRepository {
       lastDocument: lastDoc,
       hasMore: hasMore,
     );
+  }
+
+  /// Deletes a customer’s Firebase Auth account and Firestore profile (admin-only; server-side).
+  Future<void> deleteCustomerMember(String targetUid) async {
+    final callable = _functions.httpsCallable('deleteCustomerUser');
+    await callable.call(<String, dynamic>{'targetUid': targetUid});
   }
 }

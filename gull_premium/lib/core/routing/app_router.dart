@@ -136,7 +136,14 @@ class AppRouter {
           if (location == '/driver/phone-auth' || location == '/driver-auth') {
             return null;
           }
-          if (user == null) return '/login';
+          // Guests may open the driver application form to create email/password + apply.
+          if (user == null) {
+            if (location == '/driver/application' ||
+                location.startsWith('/driver/application')) {
+              return null;
+            }
+            return '/login';
+          }
           final doc = await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)

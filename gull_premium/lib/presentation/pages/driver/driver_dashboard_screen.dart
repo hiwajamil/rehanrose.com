@@ -11,6 +11,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
 
+/// Driver dashboard with live location updates while online.
+///
+/// **Location permissions (configure for continuous tracking):**
+/// - **Android:** `android/app/src/main/AndroidManifest.xml` — `ACCESS_FINE_LOCATION` /
+///   `ACCESS_COARSE_LOCATION` for in-app / foreground updates; for **Always** /
+///   background tracking (Android 10+), also declare `ACCESS_BACKGROUND_LOCATION`
+///   and follow Play policy (often a foreground service). See Geolocator docs.
+/// - **iOS:** `ios/Runner/Info.plist` — `NSLocationWhenInUseUsageDescription` for
+///   **Allow While Using**; for **Always Allow** / background, add
+///   `NSLocationAlwaysAndWhenInUseUsageDescription` and `UIBackgroundModes` → `location`.
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
 
@@ -87,12 +97,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         SetOptions(merge: true),
       );
 
-      // Start live location updates.
+      // Start live location updates: 100 m distance filter limits Firestore writes
+      // and device wakeups (battery + cost).
       await _positionStream?.cancel();
       _positionStream = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 10,
+          distanceFilter: 100,
         ),
       ).listen(
         (Position position) {

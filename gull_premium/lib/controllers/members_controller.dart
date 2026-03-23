@@ -96,6 +96,13 @@ class PaginatedCustomersNotifier extends Notifier<PaginatedCustomersState> {
       state = state.copyWith(isLoadingMore: false);
     }
   }
+
+  /// Removes one member from the in-memory list after a successful delete.
+  void removeMemberByUid(String uid) {
+    state = state.copyWith(
+      list: state.list.where((m) => m.uid != uid).toList(),
+    );
+  }
 }
 
 final paginatedCustomersProvider =

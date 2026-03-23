@@ -1,3 +1,5 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -103,6 +105,8 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
                             ref,
                             member,
                           ),
+                          onDeleteMember: (member) =>
+                              _showDeleteMemberDialog(context, ref, member),
                         ),
         ),
       ],
@@ -226,6 +230,153 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
       ),
     );
   }
+
+  static Future<void> _showDeleteMemberDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CustomerMemberModel member,
+  ) async {
+    String errorMessageFrom(Object error) {
+      if (error is fa.FirebaseAuthException) {
+        final msg = error.message?.trim();
+        if (msg != null && msg.isNotEmpty) return msg;
+        return error.code;
+      }
+      if (error is FirebaseFunctionsException) {
+        // On Flutter web, some exception getters can throw when bridged from JS.
+        try {
+          final msg = error.message?.trim();
+          if (msg != null && msg.isNotEmpty) return msg;
+        } catch (_) {}
+        try {
+          return error.code;
+        } catch (_) {}
+        return 'Delete failed. Please try again.';
+      }
+      final text = error.toString().trim();
+      if (text.isEmpty || text == 'Exception') {
+        return 'Delete failed. Please try again.';
+      }
+      return text;
+    }
+
+    final passwordController = TextEditingController();
+    var busy = false;
+    String? errorText;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          Future<void> confirmDelete() async {
+            final pw = passwordController.text;
+            if (pw.isEmpty) {
+              setDialogState(() => errorText = 'Enter your password');
+              return;
+            }
+            setDialogState(() {
+              busy = true;
+              errorText = null;
+            });
+            try {
+              await ref.read(authRepositoryProvider).reauthenticateWithPassword(pw);
+            } catch (e) {
+              if (!ctx.mounted) return;
+              setDialogState(() {
+                busy = false;
+                errorText = 'Password verification failed: ${errorMessageFrom(e)}';
+              });
+              return;
+            }
+
+            try {
+              await ref.read(membersRepositoryProvider).deleteCustomerMember(member.uid);
+              ref.read(paginatedCustomersProvider.notifier).removeMemberByUid(member.uid);
+              if (!ctx.mounted) return;
+              Navigator.of(ctx).pop();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Member deleted')),
+                );
+              }
+            } catch (e) {
+              if (!ctx.mounted) return;
+              setDialogState(() {
+                busy = false;
+                errorText = 'Delete request failed: ${errorMessageFrom(e)}';
+              });
+            }
+          }
+
+          final name =
+              member.fullName.trim().isNotEmpty ? member.fullName.trim() : 'this member';
+
+          return AlertDialog(
+            title: const Text('Delete member?'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'This permanently removes $name from the platform. '
+                    'Enter your admin password to confirm.',
+                    style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.inkMuted,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    enabled: !busy,
+                    decoration: InputDecoration(
+                      labelText: 'Your password',
+                      errorText: errorText,
+                    ),
+                    onChanged: (_) {
+                      if (errorText != null) {
+                        setDialogState(() {
+                          errorText = null;
+                        });
+                      }
+                    },
+                    onSubmitted: (_) {
+                      if (!busy) confirmDelete();
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: busy ? null : confirmDelete,
+                child: busy
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        'Delete',
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    passwordController.dispose();
+  }
 }
 
 /// Premium CRM cards: responsive grid (desktop) / list (mobile).
@@ -236,6 +387,7 @@ class _MembersPremiumCards extends StatelessWidget {
     required this.hasMore,
     required this.isLoadingMore,
     required this.onOrderHistory,
+    required this.onDeleteMember,
   });
 
   final List<CustomerMemberModel> members;
@@ -243,6 +395,7 @@ class _MembersPremiumCards extends StatelessWidget {
   final bool hasMore;
   final bool isLoadingMore;
   final void Function(CustomerMemberModel member) onOrderHistory;
+  final void Function(CustomerMemberModel member) onDeleteMember;
 
   @override
   Widget build(BuildContext context) {
@@ -281,6 +434,7 @@ class _MembersPremiumCards extends StatelessWidget {
                 child: _MemberPremiumCard(
                   member: member,
                   onOrderHistory: () => onOrderHistory(member),
+                  onDelete: () => onDeleteMember(member),
                 ),
               );
             },
@@ -314,6 +468,7 @@ class _MembersPremiumCards extends StatelessWidget {
             return _MemberPremiumCard(
               member: member,
               onOrderHistory: () => onOrderHistory(member),
+              onDelete: () => onDeleteMember(member),
             );
           },
         );
@@ -326,10 +481,12 @@ class _MemberPremiumCard extends StatelessWidget {
   const _MemberPremiumCard({
     required this.member,
     required this.onOrderHistory,
+    required this.onDelete,
   });
 
   final CustomerMemberModel member;
   final VoidCallback onOrderHistory;
+  final VoidCallback onDelete;
 
   static String _initials(String fullName) {
     final parts = fullName
@@ -492,6 +649,20 @@ class _MemberPremiumCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  TextButton(
+                    onPressed: onDelete,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    ),
+                    child: Text(
+                      'Delete',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
+                          ),
+                    ),
+                  ),
                   PopupMenuButton<_MemberManageAction>(
                     tooltip: 'Manage',
                     onSelected: (value) {

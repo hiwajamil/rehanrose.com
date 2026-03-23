@@ -55,6 +55,37 @@ class AuthRepository {
     return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
+  /// Re-authenticates the current user with email/password (sensitive admin actions).
+  /// Throws if the account did not sign in with a password or credentials are wrong.
+  Future<void> reauthenticateWithPassword(String password) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw fa.FirebaseAuthException(code: 'user-not-found', message: 'Not signed in.');
+    }
+    final hasPasswordProvider = user.providerData.any(
+      (p) => p.providerId == 'password',
+    );
+    if (!hasPasswordProvider) {
+      throw fa.FirebaseAuthException(
+        code: 'operation-not-allowed',
+        message:
+            'This account uses Google sign-in. Password confirmation is only available for email/password sign-in.',
+      );
+    }
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw fa.FirebaseAuthException(
+        code: 'invalid-email',
+        message: 'No email on file for password verification.',
+      );
+    }
+    final credential = fa.EmailAuthProvider.credential(
+      email: email.trim(),
+      password: password.trim(),
+    );
+    await user.reauthenticateWithCredential(credential);
+  }
+
   /// Sign out. Also signs out from Google so next sign-in is fresh.
   /// If the user signed in with email/password, Google sign-out may throw on web;
   /// we still sign out from Firebase so sign-out always succeeds.

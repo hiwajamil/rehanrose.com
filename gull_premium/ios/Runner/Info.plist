@@ -51,7 +51,9 @@
 	<string>This app uses the camera to take photos of bouquets.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photos to select images for bouquets.</string>
+	<!-- Live tracking: When In Use = "Allow While Using". For background / "Always",
+	     add NSLocationAlwaysAndWhenInUseUsageDescription and UIBackgroundModes → location. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app uses your location to set the delivery address for your order.</string>
+	<string>This app uses your location for delivery addresses and, for drivers, live fleet tracking while online.</string>
 </dict>
 </plist>

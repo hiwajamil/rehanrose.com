@@ -1,9 +1,67 @@
-const { onRequest } = require('firebase-functions/v2/https');
+const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
 const functions = require('firebase-functions');
 
 initializeApp();
+
+const FUNCTIONS_REGION = 'europe-west1';
+
+/**
+ * Whether the user is a super admin (matches Firestore rules isAdmin()).
+ */
+async function isCallerAdmin(db, uid) {
+  const userDoc = await db.collection('users').doc(uid).get();
+  if (userDoc.exists && userDoc.data()?.role === 'admin') return true;
+  const adminDoc = await db.collection('admins').doc(uid).get();
+  return adminDoc.exists;
+}
+
+/**
+ * Deletes a customer's Firebase Auth account, then Firestore user doc and `occasions` subcollection.
+ * Callable: must be invoked by an authenticated admin.
+ */
+exports.deleteCustomerUser = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'Sign in required.');
+  }
+  const callerUid = request.auth.uid;
+  const targetUid = request.data?.targetUid;
+  if (!targetUid || typeof targetUid !== 'string') {
+    throw new HttpsError('invalid-argument', 'targetUid is required.');
+  }
+  if (callerUid === targetUid) {
+    throw new HttpsError('invalid-argument', 'You cannot delete your own account here.');
+  }
+
+  const db = getFirestore();
+  if (!(await isCallerAdmin(db, callerUid))) {
+    throw new HttpsError('permission-denied', 'Only admins can delete members.');
+  }
+
+  const targetDoc = await db.collection('users').doc(targetUid).get();
+  if (!targetDoc.exists) {
+    throw new HttpsError('not-found', 'Member not found.');
+  }
+  if (targetDoc.data()?.role !== 'customer') {
+    throw new HttpsError('failed-precondition', 'Only customer accounts can be removed from CRM this way.');
+  }
+
+  const auth = getAuth();
+  await auth.deleteUser(targetUid);
+
+  const userRef = db.collection('users').doc(targetUid);
+  const occSnap = await userRef.collection('occasions').get();
+  if (occSnap.docs.length > 0) {
+    const batch = db.batch();
+    occSnap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+  await userRef.delete();
+
+  return { ok: true };
+});
 
 // Google Places API key for server-side proxy (avoids CORS on web).
 // Set via: firebase functions:config:set google_maps.api_key="YOUR_KEY"
