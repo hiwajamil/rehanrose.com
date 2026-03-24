@@ -414,6 +414,13 @@ class AppLocalizationsKu extends AppLocalizations {
   String get completeYourGift => 'دیاریەکەت تەواو بکە';
 
   @override
+  String get perfumeOrderCta => 'داواکردن →';
+
+  @override
+  String get perfumeCheckoutWithBouquetSection =>
+      'دیاریەکەت بە دەستەگوڵ تەواو بکە';
+
+  @override
   String get personalizeSectionTitle => 'تایبەتمەند بکە';
 
   @override
@@ -1183,4 +1190,25 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get adminLoadingVendors => 'بارکردنی فرۆشیاران…';
+
+  @override
+  String get luxury_perfumes => 'بۆنە شاهانەکان';
+
+  @override
+  String get perfume_approval => 'قبوڵکردنی بۆنەکان';
+
+  @override
+  String get publish_perfume => 'بڵاوکردنەوەی بۆن';
+
+  @override
+  String get active_perfumes => 'بۆنە چالاکەکان';
+
+  @override
+  String get perfume_name => 'ناوی بۆن';
+
+  @override
+  String get brand => 'مارکە (براند)';
+
+  @override
+  String get choose_brand => 'مارکەیەک هەڵبژێرە';
 }

@@ -136,6 +136,8 @@
   "step2VoiceMessage": "الخطوة 2: الرسالة الصوتية",
   "step3Order": "الخطوة 3: الطلب",
   "completeYourGift": "أكمل هديتك",
+  "perfumeOrderCta": "اطلب ←",
+  "perfumeCheckoutWithBouquetSection": "أكمل هديتك بباقة زهور",
   "personalizeSectionTitle": "خصص",
   "addFreeVoiceMessage": "أضف رسالة صوتية مجانية",
   "couldNotLoadProduct": "تعذر تحميل المنتج.",
@@ -372,5 +374,12 @@
   "addOnCategoryAddOns": "الإضافات",
   "locationSelectedTapToChange": "تم اختيار الموقع (اضغط للتغيير)",
   "selectDeliveryLocation": "اختر موقع التوصيل",
-  "remove": "إزالة"
+  "remove": "إزالة",
+  "luxury_perfumes": "العطور الفاخرة",
+  "perfume_approval": "الموافقة على العطور",
+  "publish_perfume": "نشر العطر",
+  "active_perfumes": "العطور النشطة",
+  "perfume_name": "اسم العطر",
+  "brand": "الماركة",
+  "choose_brand": "اختر الماركة"
 }

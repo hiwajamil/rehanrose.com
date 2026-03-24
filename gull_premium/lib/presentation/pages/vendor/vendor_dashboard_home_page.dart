@@ -1,13 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../controllers/vendor_controller.dart';
+import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/flower_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/section_container.dart';
+
+final _vendorStoreCategoryProvider = StreamProvider.autoDispose<String>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value('flowers');
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) {
+    final raw = doc.data()?['storeCategory']?.toString().trim().toLowerCase();
+    return raw == 'perfumes' ? 'perfumes' : 'flowers';
+  });
+});
 
 /// Dashboard home: mini analytics cards + motivation text + alerts.
 /// Shown when authenticated at /vendor. Uses Motivational Fishbowl strategy.
@@ -20,6 +34,11 @@ class VendorDashboardHomePage extends ConsumerWidget {
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final horizontalPadding = isMobile ? 16.0 : 32.0;
     final bouquetsAsync = ref.watch(vendorBouquetsStreamProvider);
+    final storeCategory = ref.watch(_vendorStoreCategoryProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => 'flowers',
+        );
+    final bool isPerfume = storeCategory == 'perfumes';
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -34,9 +53,10 @@ class VendorDashboardHomePage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             bouquetsAsync.when(
-              data: (bouquets) => _MiniAnalyticsSection(bouquets: bouquets),
-              loading: () => _MiniAnalyticsSection(bouquets: []),
-              error: (_, __) => _MiniAnalyticsSection(bouquets: []),
+              data: (bouquets) =>
+                  _MiniAnalyticsSection(bouquets: bouquets, isPerfume: isPerfume),
+              loading: () => _MiniAnalyticsSection(bouquets: [], isPerfume: isPerfume),
+              error: (_, __) => _MiniAnalyticsSection(bouquets: [], isPerfume: isPerfume),
             ),
             const SizedBox(height: 32),
             _AlertsSection(),
@@ -49,8 +69,9 @@ class VendorDashboardHomePage extends ConsumerWidget {
 
 class _MiniAnalyticsSection extends StatelessWidget {
   final List<FlowerModel> bouquets;
+  final bool isPerfume;
 
-  const _MiniAnalyticsSection({required this.bouquets});
+  const _MiniAnalyticsSection({required this.bouquets, required this.isPerfume});
 
   int get _activeCount =>
       bouquets.where((b) => b.isApproved).length;
@@ -60,13 +81,6 @@ class _MiniAnalyticsSection extends StatelessWidget {
 
   int get _totalViewsClicks =>
       bouquets.fold<int>(0, (sum, b) => sum + b.viewCount + b.orderCount);
-
-  String _motivationText(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return _activeCount > 5
-        ? l10n.vendorMotivationGreatJob
-        : l10n.vendorMotivationMoreBouquets;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +100,7 @@ class _MiniAnalyticsSection extends StatelessWidget {
               children: [
                 _MiniAnalyticsCard(
                   width: cardWidth.clamp(120.0, 220.0),
-                  title: l10n.vendorActiveBouquets,
+                  title: isPerfume ? l10n.active_perfumes : 'Active Bouquets',
                   value: '$_activeCount',
                   icon: Icons.local_florist_outlined,
                 ),
@@ -106,7 +120,9 @@ class _MiniAnalyticsSection extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              _motivationText(context),
+              isPerfume
+                  ? 'Add more beautiful perfumes to attract more customers!'
+                  : 'Add more beautiful bouquets to attract more customers!',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: AppColors.ink,
                     fontWeight: FontWeight.w500,

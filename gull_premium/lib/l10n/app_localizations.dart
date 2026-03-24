@@ -874,6 +874,18 @@ abstract class AppLocalizations {
   /// **'Complete your gift'**
   String get completeYourGift;
 
+  /// No description provided for @perfumeOrderCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Order →'**
+  String get perfumeOrderCta;
+
+  /// No description provided for @perfumeCheckoutWithBouquetSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete your gift with a Bouquet'**
+  String get perfumeCheckoutWithBouquetSection;
+
   /// No description provided for @personalizeSectionTitle.
   ///
   /// In en, this message translates to:
@@ -2283,6 +2295,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Loading vendors…'**
   String get adminLoadingVendors;
+
+  /// No description provided for @luxury_perfumes.
+  ///
+  /// In en, this message translates to:
+  /// **'Luxury Perfumes'**
+  String get luxury_perfumes;
+
+  /// No description provided for @perfume_approval.
+  ///
+  /// In en, this message translates to:
+  /// **'Perfume Approval'**
+  String get perfume_approval;
+
+  /// No description provided for @publish_perfume.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish Perfume'**
+  String get publish_perfume;
+
+  /// No description provided for @active_perfumes.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Perfumes'**
+  String get active_perfumes;
+
+  /// No description provided for @perfume_name.
+  ///
+  /// In en, this message translates to:
+  /// **'Perfume Name'**
+  String get perfume_name;
+
+  /// No description provided for @brand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get brand;
+
+  /// No description provided for @choose_brand.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Brand'**
+  String get choose_brand;
 }
 
 class _AppLocalizationsDelegate

@@ -150,6 +150,8 @@
   "step2VoiceMessage": "Step 2: Voice Message",
   "step3Order": "Step 3: Order",
   "completeYourGift": "Complete your gift",
+  "perfumeOrderCta": "Order →",
+  "perfumeCheckoutWithBouquetSection": "Complete your gift with a Bouquet",
   "personalizeSectionTitle": "Personalize",
   "addFreeVoiceMessage": "Add a Free Voice Message",
   "couldNotLoadProduct": "Could not load product.",
@@ -417,5 +419,12 @@
   "selectDeliveryLocation": "Select Delivery Location",
   "remove": "Remove",
   "adminNoApprovedVendors": "No approved vendors yet.",
-  "adminLoadingVendors": "Loading vendors…"
+  "adminLoadingVendors": "Loading vendors…",
+  "luxury_perfumes": "Luxury Perfumes",
+  "perfume_approval": "Perfume Approval",
+  "publish_perfume": "Publish Perfume",
+  "active_perfumes": "Active Perfumes",
+  "perfume_name": "Perfume Name",
+  "brand": "Brand",
+  "choose_brand": "Choose Brand"
 }

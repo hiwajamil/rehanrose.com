@@ -17,6 +17,7 @@ import '../../presentation/pages/legal/terms_conditions_screen.dart';
 import '../../presentation/pages/florists/vendor_profile_page.dart';
 import '../../presentation/pages/admin/admin_dashboard_page.dart';
 import '../../presentation/pages/admin/bouquet_approval_page.dart';
+import '../../presentation/pages/admin/perfume_approval_screen.dart';
 import '../../presentation/pages/admin/analytics_overview_page.dart';
 import '../../presentation/pages/admin/add_on_category_inventory_page.dart';
 import '../../presentation/pages/admin/admin_orders_page.dart';
@@ -390,6 +391,10 @@ class AppRouter {
               GoRoute(
                 path: 'approvals',
                 builder: (_, __) => const BouquetApprovalPage(),
+              ),
+              GoRoute(
+                path: 'perfume-approvals',
+                builder: (_, __) => const PerfumeApprovalScreen(),
               ),
               GoRoute(
                 path: 'orders',

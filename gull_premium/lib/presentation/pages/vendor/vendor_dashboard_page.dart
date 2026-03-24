@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
@@ -27,6 +28,7 @@ class VendorDashboardPage extends ConsumerStatefulWidget {
 class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
   bool _isSignIn = true;
   bool _isSubmitting = false;
+  String _storeCategory = 'flowers';
 
   final TextEditingController _signInEmailController = TextEditingController();
   final TextEditingController _signInPasswordController = TextEditingController();
@@ -77,6 +79,7 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
             phone: _phoneController.text.trim(),
             location: _locationController.text.trim(),
             password: _signUpPasswordController.text.trim(),
+            storeCategory: _storeCategory,
           );
       if (!mounted) return;
       _showMessage(l10n.vendorApplicationSubmittedMessage);
@@ -326,6 +329,35 @@ class _VendorDashboardPageState extends ConsumerState<VendorDashboardPage> {
                         ),
                       ),
                     ] else ...[
+                      Text(
+                        'What type of luxury store are you opening?',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StoreCategoryCard(
+                              label: '🌸 Floral Boutique',
+                              isSelected: _storeCategory == 'flowers',
+                              onTap: () => setState(() => _storeCategory = 'flowers'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StoreCategoryCard(
+                              label: '✨ ${l10n.luxury_perfumes}',
+                              isSelected: _storeCategory == 'perfumes',
+                              onTap: () => setState(() => _storeCategory = 'perfumes'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       _AuthField(
                         label: l10n.vendorStudioName,
                         hintText: '',
@@ -694,6 +726,61 @@ class _AuthField extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StoreCategoryCard extends StatelessWidget {
+  const _StoreCategoryCard({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppColors.accentGold : Colors.grey.shade400,
+            width: 1.2,
+          ),
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [AppColors.badgeGoldBackground, AppColors.sage],
+                )
+              : null,
+          color: isSelected ? null : Colors.white,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.forestGreen.withValues(alpha: 0.10),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.montserrat(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? AppColors.forestGreen : AppColors.inkMuted,
+          ),
+        ),
+      ),
     );
   }
 }

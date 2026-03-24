@@ -11,6 +11,19 @@ import '../../../controllers/auth_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/layout/section_container.dart';
 
+final _vendorStoreCategoryProvider = StreamProvider.autoDispose<String>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value('flowers');
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) {
+    final raw = doc.data()?['storeCategory']?.toString().trim().toLowerCase();
+    return raw == 'perfumes' ? 'perfumes' : 'flowers';
+  });
+});
+
 class VendorEarningsPage extends ConsumerStatefulWidget {
   const VendorEarningsPage({super.key});
 
@@ -26,6 +39,11 @@ class _VendorEarningsPageState extends ConsumerState<VendorEarningsPage> {
   @override
   Widget build(BuildContext context) {
     final authAsync = ref.watch(authStateProvider);
+    final storeCategory = ref.watch(_vendorStoreCategoryProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => 'flowers',
+        );
+    final bool isPerfume = storeCategory == 'perfumes';
 
     return authAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -108,6 +126,7 @@ class _VendorEarningsPageState extends ConsumerState<VendorEarningsPage> {
                 pendingPayout: pendingPayout,
                 transactions: transactions.take(20).toList(),
                 last7DaysNet: last7DaysNet,
+                isPerfume: isPerfume,
                 showNoSalesYet: noCompletedSales && !hasStreamError,
                 syncErrorMessage: syncErrorMessage,
                 onRetrySync: hasStreamError
@@ -139,6 +158,7 @@ class _EarningsBody extends StatelessWidget {
     required this.pendingPayout,
     required this.transactions,
     required this.last7DaysNet,
+    required this.isPerfume,
     this.showNoSalesYet = false,
     this.syncErrorMessage,
     this.onRetrySync,
@@ -150,6 +170,7 @@ class _EarningsBody extends StatelessWidget {
   final num pendingPayout;
   final List<_TransactionRow> transactions;
   final List<num> last7DaysNet;
+  final bool isPerfume;
   final bool showNoSalesYet;
   final String? syncErrorMessage;
   final VoidCallback? onRetrySync;
@@ -189,6 +210,7 @@ class _EarningsBody extends StatelessWidget {
           myNetEarnings: myNetEarnings,
           completedOrders: completedOrders,
           pendingPayout: pendingPayout,
+          isPerfume: isPerfume,
         ),
         if (showNoSalesYet) ...[
           const SizedBox(height: 20),
@@ -291,12 +313,14 @@ class _SummaryGrid extends StatelessWidget {
     required this.myNetEarnings,
     required this.completedOrders,
     required this.pendingPayout,
+    required this.isPerfume,
   });
 
   final num grossSales;
   final num myNetEarnings;
   final int completedOrders;
   final num pendingPayout;
+  final bool isPerfume;
 
   @override
   Widget build(BuildContext context) {
@@ -331,7 +355,9 @@ class _SummaryGrid extends StatelessWidget {
             _KpiCard(
               title: 'Total Gross Sales',
               value: _formatIqd(grossSales),
-              subtitle: 'Total value of flowers sold',
+              subtitle: isPerfume
+                  ? 'Total value of perfumes sold'
+                  : 'Total value of flowers sold',
               icon: Icons.payments_outlined,
               tint: AppColors.rose.withValues(alpha: 0.10),
               iconColor: AppColors.rosePrimary,

@@ -136,6 +136,8 @@
   "step2VoiceMessage": "هەنگاو ٢: نامەی دەنگی",
   "step3Order": "هەنگاو ٣: داواکاری",
   "completeYourGift": "دیاریەکەت تەواو بکە",
+  "perfumeOrderCta": "داواکردن →",
+  "perfumeCheckoutWithBouquetSection": "دیاریەکەت بە دەستەگوڵ تەواو بکە",
   "personalizeSectionTitle": "تایبەتمەند بکە",
   "addFreeVoiceMessage": "نامەیەکی دەنگی بەخۆڕایی زیاد بکە",
   "couldNotLoadProduct": "بارکردنی بەرهەم سەرکەوتوو نەبوو.",
@@ -372,5 +374,12 @@
   "addOnCategoryAddOns": "زیادەکان",
   "locationSelectedTapToChange": "شوێن هەڵبژێردرا (تەنها بکە بۆ گۆڕین)",
   "selectDeliveryLocation": "شوێنی گەیاندن هەڵبژێرە",
-  "remove": "لابردن"
+  "remove": "لابردن",
+  "luxury_perfumes": "بۆنە شاهانەکان",
+  "perfume_approval": "قبوڵکردنی بۆنەکان",
+  "publish_perfume": "بڵاوکردنەوەی بۆن",
+  "active_perfumes": "بۆنە چالاکەکان",
+  "perfume_name": "ناوی بۆن",
+  "brand": "مارکە (براند)",
+  "choose_brand": "مارکەیەک هەڵبژێرە"
 }

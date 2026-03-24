@@ -17,7 +17,12 @@ service cloud.firestore {
     function isVendor() {
       return isAuthenticated()
           && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor';
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in [
+            'vendor',
+            'bouquet_vendor',
+            'perfume_vendor',
+            'perfume_vender'
+          ];
     }
 
     function isOwner(userId) {
@@ -46,10 +51,21 @@ service cloud.firestore {
           || (isVendor() && resource.data.vendorId == request.auth.uid)
           || isAdmin();
       allow create: if request.auth != null
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'vendor'];
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in [
+            'admin',
+            'vendor',
+            'bouquet_vendor',
+            'perfume_vendor',
+            'perfume_vender'
+          ];
       allow update, delete: if isAdmin()
           || (request.auth != null
-              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor'
+              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in [
+                'vendor',
+                'bouquet_vendor',
+                'perfume_vendor',
+                'perfume_vender'
+              ]
               && resource.data.vendorId == request.auth.uid);
     }
 
@@ -85,6 +101,34 @@ service cloud.firestore {
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls'])
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])))
           // Vendor resubmit: change rejected -> pending (clears rejectionReason, rejectionNote)
+          || (resource.data.vendorId == request.auth.uid
+              && resource.data.approvalStatus == 'rejected'
+              && request.resource.data.approvalStatus == 'pending'
+              && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'rejectionReason', 'rejectionNote'])));
+    }
+
+    // ─── perfumes (luxury perfume products; same approval flow as bouquets) ─
+    match /perfumes/{perfumeId} {
+      allow read: if true;
+      allow create: if isAdmin()
+          || (isVendor() && request.resource.data.approvalStatus == 'pending')
+          || (request.auth != null
+              && request.resource.data.approvalStatus == 'pending'
+              && request.resource.data.vendorId == request.auth.uid);
+      allow delete: if isAdmin()
+          || (isVendor() && resource.data.vendorId == request.auth.uid)
+          || (request.auth != null && resource.data.vendorId == request.auth.uid);
+      allow update: if isAdmin()
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderCount'])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'orderCount'])
+          || (resource.data.vendorId == request.auth.uid
+              && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['priceIqd'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['brand'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'brand'])))
           || (resource.data.vendorId == request.auth.uid
               && resource.data.approvalStatus == 'rejected'
               && request.resource.data.approvalStatus == 'pending'

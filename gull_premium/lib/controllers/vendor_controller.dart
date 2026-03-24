@@ -50,6 +50,7 @@ class VendorController extends AsyncNotifier<void> {
     required String phone,
     required String location,
     required String password,
+    required String storeCategory,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -62,6 +63,7 @@ class VendorController extends AsyncNotifier<void> {
         'role': 'vendor',
         'vendorStatus': 'pending',
         'email': email.trim(),
+        'storeCategory': storeCategory,
       });
       await _authRepo.setVendorApplication(uid, {
         'studioName': studioName.trim(),
@@ -69,6 +71,7 @@ class VendorController extends AsyncNotifier<void> {
         'email': email.trim(),
         'phone': phone.trim(),
         'location': location.trim(),
+        'storeCategory': storeCategory,
         'status': 'pending',
       });
       await _authRepo.signOut();
@@ -127,9 +130,11 @@ class VendorController extends AsyncNotifier<void> {
     required String description,
     required int priceIqd,
     required List<XFile> imageFiles,
-    required String occasion,
+    required String collectionName,
+    String? occasion,
     required String emotionCategoryId,
     String? productCodePrefix,
+    String? brand,
   }) async {
     if (!isValidEmotionCategoryId(emotionCategoryId)) {
       throw ArgumentError('Invalid emotionCategoryId. Must be one of: $kEmotionCategoryIds');
@@ -162,6 +167,7 @@ class VendorController extends AsyncNotifier<void> {
       if (prefix.isEmpty) throw ArgumentError('Invalid emotion. Cannot generate bouquet code.');
       final bouquetCode = await _bouquetRepo.reserveNextBouquetCode(prefix);
       await _bouquetRepo.create(
+        collectionName: collectionName,
         vendorId: user.uid,
         name: name,
         description: description,
@@ -172,6 +178,7 @@ class VendorController extends AsyncNotifier<void> {
         occasion: occasion,
         bouquetCode: bouquetCode,
         emotionCategoryId: emotionCategoryId,
+        brand: brand,
       );
       state = const AsyncValue.data(null);
       return bouquetCode;

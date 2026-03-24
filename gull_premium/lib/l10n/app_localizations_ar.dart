@@ -406,6 +406,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get completeYourGift => 'أكمل هديتك';
 
   @override
+  String get perfumeOrderCta => 'اطلب ←';
+
+  @override
+  String get perfumeCheckoutWithBouquetSection => 'أكمل هديتك بباقة زهور';
+
+  @override
   String get personalizeSectionTitle => 'خصص';
 
   @override
@@ -1164,4 +1170,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get adminLoadingVendors => 'جاري تحميل البائعين…';
+
+  @override
+  String get luxury_perfumes => 'العطور الفاخرة';
+
+  @override
+  String get perfume_approval => 'الموافقة على العطور';
+
+  @override
+  String get publish_perfume => 'نشر العطر';
+
+  @override
+  String get active_perfumes => 'العطور النشطة';
+
+  @override
+  String get perfume_name => 'اسم العطر';
+
+  @override
+  String get brand => 'الماركة';
+
+  @override
+  String get choose_brand => 'اختر الماركة';
 }

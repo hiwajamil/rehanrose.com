@@ -13,6 +13,7 @@ import '../../../l10n/app_localizations.dart';
 /// notifications, profile dropdown. Responsive (mobile + desktop).
 /// [leading] is shown at the start on mobile (e.g. drawer menu icon).
 class VendorDashboardHeader extends StatefulWidget {
+  final bool isPerfume;
   final String userEmail;
   final String vendorName;
   final int unreadNotificationCount;
@@ -26,6 +27,7 @@ class VendorDashboardHeader extends StatefulWidget {
 
   const VendorDashboardHeader({
     super.key,
+    this.isPerfume = false,
     this.userEmail = '',
     this.vendorName = 'Vendor', // Overridden by shell with localized default when needed
     this.unreadNotificationCount = 0,
@@ -207,7 +209,9 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
           controller: _searchController,
           onSubmitted: (_) => _submitBouquetSearch(context),
           decoration: InputDecoration(
-            hintText: AppLocalizations.of(context)!.vendorSearchBouquetHint,
+            hintText: widget.isPerfume
+                ? 'Search by perfume code...'
+                : 'Search by bouquet code...',
             hintStyle: TextStyle(color: AppColors.inkMuted, fontSize: 14),
             prefixIcon: Icon(Icons.search, size: 20, color: AppColors.inkMuted),
             suffixIcon: IconButton(
@@ -264,7 +268,9 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
               focusNode: _searchFocusNode,
               onSubmitted: (_) => _submitBouquetSearch(context),
               decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.vendorSearchBouquetHint,
+                hintText: widget.isPerfume
+                    ? 'Search by perfume code...'
+                    : 'Search by bouquet code...',
                 hintStyle: TextStyle(color: AppColors.inkMuted, fontSize: 14),
                 prefixIcon: Icon(Icons.search, size: 20, color: AppColors.inkMuted),
                 filled: true,

@@ -368,16 +368,18 @@ class BouquetRepository {
   /// [initialStatus] when provided (e.g. 'approved' for admin-created) is used;
   /// otherwise defaults to 'pending' for vendor-created bouquets.
   Future<String> create({
+    required String collectionName,
     required String vendorId,
     required String name,
     required String description,
     required int priceIqd,
     required List<String> imageUrls,
     List<String>? thumbnailUrls,
-    required String occasion,
+    String? occasion,
     required String bouquetCode,
     required String emotionCategoryId,
     String? initialStatus,
+    String? brand,
   }) async {
     if (!isValidEmotionCategoryId(emotionCategoryId)) {
       throw ArgumentError('Invalid emotionCategoryId. Must be one of: $kEmotionCategoryIds');
@@ -386,6 +388,7 @@ class BouquetRepository {
     if (status != 'pending' && status != 'approved' && status != 'rejected') {
       throw ArgumentError('initialStatus must be pending, approved, or rejected');
     }
+    final isPerfumeCollection = collectionName == 'perfumes';
     final data = <String, dynamic>{
       'vendorId': vendorId,
       'name': name,
@@ -393,15 +396,19 @@ class BouquetRepository {
       'priceIqd': priceIqd,
       'imageUrls': imageUrls,
       'bouquetCode': bouquetCode,
-      'occasion': occasion,
-      'emotionCategoryId': emotionCategoryId,
+      if (!isPerfumeCollection && occasion != null && occasion.trim().isNotEmpty)
+        'occasion': occasion.trim(),
+      if (!isPerfumeCollection) 'emotionCategoryId': emotionCategoryId,
+      if (isPerfumeCollection && brand != null && brand.trim().isNotEmpty)
+        'brand': brand.trim(),
       'approvalStatus': status,
       'createdAt': FieldValue.serverTimestamp(),
     };
     if (thumbnailUrls != null && thumbnailUrls.isNotEmpty) {
       data['thumbnailUrls'] = thumbnailUrls;
     }
-    final bouquetRef = _bouquets.doc();
+    final collectionRef = _firestore.collection(collectionName);
+    final bouquetRef = collectionRef.doc();
     await bouquetRef.set(data);
     return bouquetRef.id;
   }

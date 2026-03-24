@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../controllers/controllers.dart';
 import '../../../core/constants/breakpoints.dart';
@@ -10,6 +11,19 @@ import '../../../l10n/app_localizations.dart';
 import '../vendor/vendor_new_order_sound_listener.dart';
 import 'vendor_dashboard_header.dart';
 import 'vendor_presence_controller.dart';
+
+final _vendorStoreCategoryProvider = StreamProvider.autoDispose<String>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value('flowers');
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) {
+    final raw = doc.data()?['storeCategory']?.toString().trim().toLowerCase();
+    return raw == 'perfumes' ? 'perfumes' : 'flowers';
+  });
+});
 
 /// Vendor dashboard shell: fixed header + left sidebar (desktop) or drawer (mobile) + content.
 class VendorShellLayout extends ConsumerWidget {
@@ -23,6 +37,11 @@ class VendorShellLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     final user = ref.watch(authStateProvider).value;
+    final storeCategory = ref.watch(_vendorStoreCategoryProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => 'flowers',
+        );
+    final bool isPerfume = storeCategory == 'perfumes';
 
     // Premium B2B SaaS: soft off-white content area
     const Color vendorContentBg = Color(0xFFF4F5F7);
@@ -31,13 +50,14 @@ class VendorShellLayout extends ConsumerWidget {
     if (isMobile) {
       scaffold = VendorNewOrderSoundListener(
         child: Scaffold(
-          drawer: _VendorDrawer(),
+          drawer: _VendorDrawer(isPerfume: isPerfume),
           body: Column(
             children: [
               Builder(
                 builder: (ctx) => _HeaderInAppBar(
                   onMenuTap: () => Scaffold.maybeOf(ctx)?.openDrawer(),
                   ref: ref,
+                  isPerfume: isPerfume,
                 ),
               ),
               Expanded(
@@ -58,12 +78,15 @@ class VendorShellLayout extends ConsumerWidget {
           backgroundColor: vendorContentBg,
           body: Column(
             children: [
-              _buildHeader(context, ref),
+              _buildHeader(context, ref, isPerfume),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _VendorSidebar(width: _sidebarWidth.toDouble()),
+                    _VendorSidebar(
+                      width: _sidebarWidth.toDouble(),
+                      isPerfume: isPerfume,
+                    ),
                     Expanded(
                       child: Material(
                         color: vendorContentBg,
@@ -88,7 +111,7 @@ class VendorShellLayout extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref, bool isPerfume) {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).value;
     final email = user?.email ?? '';
@@ -97,6 +120,7 @@ class VendorShellLayout extends ConsumerWidget {
         : (user?.email ?? l10n.vendorDefaultName);
     final badgeCount = ref.watch(vendorUnreadNotificationBadgeCountProvider);
     return VendorDashboardHeader(
+      isPerfume: isPerfume,
       userEmail: email,
       vendorName: name,
       unreadNotificationCount: badgeCount,
@@ -123,8 +147,13 @@ class VendorShellLayout extends ConsumerWidget {
 class _HeaderInAppBar extends StatelessWidget {
   final VoidCallback onMenuTap;
   final WidgetRef ref;
+  final bool isPerfume;
 
-  const _HeaderInAppBar({required this.onMenuTap, required this.ref});
+  const _HeaderInAppBar({
+    required this.onMenuTap,
+    required this.ref,
+    required this.isPerfume,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +166,7 @@ class _HeaderInAppBar extends StatelessWidget {
     final badgeCount = ref.watch(vendorUnreadNotificationBadgeCountProvider);
     return SafeArea(
       child: VendorDashboardHeader(
+        isPerfume: isPerfume,
         leading: IconButton(
           onPressed: onMenuTap,
           icon: const Icon(Icons.menu, color: AppColors.ink),
@@ -167,8 +197,9 @@ class _HeaderInAppBar extends StatelessWidget {
 
 class _VendorSidebar extends StatelessWidget {
   final double width;
+  final bool isPerfume;
 
-  const _VendorSidebar({required this.width});
+  const _VendorSidebar({required this.width, required this.isPerfume});
 
   @override
   Widget build(BuildContext context) {
@@ -201,14 +232,14 @@ class _VendorSidebar extends StatelessWidget {
               currentPath: path,
             ),
             _NavTile(
-              label: l10n.vendorNavBouquets,
+              label: isPerfume ? 'Perfumes' : 'Bouquets',
               icon: Icons.local_florist_outlined,
               activeIcon: Icons.local_florist,
               path: '/vendor/bouquets',
               currentPath: path,
             ),
             _NavTile(
-              label: l10n.vendorNavAddBouquet,
+              label: isPerfume ? 'Add Perfume' : 'Add Bouquet',
               icon: Icons.add_circle_outline,
               activeIcon: Icons.add_circle,
               path: '/vendor/bouquets/add',
@@ -310,6 +341,10 @@ class _NavTile extends StatelessWidget {
 
 /// Same nav content as sidebar, for use in drawer on mobile.
 class _VendorDrawer extends StatelessWidget {
+  final bool isPerfume;
+
+  const _VendorDrawer({required this.isPerfume});
+
   @override
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
@@ -353,14 +388,14 @@ class _VendorDrawer extends StatelessWidget {
                         currentPath: path,
                       ),
                       _NavTile(
-                        label: l10n.vendorNavBouquets,
+                        label: isPerfume ? 'Perfumes' : 'Bouquets',
                         icon: Icons.local_florist_outlined,
                         activeIcon: Icons.local_florist,
                         path: '/vendor/bouquets',
                         currentPath: path,
                       ),
                       _NavTile(
-                        label: l10n.vendorNavAddBouquet,
+                        label: isPerfume ? 'Add Perfume' : 'Add Bouquet',
                         icon: Icons.add_circle_outline,
                         activeIcon: Icons.add_circle,
                         path: '/vendor/bouquets/add',

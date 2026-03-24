@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +21,7 @@ import '../../widgets/cards/flower_card.dart';
 import '../../widgets/common/product_grid_shimmer.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
+import '../../widgets/perfume_addon_sheet.dart';
 
 class LandingPage extends ConsumerStatefulWidget {
   const LandingPage({super.key, this.saleOnly = false});
@@ -455,35 +457,39 @@ class _ProductsSection extends ConsumerStatefulWidget {
 }
 
 class _ProductsSectionState extends ConsumerState<_ProductsSection> {
-  static const double _scrollLoadMoreThreshold = 200;
+  int _bouquetLimit = 6;
+  String _selectedPerfumeBrand = 'All';
+  static const List<String> _premiumPerfumeBrands = [
+    'All',
+    'Chanel',
+    'Dior',
+    'Tom Ford',
+    'Yves Saint Laurent',
+    'Gucci',
+    'Versace',
+    'Creed',
+    'Amouage',
+    'Maison Francis Kurkdjian',
+    'Parfums de Marly',
+    'Giorgio Armani',
+    'Hermès',
+    'Jo Malone',
+    'Givenchy',
+    'Lancôme',
+    'Bvlgari',
+    'Roja Parfums',
+    'Xerjoff',
+    'Other',
+  ];
 
   @override
   void initState() {
     super.initState();
-    if (!widget.saleOnly && widget.scrollController != null) {
-      widget.scrollController!.addListener(_onScroll);
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!widget.saleOnly) {
-        final occasion = ref.read(selectedOccasionProvider);
-        ref.read(paginatedProductsProvider.notifier).loadInitial(occasion == 'All' ? null : occasion);
-      }
-    });
   }
 
   @override
   void dispose() {
-    widget.scrollController?.removeListener(_onScroll);
     super.dispose();
-  }
-
-  void _onScroll() {
-    final controller = widget.scrollController;
-    if (controller == null || !controller.hasClients) return;
-    final position = controller.position;
-    if (position.pixels >= position.maxScrollExtent - _scrollLoadMoreThreshold) {
-      ref.read(paginatedProductsProvider.notifier).fetchMoreProducts();
-    }
   }
 
   @override
@@ -594,90 +600,233 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
       );
     }
 
-    ref.listen(selectedOccasionProvider, (prev, next) {
-      if (prev != next) {
-        ref.read(paginatedProductsProvider.notifier).loadInitial(next == 'All' ? null : next);
-      }
-    });
+    Query<Map<String, dynamic>> bouquetQuery = FirebaseFirestore.instance
+        .collection('bouquets')
+        .where('approvalStatus', isEqualTo: 'approved');
+    if (selectedOccasion != 'All') {
+      bouquetQuery = bouquetQuery.where('emotionCategoryId', isEqualTo: selectedOccasion);
+    }
+    bouquetQuery = bouquetQuery.limit(_bouquetLimit);
 
-    final paginated = ref.watch(paginatedProductsProvider);
+    Query<Map<String, dynamic>> perfumeQuery = FirebaseFirestore.instance
+        .collection('perfumes')
+        .where('approvalStatus', isEqualTo: 'approved');
+    if (_selectedPerfumeBrand != 'All') {
+      perfumeQuery = perfumeQuery.where('brand', isEqualTo: _selectedPerfumeBrand);
+    }
+
     return SectionContainer(
       padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: isMobile ? 8 : 16),
-          if (paginated.isLoading && paginated.products.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 24),
-              child: ProductGridShimmerGrid(itemCount: 6),
-            )
-          else if (paginated.error != null && paginated.products.isEmpty)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.couldNotLoadBouquets,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.inkMuted),
-                ),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () => ref.read(paginatedProductsProvider.notifier).loadInitial(
-                        selectedOccasion == 'All' ? null : selectedOccasion,
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: bouquetQuery.snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.only(bottom: 24),
+                  child: ProductGridShimmerGrid(itemCount: 6),
+                );
+              }
+              if (snapshot.hasError) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.couldNotLoadBouquets,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.inkMuted,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => setState(() {}),
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: Text(l10n.retry),
+                    ),
+                  ],
+                );
+              }
+
+              final docs = snapshot.data?.docs ?? const [];
+              final bouquets = docs
+                  .map((doc) => FlowerModel.fromJson(doc.id, doc.data()))
+                  .toList();
+              final hasMoreBouquets = docs.length >= _bouquetLimit;
+              final isOnline = ref.watch(connectivityStatusProvider).value ?? true;
+
+              if (bouquets.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Text(
+                    selectedOccasion == 'All'
+                        ? l10n.noBouquetsYet
+                        : l10n.noBouquetsForFeeling,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.inkMuted,
+                        ),
+                  ),
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _BouquetGrid(
+                    list: bouquets,
+                    isMobile: isMobile,
+                    orderButtonEnabled: isOnline,
+                  ),
+                  if (hasMoreBouquets)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 18, bottom: 10),
+                      child: Center(
+                        child: OutlinedButton(
+                          onPressed: () => setState(() => _bouquetLimit += 6),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.inkCharcoal,
+                            side: BorderSide(
+                              color: AppColors.inkMuted.withValues(alpha: 0.35),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: Text(
+                            'See more Bouquets',
+                            style: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
                       ),
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: Text(l10n.retry),
-                ),
-              ],
-            )
-          else if (paginated.products.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Text(
-                selectedOccasion == 'All'
-                    ? l10n.noBouquetsYet
-                    : l10n.noBouquetsForFeeling,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.inkMuted),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 28),
+          Container(
+            width: double.infinity,
+            height: 1,
+            color: AppColors.border.withValues(alpha: 0.8),
+          ),
+          const SizedBox(height: 22),
+          Center(
+            child: Text(
+              l10n.luxury_perfumes,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.montserrat(
+                fontSize: isMobile ? 22 : 26,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFB8892A),
+                letterSpacing: 0.35,
               ),
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _BouquetGrid(
-                  list: paginated.products,
-                  isMobile: isMobile,
-                  orderButtonEnabled: ref.watch(connectivityStatusProvider).value ?? true,
-                ),
-                if (paginated.isLoadingMore)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )),
-                  )
-                else if (!paginated.hasMore && paginated.products.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _premiumPerfumeBrands.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final brand = _premiumPerfumeBrands[index];
+                final isSelected = _selectedPerfumeBrand == brand;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () => setState(() => _selectedPerfumeBrand = brand),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFFB8892A).withValues(alpha: 0.12)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFFB8892A)
+                            : AppColors.border.withValues(alpha: 0.75),
+                      ),
+                    ),
                     child: Center(
                       child: Text(
-                        l10n.reachedEndOfList,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.inkMuted,
-                            ),
+                        brand,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFF8E6A1C)
+                              : AppColors.inkMuted,
+                        ),
                       ),
                     ),
                   ),
-              ],
+                );
+              },
             ),
+          ),
+          const SizedBox(height: 16),
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: perfumeQuery.snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const ProductGridShimmerGrid(itemCount: 4);
+              }
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'More exclusive perfumes arriving soon.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.inkMuted,
+                          ),
+                    ),
+                  ),
+                );
+              }
+
+              final docs = snapshot.data?.docs ?? const [];
+              if (docs.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'More exclusive perfumes arriving soon.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.inkMuted,
+                          ),
+                    ),
+                  ),
+                );
+              }
+
+              final perfumeItems = docs.map((e) {
+                final m = Map<String, dynamic>.from(e.data());
+                m['id'] = e.id;
+                return m;
+              }).toList();
+
+              return _PerfumeGrid(
+                items: perfumeItems,
+                isMobile: isMobile,
+                currencyLabel: l10n.currencyIqd,
+              );
+            },
+          ),
         ],
       ),
     );
@@ -829,6 +978,213 @@ class _TrustBadge extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PerfumeGrid extends StatelessWidget {
+  const _PerfumeGrid({
+    required this.items,
+    required this.isMobile,
+    required this.currencyLabel,
+  });
+
+  final List<Map<String, dynamic>> items;
+  final bool isMobile;
+  final String currencyLabel;
+
+  String _resolvePerfumeImageUrl(Map<String, dynamic> item) {
+    final rawImageUrls = item['imageUrls'];
+    final imageUrls = rawImageUrls is List ? rawImageUrls : const [];
+    if (imageUrls.isNotEmpty) {
+      final firstUrl = imageUrls.first?.toString() ?? '';
+      if (firstUrl.isNotEmpty) return firstUrl;
+    }
+    return item['imageUrl']?.toString() ?? '';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final crossAxisCount = width < kMobileBreakpoint
+        ? 2
+        : width < kTabletBreakpoint
+            ? 3
+            : 4;
+    final gap = width < kMobileBreakpoint ? 10.0 : 16.0;
+    final gapTotal = (crossAxisCount - 1) * gap;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final childWidth = (constraints.maxWidth - gapTotal) / crossAxisCount;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: items.map((item) {
+            return SizedBox(
+              width: childWidth,
+              child: _PerfumeCard(
+                item: item,
+                imageUrl: _resolvePerfumeImageUrl(item),
+                brand: item['brand']?.toString() ?? 'Luxury Brand',
+                name: item['name']?.toString() ?? 'Exclusive Perfume',
+                priceRaw: item['priceIqd'] ?? item['price'],
+                currencyLabel: currencyLabel,
+                isCompact: isMobile,
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _PerfumeCard extends StatelessWidget {
+  const _PerfumeCard({
+    required this.item,
+    required this.imageUrl,
+    required this.brand,
+    required this.name,
+    required this.priceRaw,
+    required this.currencyLabel,
+    required this.isCompact,
+  });
+
+  final Map<String, dynamic> item;
+  final String imageUrl;
+  final String brand;
+  final String name;
+  final Object? priceRaw;
+  final String currencyLabel;
+  final bool isCompact;
+
+  void _openPerfumeSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => PerfumeAddonBottomSheet(
+        perfume: PerfumeAddonData.fromItemMap(item),
+      ),
+    );
+  }
+
+  Widget _buildPerfumeImage(String url) {
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          size: 34,
+          color: AppColors.inkMuted,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final parsedPrice = priceRaw is num
+        ? (priceRaw as num).toInt()
+        : int.tryParse(priceRaw?.toString() ?? '') ?? 0;
+    final displayPrice = formatPriceWithCurrency(parsedPrice, currencyLabel);
+    final fallbackImage =
+        'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=900&q=80';
+    final cardRadius = BorderRadius.circular(18);
+    final l10n = AppLocalizations.of(context)!;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openPerfumeSheet(context),
+        borderRadius: cardRadius,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: cardRadius,
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.85)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: cardRadius,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AspectRatio(
+                  aspectRatio: isCompact ? 1 : 1.12,
+                  child: _buildPerfumeImage(
+                    imageUrl.isEmpty ? fallbackImage : imageUrl,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        brand,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF9A7A2D),
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          height: 1.25,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.inkCharcoal,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              displayPrice,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.perfumeOrderCta,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.inkCharcoal
+                                  .withValues(alpha: 0.78),
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

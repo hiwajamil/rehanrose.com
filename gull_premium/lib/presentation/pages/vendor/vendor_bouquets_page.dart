@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as fa;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,19 @@ import '../../../data/models/flower_model.dart';
 import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/section_container.dart';
+
+final _vendorStoreCategoryProvider = StreamProvider.autoDispose<String>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value('flowers');
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) {
+    final raw = doc.data()?['storeCategory']?.toString().trim().toLowerCase();
+    return raw == 'perfumes' ? 'perfumes' : 'flowers';
+  });
+});
 
 /// List all vendor bouquets: image, name, occasion, price (IQD), status, Edit/Delete.
 /// If [code] query param is set, show only the bouquet with that code (published);
@@ -75,6 +89,11 @@ class _VendorBouquetsPageState extends ConsumerState<VendorBouquetsPage> {
   Widget build(BuildContext context) {
     final bouquetsAsync = ref.watch(vendorBouquetsStreamProvider);
     final user = ref.watch(authStateProvider).value;
+    final storeCategory = ref.watch(_vendorStoreCategoryProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => 'flowers',
+        );
+    final bool isPerfume = storeCategory == 'perfumes';
     final codeQuery =
         GoRouterState.of(context).uri.queryParameters['code']?.trim() ?? '';
 
@@ -91,13 +110,15 @@ class _VendorBouquetsPageState extends ConsumerState<VendorBouquetsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Bouquets',
+                        isPerfume ? 'Perfumes' : 'Bouquets',
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         codeQuery.isEmpty
-                            ? 'Manage your bouquets. Edit or delete below. Select multiple to delete at once.'
+                            ? (isPerfume
+                                ? 'Manage your perfumes. Edit or delete below...'
+                                : 'Manage your bouquets. Edit or delete below...')
                             : 'Search by code: "$codeQuery"',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.inkMuted,
@@ -185,7 +206,9 @@ class _VendorBouquetsPageState extends ConsumerState<VendorBouquetsPage> {
                 if (toShow.isEmpty) {
                   return _EmptyState(
                     icon: Icons.local_florist_outlined,
-                    message: 'No bouquets yet. Add one from the sidebar.',
+                    message: isPerfume
+                        ? 'No perfumes yet. Add one from the sidebar.'
+                        : 'No bouquets yet. Add one from the sidebar.',
                   );
                 }
                 return Column(

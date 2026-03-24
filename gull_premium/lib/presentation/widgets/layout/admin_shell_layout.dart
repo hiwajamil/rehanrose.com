@@ -263,6 +263,16 @@ class _AdminSidebarContent extends StatelessWidget {
                 },
               ),
               _NavTile(
+                icon: Icons.auto_awesome_outlined,
+                selectedIcon: Icons.auto_awesome,
+                label: l10n.perfume_approval,
+                selected: _isSelected('/admin/perfume-approvals'),
+                onTap: () {
+                  context.go('/admin/perfume-approvals');
+                  onNavigate?.call();
+                },
+              ),
+              _NavTile(
                 icon: Icons.add_circle_outline,
                 selectedIcon: Icons.add_circle_rounded,
                 label: l10n.adminManageAddOns,

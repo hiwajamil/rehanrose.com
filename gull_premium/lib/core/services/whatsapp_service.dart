@@ -90,6 +90,40 @@ Future<bool> launchOrderWhatsApp({
   return false;
 }
 
+/// Opens WhatsApp with a perfume order message (separate from bouquet flow).
+/// [addOnBouquetName] is included only when non-empty.
+Future<bool> launchPerfumeOrderWhatsApp({
+  required String perfumeName,
+  required String brand,
+  required int totalPriceIqd,
+  String? addOnBouquetName,
+  required bool hasVoiceMessage,
+  DeliveryLatLng? deliveryLocation,
+  String? voiceMessageUrl,
+}) async {
+  final lines = <String>[
+    'Hello, I would like to order the perfume: $perfumeName by $brand.',
+    if (addOnBouquetName != null && addOnBouquetName.trim().isNotEmpty)
+      'Add-on Bouquet: $addOnBouquetName.',
+    'Voice Message: ${hasVoiceMessage ? 'Yes' : 'No'}.',
+    'Total: ${iqdPriceString(totalPriceIqd)}.',
+    if (voiceMessageUrl != null && voiceMessageUrl.isNotEmpty)
+      'Voice Message (QR): $voiceMessageUrl',
+    if (deliveryLocation != null)
+      'Delivery Location: ${deliveryLocation.googleMapsUrl}',
+  ];
+  final body = lines.join('\n');
+
+  final uri = Uri.parse(
+    'https://wa.me/$kWhatsAppOrderNumber?text=${Uri.encodeComponent(body)}',
+  );
+
+  if (await canLaunchUrl(uri)) {
+    return launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+  return false;
+}
+
 /// Greeting line for the WhatsApp order message.
 /// [languageCode] must be one of: 'en', 'ku', 'ar'.
 String _whatsAppOrderGreeting(String languageCode) {

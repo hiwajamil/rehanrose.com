@@ -18,10 +18,10 @@ class AdminVendorsManagementPage extends ConsumerWidget {
         .snapshots();
   }
 
-  int _crossAxisCountForWidth(double width) {
-    if (width > 1100) return 3;
-    if (width > 700) return 2;
-    return 1;
+  String _normalizedStoreCategory(Map<String, dynamic> data) {
+    final raw = data['storeCategory']?.toString().trim().toLowerCase();
+    if (raw == 'perfumes') return 'perfumes';
+    return 'flowers';
   }
 
   @override
@@ -85,7 +85,18 @@ class AdminVendorsManagementPage extends ConsumerWidget {
                 );
               }
               final docs = snap.data?.docs ?? const [];
-              if (docs.isEmpty) {
+              final floralVendors = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+              final perfumeVendors = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+              for (final doc in docs) {
+                final category = _normalizedStoreCategory(doc.data());
+                if (category == 'perfumes') {
+                  perfumeVendors.add(doc);
+                } else {
+                  floralVendors.add(doc);
+                }
+              }
+
+              if (floralVendors.isEmpty && perfumeVendors.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -108,32 +119,27 @@ class AdminVendorsManagementPage extends ConsumerWidget {
                 );
               }
 
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth;
-                  final crossAxisCount = _crossAxisCountForWidth(width);
-                  return GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      mainAxisExtent: 420,
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _CategoryVendorsColumn(
+                      title: '🌸 Floral Boutiques',
+                      vendors: floralVendors,
                     ),
-                    padding: const EdgeInsets.only(bottom: 32),
-                    itemCount: docs.length,
-                    itemBuilder: (context, index) {
-                      final doc = docs[index];
-                      final vendorData = doc.data();
-                      final bool isOnline =
-                          vendorData.containsKey('isOnline') ? doc['isOnline'] == true : false;
-                      return _AdminVendorCard(
-                        vendorId: doc.id,
-                        data: vendorData,
-                        isOnline: isOnline,
-                      );
-                    },
-                  );
-                },
+                  ),
+                  VerticalDivider(
+                    width: 24,
+                    thickness: 1,
+                    color: AppColors.border.withValues(alpha: 0.7),
+                  ),
+                  Expanded(
+                    child: _CategoryVendorsColumn(
+                      title: '✨ ${l10n.luxury_perfumes}',
+                      vendors: perfumeVendors,
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -148,11 +154,13 @@ class _AdminVendorCard extends ConsumerWidget {
     required this.vendorId,
     required this.data,
     required this.isOnline,
+    required this.storeCategory,
   });
 
   final String vendorId;
   final Map<String, dynamic> data;
   final bool isOnline;
+  final String storeCategory;
 
   static const double _defaultCommissionRate = 0.15;
 
@@ -434,6 +442,7 @@ class _AdminVendorCard extends ConsumerWidget {
     final regDateStr = regDate != null ? DateFormat.yMMMd().format(regDate) : '—';
 
     final theme = Theme.of(context);
+    final isPerfumeVendor = storeCategory == 'perfumes';
     final nameStyle = theme.textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w800,
       color: AppColors.ink,
@@ -508,11 +517,17 @@ class _AdminVendorCard extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  _StatusBadge(
-                    isOnline: isOnline,
-                    isSuspended: isSuspended,
-                    l10n: l10n,
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _CategoryBadge(storeCategory: storeCategory),
+                      const SizedBox(height: 6),
+                      _StatusBadge(
+                        isOnline: isOnline,
+                        isSuspended: isSuspended,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -555,9 +570,13 @@ class _AdminVendorCard extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: _PremiumStat(
-                                  icon: Icons.eco_outlined,
+                                  icon: isPerfumeVendor
+                                      ? Icons.local_mall_outlined
+                                      : Icons.eco_outlined,
                                   value: '${stats.bouquetCount}',
-                                  label: l10n.adminVendorPublishedBouquets,
+                                  label: isPerfumeVendor
+                                      ? 'Published Perfumes'
+                                      : l10n.adminVendorPublishedBouquets,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -718,12 +737,10 @@ class _StatusBadge extends StatelessWidget {
   const _StatusBadge({
     required this.isOnline,
     required this.isSuspended,
-    required this.l10n,
   });
 
   final bool isOnline;
   final bool isSuspended;
-  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -764,6 +781,107 @@ class _StatusBadge extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CategoryBadge extends StatelessWidget {
+  const _CategoryBadge({required this.storeCategory});
+
+  final String storeCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isPerfume = storeCategory == 'perfumes';
+    final Color color = isPerfume ? const Color(0xFFD4A017) : const Color(0xFF2F855A);
+    final IconData icon = isPerfume ? Icons.auto_awesome_rounded : Icons.local_florist_rounded;
+    final String label = isPerfume ? 'Perfume' : 'Floral';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryVendorsColumn extends StatelessWidget {
+  const _CategoryVendorsColumn({
+    required this.title,
+    required this.vendors,
+  });
+
+  final String title;
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> vendors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontFamily: 'Montserrat',
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+        ),
+        const SizedBox(height: 14),
+        Expanded(
+          child: vendors.isEmpty
+              ? Center(
+                  child: Text(
+                    'No vendors in this category',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.inkMuted,
+                        ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 32),
+                  itemCount: vendors.length,
+                  itemBuilder: (context, index) {
+                    final doc = vendors[index];
+                    final vendorData = doc.data();
+                    final bool isOnline =
+                        vendorData.containsKey('isOnline') ? doc['isOnline'] == true : false;
+                    final categoryRaw = vendorData['storeCategory']?.toString().trim().toLowerCase();
+                    final storeCategory = categoryRaw == 'perfumes' ? 'perfumes' : 'flowers';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: SizedBox(
+                        height: 420,
+                        child: _AdminVendorCard(
+                          vendorId: doc.id,
+                          data: vendorData,
+                          isOnline: isOnline,
+                          storeCategory: storeCategory,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

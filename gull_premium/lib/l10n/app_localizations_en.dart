@@ -413,6 +413,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get completeYourGift => 'Complete your gift';
 
   @override
+  String get perfumeOrderCta => 'Order →';
+
+  @override
+  String get perfumeCheckoutWithBouquetSection =>
+      'Complete your gift with a Bouquet';
+
+  @override
   String get personalizeSectionTitle => 'Personalize';
 
   @override
@@ -1174,4 +1181,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminLoadingVendors => 'Loading vendors…';
+
+  @override
+  String get luxury_perfumes => 'Luxury Perfumes';
+
+  @override
+  String get perfume_approval => 'Perfume Approval';
+
+  @override
+  String get publish_perfume => 'Publish Perfume';
+
+  @override
+  String get active_perfumes => 'Active Perfumes';
+
+  @override
+  String get perfume_name => 'Perfume Name';
+
+  @override
+  String get brand => 'Brand';
+
+  @override
+  String get choose_brand => 'Choose Brand';
 }

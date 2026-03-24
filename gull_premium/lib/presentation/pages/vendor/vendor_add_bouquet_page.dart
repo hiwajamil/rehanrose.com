@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,19 @@ import '../../../controllers/controllers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/layout/section_container.dart';
+
+final _vendorStoreCategoryProvider = StreamProvider.autoDispose<String>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value('flowers');
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) {
+    final raw = doc.data()?['storeCategory']?.toString().trim().toLowerCase();
+    return raw == 'perfumes' ? 'perfumes' : 'flowers';
+  });
+});
 
 /// Add new bouquet: name, occasion, price (IQD), max 3 images, description, availability.
 /// Product code is auto-generated from occasion (e.g. BD-402, AN-117).
@@ -30,6 +44,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
   final _codeController = TextEditingController();
   /// Selected emotion category id (same ids as main page dropdown). Links to main page occasion after approval.
   String? _selectedEmotionCategoryId;
+  String? _selectedPerfumeBrand;
   String? _occasionError;
   List<XFile> _images = [];
   bool _available = true;
@@ -50,10 +65,22 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
     if (emotionCategoryId == null || emotionCategoryId.isEmpty) return;
     setState(() {
       _selectedEmotionCategoryId = emotionCategoryId;
+      _selectedPerfumeBrand = null;
       _occasionError = null;
       final prefix = codePrefixForEmotionCategoryId(emotionCategoryId);
       final randomNumber = _random.nextInt(900) + 100;
       _codeController.text = '$prefix-$randomNumber';
+    });
+  }
+
+  void _onPerfumeBrandChanged(String? brand) {
+    if (brand == null || brand.isEmpty) return;
+    setState(() {
+      _selectedPerfumeBrand = brand;
+      _selectedEmotionCategoryId = null;
+      _occasionError = null;
+      final randomNumber = _random.nextInt(900) + 100;
+      _codeController.text = 'PF-$randomNumber';
     });
   }
 
@@ -72,23 +99,34 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
     final name = _nameController.text.trim();
     final description = _descriptionController.text.trim();
     final price = int.tryParse(_priceController.text.trim());
+    final storeCategory = ref.read(_vendorStoreCategoryProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => 'flowers',
+        );
+    final isPerfume = storeCategory == 'perfumes';
+    final collectionName = isPerfume ? 'perfumes' : 'bouquets';
 
     final l10n = AppLocalizations.of(context);
     if (name.isEmpty) {
       _message(l10n?.vendorPleaseEnterBouquetName ?? 'Please enter a bouquet name.');
       return;
     }
-    if (_selectedEmotionCategoryId == null || _selectedEmotionCategoryId!.isEmpty) {
-      setState(() => _occasionError = l10n?.vendorPleaseSelectOccasion ?? 'Please select an occasion.');
-      _message(l10n?.vendorPleaseSelectOccasion ?? 'Please select an occasion.');
+    final selectedCategoryOrBrand = isPerfume ? _selectedPerfumeBrand : _selectedEmotionCategoryId;
+    if (selectedCategoryOrBrand == null || selectedCategoryOrBrand.isEmpty) {
+      final errorText = isPerfume
+          ? 'Please select a perfume brand.'
+          : (l10n?.vendorPleaseSelectOccasion ?? 'Please select an occasion.');
+      setState(() => _occasionError = errorText);
+      _message(errorText);
       return;
     }
-    final emotionCategoryId = _selectedEmotionCategoryId!;
-    if (!isValidEmotionCategoryId(emotionCategoryId)) {
+    final emotionCategoryId = isPerfume ? kEmotionCategories.first.id : _selectedEmotionCategoryId!;
+    if (!isPerfume && !isValidEmotionCategoryId(emotionCategoryId)) {
       setState(() => _occasionError = l10n?.vendorInvalidSelection ?? 'Invalid selection.');
       return;
     }
-    final occasionLabel = kOccasionLabelByEmotionCategoryId[emotionCategoryId];
+    final occasionLabel =
+        isPerfume ? (_selectedPerfumeBrand ?? 'Other') : kOccasionLabelByEmotionCategoryId[emotionCategoryId];
     if (occasionLabel == null || occasionLabel.isEmpty) {
       setState(() => _occasionError = l10n?.vendorInvalidSelection ?? 'Invalid selection.');
       return;
@@ -119,9 +157,11 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
             description: description,
             priceIqd: price,
             imageFiles: _images,
-            occasion: occasionLabel,
+            collectionName: collectionName,
+            occasion: isPerfume ? null : occasionLabel,
             emotionCategoryId: emotionCategoryId,
-            productCodePrefix: codePrefix,
+            productCodePrefix: isPerfume ? 'PF' : codePrefix,
+            brand: isPerfume ? _selectedPerfumeBrand : null,
           );
       if (!mounted) return;
       final msgL10n = AppLocalizations.of(context);
@@ -136,6 +176,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
       setState(() {
         _images = [];
         _selectedEmotionCategoryId = null;
+        _selectedPerfumeBrand = null;
         _occasionError = null;
         _codeController.clear();
       });
@@ -155,6 +196,12 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final storeCategory = ref.watch(_vendorStoreCategoryProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => 'flowers',
+        );
+    final bool isPerfume = storeCategory == 'perfumes';
+
     return SingleChildScrollView(
       child: SectionContainer(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
@@ -162,7 +209,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              l10n?.vendorAddBouquetPageTitle ?? 'Add Bouquet',
+              isPerfume ? 'Add Perfume' : (l10n?.vendorAddBouquetPageTitle ?? 'Add Bouquet'),
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
@@ -191,7 +238,9 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _Field(
-                    label: l10n?.vendorBouquetName ?? 'Bouquet name',
+                    label: isPerfume
+                        ? '${l10n?.perfume_name ?? 'Perfume Name'}:'
+                        : ('${l10n?.vendorBouquetName ?? 'Bouquet name'}:'),
                     hint: '',
                     controller: _nameController,
                     icon: Icons.local_florist_outlined,
@@ -206,9 +255,10 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   ),
                   const SizedBox(height: 20),
                   _OccasionDropdown(
-                    value: _selectedEmotionCategoryId,
+                    value: isPerfume ? _selectedPerfumeBrand : _selectedEmotionCategoryId,
                     error: _occasionError,
-                    onChanged: _onOccasionChanged,
+                    onChanged: isPerfume ? _onPerfumeBrandChanged : _onOccasionChanged,
+                    isPerfume: isPerfume,
                   ),
                   const SizedBox(height: 20),
                   _Field(
@@ -238,6 +288,7 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   _ImageUploadZone(
                     imageCount: _images.length,
                     onTap: _pickImages,
+                    isPerfume: isPerfume,
                   ),
                   if (_images.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -299,10 +350,10 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
                   ),
                   const SizedBox(height: 28),
                   PrimaryButton(
-                    label: _submitting ? (l10n?.vendorPublishing ?? 'Publishing...') : (l10n?.vendorPublishBouquet ?? 'Publish bouquet'),
-                    onPressed: _submitting || _selectedEmotionCategoryId == null
-                        ? () {}
-                        : _submit,
+                    label: _submitting
+                        ? (l10n?.vendorPublishing ?? 'Publishing...')
+                        : (isPerfume ? (l10n?.publish_perfume ?? 'Publish Perfume') : 'Publish Bouquet'),
+                    onPressed: _submitting ? () {} : _submit,
                   ),
                 ],
               ),
@@ -318,10 +369,12 @@ class _VendorAddBouquetPageState extends ConsumerState<VendorAddBouquetPage> {
 class _ImageUploadZone extends StatelessWidget {
   final int imageCount;
   final VoidCallback onTap;
+  final bool isPerfume;
 
   const _ImageUploadZone({
     required this.imageCount,
     required this.onTap,
+    required this.isPerfume,
   });
 
   @override
@@ -362,7 +415,9 @@ class _ImageUploadZone extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                l10n?.vendorTapToUploadBouquetImages ?? 'Tap to upload bouquet images',
+                isPerfume
+                    ? 'Tap to upload perfume image'
+                    : (l10n?.vendorTapToUploadBouquetImages ?? 'Tap to upload bouquet images'),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.ink,
                       fontWeight: FontWeight.w600,
@@ -464,11 +519,35 @@ class _OccasionDropdown extends StatelessWidget {
   final String? value;
   final String? error;
   final ValueChanged<String?> onChanged;
+  final bool isPerfume;
+
+  static const List<String> _perfumeBrands = <String>[
+    'Chanel',
+    'Dior',
+    'Tom Ford',
+    'Yves Saint Laurent',
+    'Gucci',
+    'Versace',
+    'Creed',
+    'Amouage',
+    'Maison Francis Kurkdjian',
+    'Parfums de Marly',
+    'Giorgio Armani',
+    'Hermès',
+    'Jo Malone',
+    'Givenchy',
+    'Lancôme',
+    'Bvlgari',
+    'Roja Parfums',
+    'Xerjoff',
+    'Other',
+  ];
 
   const _OccasionDropdown({
     required this.value,
     required this.error,
     required this.onChanged,
+    required this.isPerfume,
   });
 
   @override
@@ -478,7 +557,7 @@ class _OccasionDropdown extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          l10n?.vendorOccasion ?? 'Occasion',
+          isPerfume ? (l10n?.brand ?? 'Brand') : (l10n?.vendorOccasion ?? 'Occasion'),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w600,
@@ -486,7 +565,9 @@ class _OccasionDropdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: value != null && isValidEmotionCategoryId(value) ? value : null,
+          initialValue: isPerfume
+              ? (value != null && _perfumeBrands.contains(value) ? value : null)
+              : (value != null && isValidEmotionCategoryId(value) ? value : null),
           decoration: InputDecoration(
             errorText: error,
             filled: true,
@@ -505,24 +586,39 @@ class _OccasionDropdown extends StatelessWidget {
               borderSide: const BorderSide(color: AppColors.rosePrimary, width: 1.5),
             ),
           ),
-          hint: Text(l10n?.vendorChooseOccasionSameAsMainPage ?? 'Choose occasion (same as main page)'),
-          items: kEmotionCategories
-              .map((c) => DropdownMenuItem<String>(
-                    value: c.id,
-                    child: Row(
-                      children: [
-                        Icon(c.icon, size: 22, color: AppColors.rose),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            kOccasionLabelByEmotionCategoryId[c.id] ?? c.id,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+          hint: Text(
+            isPerfume
+                ? (l10n?.choose_brand ?? 'Choose Brand')
+                : (l10n?.vendorChooseOccasionSameAsMainPage ??
+                    'Choose occasion (same as main page)'),
+          ),
+          items: isPerfume
+              ? _perfumeBrands.map((brand) {
+                  return DropdownMenuItem<String>(
+                    value: brand,
+                    child: Text(
+                      brand,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ))
-              .toList(),
+                  );
+                }).toList()
+              : kEmotionCategories
+                  .map((c) => DropdownMenuItem<String>(
+                        value: c.id,
+                        child: Row(
+                          children: [
+                            Icon(c.icon, size: 22, color: AppColors.rose),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                kOccasionLabelByEmotionCategoryId[c.id] ?? c.id,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                  .toList(),
           onChanged: onChanged,
         ),
       ],
