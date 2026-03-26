@@ -56,6 +56,7 @@ class PerfumeAddonBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _PerfumeAddonBottomSheetState extends ConsumerState<PerfumeAddonBottomSheet> {
+  static const Color _luxuryGold = AppColors.accentGold;
   final List<FlowerModel> _bouquetChoices = [];
   FlowerModel? _selectedBouquet;
   String? _voiceMessageUrl;
@@ -141,9 +142,222 @@ class _PerfumeAddonBottomSheetState extends ConsumerState<PerfumeAddonBottomShee
     });
   }
 
+  Future<String> _resolveUserDisplayName(User user) async {
+    final fromAuth = user.displayName?.trim() ?? '';
+    if (fromAuth.isNotEmpty) return fromAuth;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final data = doc.data();
+      if (data == null) return 'Valued Customer';
+      final fullName = data['fullName']?.toString().trim() ?? '';
+      if (fullName.isNotEmpty) return fullName;
+      final displayName = data['displayName']?.toString().trim() ?? '';
+      if (displayName.isNotEmpty) return displayName;
+    } catch (_) {}
+    final emailName = (user.email ?? '').split('@').first.trim();
+    return emailName.isNotEmpty ? emailName : 'Valued Customer';
+  }
+
+  Future<void> _showWriteReviewSheet() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please sign in to write a review.'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
+    final commentController = TextEditingController();
+    var selectedRating = 5.0;
+    var isSubmitting = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(24)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.shadow.withValues(alpha: 0.14),
+                        blurRadius: 24,
+                        offset: const Offset(0, -8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Write a Review',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.ink,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          final starValue = index + 1.0;
+                          final selected = selectedRating >= starValue;
+                          return IconButton(
+                            onPressed: isSubmitting
+                                ? null
+                                : () => setModalState(() {
+                                      selectedRating = starValue;
+                                    }),
+                            icon: Icon(
+                              selected ? Icons.star : Icons.star_border,
+                              color: selected ? _luxuryGold : AppColors.border,
+                              size: 30,
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: commentController,
+                        maxLines: 3,
+                        maxLength: 300,
+                        decoration: InputDecoration(
+                          hintText: 'Share your thoughts about this perfume...',
+                          filled: true,
+                          fillColor: AppColors.background,
+                          contentPadding: const EdgeInsets.all(14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: AppColors.accentGold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  final sheetNavigator = Navigator.of(sheetContext);
+                                  final messenger = ScaffoldMessenger.of(this.context);
+                                  final comment = commentController.text.trim();
+                                  if (comment.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                            'Please add a short review comment.'),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  setModalState(() => isSubmitting = true);
+                                  try {
+                                    final userName =
+                                        await _resolveUserDisplayName(user);
+                                    await FirebaseFirestore.instance
+                                        .collection('reviews')
+                                        .add({
+                                      'productId': widget.perfume.product.id,
+                                      'userId': user.uid,
+                                      'userName': userName,
+                                      'rating': selectedRating,
+                                      'comment': comment,
+                                      'createdAt': FieldValue.serverTimestamp(),
+                                    });
+                                    if (!mounted) return;
+                                    sheetNavigator.pop();
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                            'Thank you! Your review has been submitted.'),
+                                        behavior: SnackBarBehavior.floating,
+                                        backgroundColor:
+                                            const Color(0xFF1F6E43),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    );
+                                  } catch (_) {
+                                    if (!mounted) return;
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                            'Could not submit review. Please try again.'),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    );
+                                    setModalState(() => isSubmitting = false);
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.ink,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            isSubmitting ? 'Submitting...' : 'Submit Review',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    commentController.dispose();
+  }
+
   void _orderViaWhatsApp() {
     final p = widget.perfume.product;
     final total = _totalIqd();
+    final productUrl = '${Uri.base.origin}/p/${p.id}';
     ref.read(analyticsServiceProvider).logClickWhatsApp(
           itemId: p.id,
           itemName: p.name,
@@ -154,13 +368,18 @@ class _PerfumeAddonBottomSheetState extends ConsumerState<PerfumeAddonBottomShee
     launchPerfumeOrderWhatsApp(
       perfumeName: p.name,
       brand: widget.perfume.brand,
+      perfumePriceIqd: _effectiveFlowerPriceIqd(p),
+      perfumeCodeRaw: p.bouquetCode,
       totalPriceIqd: total,
       addOnBouquetName: _selectedBouquet?.name,
-      hasVoiceMessage: _voiceMessageUrl != null && _voiceMessageUrl!.isNotEmpty,
+      addOnBouquetPriceIqd: _selectedBouquet != null
+          ? _effectiveFlowerPriceIqd(_selectedBouquet!)
+          : null,
+      productUrl: productUrl,
+      voiceMessageUrl: _voiceMessageUrl,
       deliveryLocation: _deliveryLatLng != null
           ? DeliveryLatLng(_deliveryLatLng!.latitude, _deliveryLatLng!.longitude)
           : null,
-      voiceMessageUrl: _voiceMessageUrl,
     );
     Navigator.of(context).pop();
   }
@@ -233,6 +452,11 @@ class _PerfumeAddonBottomSheetState extends ConsumerState<PerfumeAddonBottomShee
                           color: AppColors.inkMuted,
                           fontWeight: FontWeight.w500,
                         ),
+                  ),
+                  const SizedBox(height: 16),
+                  _ProductReviewsSection(
+                    productId: p.id,
+                    onWriteReviewPressed: _showWriteReviewSheet,
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -493,6 +717,217 @@ class _PerfumeAddonBottomSheetState extends ConsumerState<PerfumeAddonBottomShee
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ProductReviewsSection extends StatelessWidget {
+  const _ProductReviewsSection({
+    required this.productId,
+    required this.onWriteReviewPressed,
+  });
+
+  final String productId;
+  final VoidCallback onWriteReviewPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoggedIn = FirebaseAuth.instance.currentUser != null;
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('reviews')
+          .where('productId', isEqualTo: productId)
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? const [];
+        final reviews = docs.map(_ReviewEntry.fromDoc).toList();
+        final count = reviews.length;
+        final average = count == 0
+            ? 0.0
+            : reviews.map((r) => r.rating).reduce((a, b) => a + b) / count;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.badgeGoldBackground,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: AppColors.accentGold.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 18,
+                    color: AppColors.accentGold,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    count == 0
+                        ? 'No reviews yet'
+                        : '${average.toStringAsFixed(1)} ($count ${count == 1 ? 'Review' : 'Reviews'})',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Customer Reviews',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                if (isLoggedIn)
+                  OutlinedButton(
+                    onPressed: onWriteReviewPressed,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: AppColors.accentGold.withValues(alpha: 0.7),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Write a Review',
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Center(child: CircularProgressIndicator())
+            else if (reviews.isEmpty)
+              Text(
+                'Be the first to review this product.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.inkMuted,
+                    ),
+              )
+            else
+              Column(
+                children: reviews
+                    .map(
+                      (review) => Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    review.userName,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(
+                                          color: AppColors.ink,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                                Text(
+                                  review.createdAt == null
+                                      ? 'Just now'
+                                      : MaterialLocalizations.of(context)
+                                          .formatMediumDate(
+                                            review.createdAt!.toLocal(),
+                                          ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: AppColors.inkMuted),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: List.generate(5, (index) {
+                                final filled = review.rating >= index + 1;
+                                return Icon(
+                                  filled
+                                      ? Icons.star_rounded
+                                      : Icons.star_border_rounded,
+                                  size: 18,
+                                  color: filled
+                                      ? AppColors.accentGold
+                                      : AppColors.border,
+                                );
+                              }),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              review.comment,
+                              style:
+                                  Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        color: AppColors.ink,
+                                        height: 1.35,
+                                      ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ReviewEntry {
+  const _ReviewEntry({
+    required this.userName,
+    required this.rating,
+    required this.comment,
+    required this.createdAt,
+  });
+
+  final String userName;
+  final double rating;
+  final String comment;
+  final DateTime? createdAt;
+
+  factory _ReviewEntry.fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final rawRating = data['rating'];
+    final rating = rawRating is num
+        ? rawRating.toDouble().clamp(1.0, 5.0).toDouble()
+        : 5.0;
+    final userName = data['userName']?.toString().trim() ?? '';
+    return _ReviewEntry(
+      userName: userName.isEmpty ? 'Valued Customer' : userName,
+      rating: rating,
+      comment: data['comment']?.toString().trim() ?? '',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
 }

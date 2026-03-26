@@ -1202,4 +1202,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get choose_brand => 'Choose Brand';
+
+  @override
+  String get how_can_i_help => 'How can I help you?';
+
+  @override
+  String get whatsapp_support_message =>
+      'Hello Rehan Rose team, I need some help...';
 }

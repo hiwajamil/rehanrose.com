@@ -2337,6 +2337,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose Brand'**
   String get choose_brand;
+
+  /// No description provided for @how_can_i_help.
+  ///
+  /// In en, this message translates to:
+  /// **'How can I help you?'**
+  String get how_can_i_help;
+
+  /// No description provided for @whatsapp_support_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello Rehan Rose team, I need some help...'**
+  String get whatsapp_support_message;
 }
 
 class _AppLocalizationsDelegate

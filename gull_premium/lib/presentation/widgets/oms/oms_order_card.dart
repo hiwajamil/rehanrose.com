@@ -6,6 +6,7 @@ import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/florist_card_pdf.dart';
 import '../../../core/utils/price_format_utils.dart';
+import '../../../core/services/receipt_printer_service.dart';
 import '../../../data/models/order_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../common/app_cached_image.dart';
@@ -317,6 +318,58 @@ class OmsOrderCard extends StatelessWidget {
                       child: PrimaryButton(label: 'Bouquet Is Ready', onPressed: onReady!),
                     ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final receiptOrderData = <String, dynamic>{
+                      'orderId': order.orderId,
+                      'vendorName': order.vendorName ?? '',
+                      'dateTime': orderDateStr,
+                      'customerPhone': order.customerPhone,
+                      'bouquetName': order.bouquetName ?? '',
+                      'bouquetDetails': order.bouquetDetails ?? '',
+                      'bouquetCode': order.bouquetCode,
+                      'addons': order.addons,
+                      'totalPrice': order.totalPrice,
+                      'itemLabel': order.bouquetName ?? 'Bouquet',
+                    };
+
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => Center(
+                        child: CircularProgressIndicator(color: AppColors.rosePrimary),
+                      ),
+                    );
+
+                    try {
+                      await ReceiptPrinterService.printReceipt(receiptOrderData);
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop(); // close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Receipt sent to printer.')),
+                      );
+                    } catch (e) {
+                      if (context.mounted) Navigator.of(context).pop(); // close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to print receipt: $e')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.print),
+                  label: const Text('Print Receipt'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.rosePrimary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               SizedBox(

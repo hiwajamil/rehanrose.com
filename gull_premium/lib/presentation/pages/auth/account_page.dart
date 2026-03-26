@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -402,26 +401,29 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
           // ——— Section A: User Identity & Premium badge (Rehan Rose luxury) ———
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 30),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(cardRadius),
-              border: Border.all(color: borderColor),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor.withValues(alpha: 0.9)),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.forestGreen.withValues(alpha: 0.06),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  color: AppColors.forestGreen.withValues(alpha: 0.05),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
                 ),
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 14,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
@@ -453,7 +455,7 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
                         ],
                       ),
                       child: CircleAvatar(
-                        radius: 42,
+                        radius: 48,
                         backgroundColor: AppColors.creamBackground,
                         backgroundImage: widget.photoUrl != null &&
                                 widget.photoUrl!.isNotEmpty
@@ -465,7 +467,7 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
                                     ? widget.fullName[0].toUpperCase()
                                     : '?',
                                 style: GoogleFonts.playfairDisplay(
-                                  fontSize: 32,
+                                  fontSize: 36,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.forestGreen,
                                 ),
@@ -533,8 +535,8 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
                 Text(
                   widget.fullName,
                   style: GoogleFonts.playfairDisplay(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.inkCharcoal,
                   ),
                   textAlign: TextAlign.center,
@@ -568,25 +570,48 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
           ),
           const SizedBox(height: sectionSpacing),
 
-          // ——— Section B: My Orders & Saved Addresses (summary cards) ———
-          Row(
-            children: [
-              Expanded(
-                child: _SummaryCard(
-                  icon: CupertinoIcons.doc_text_fill,
-                  label: l10n.profileMyOrders,
-                  onTap: () => context.push('/orders'),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _SummaryCard(
-                  icon: CupertinoIcons.location_fill,
-                  label: l10n.profileSavedAddresses,
-                  onTap: () => context.push('/addresses'),
-                ),
-              ),
-            ],
+          // ——— Section B: Dashboard shortcuts (balanced 2x2 grid) ———
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = (constraints.maxWidth - 12) / 2;
+              final ratio = itemWidth < 150 ? 1.02 : 1.1;
+              return GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: ratio,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _SummaryCard(
+                    icon: Icons.local_mall_outlined,
+                    label: l10n.profileMyOrders,
+                    onTap: () => context.push('/orders'),
+                  ),
+                  _SummaryCard(
+                    icon: Icons.location_on_outlined,
+                    label: l10n.profileSavedAddresses,
+                    onTap: () => context.push('/addresses'),
+                  ),
+                  _SummaryCard(
+                    icon: Icons.record_voice_over,
+                    label: 'Voice Messages',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const VoiceMessagesHistoryScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _SummaryCard(
+                    icon: Icons.favorite_outline_rounded,
+                    label: 'My Favorites',
+                    onTap: () => context.push('/wishlist'),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: sectionSpacing),
 
@@ -725,9 +750,7 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
                       backgroundColor: AppColors.forestGreen,
                       foregroundColor: AppColors.surface,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      shape: const StadiumBorder(),
                       elevation: 0,
                     ),
                   ),
@@ -774,38 +797,40 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
             ),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: OutlinedButton(
-              onPressed: _isSigningOut ? null : _handleSignOut,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red.shade400,
-                side: BorderSide(color: Colors.red.shade300, width: 1.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(cardRadius),
+          Center(
+            child: SizedBox(
+              width: 240,
+              height: 52,
+              child: OutlinedButton(
+                onPressed: _isSigningOut ? null : _handleSignOut,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                  side: BorderSide(color: Colors.red.shade300, width: 1.2),
+                  shape: const StadiumBorder(),
                 ),
+                child: _isSigningOut
+                    ? SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.red.shade400,
+                        ),
+                      )
+                    : Text(
+                        l10n.signOut,
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: Colors.red.shade400,
+                        ),
+                      ),
               ),
-              child: _isSigningOut
-                  ? SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.red.shade400,
-                      ),
-                    )
-                  : Text(
-                      l10n.signOut,
-                      style: GoogleFonts.montserrat(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: Colors.red.shade400,
-                      ),
-                    ),
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }
@@ -860,21 +885,24 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        splashColor: AppColors.forestGreen.withValues(alpha: 0.08),
+        highlightColor: AppColors.forestGreen.withValues(alpha: 0.04),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 18),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.9)),
             boxShadow: [
               BoxShadow(
-                color: AppColors.forestGreen.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
+                color: AppColors.forestGreen.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
               ),
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -890,16 +918,16 @@ class _SummaryCard extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.forestGreen.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 28, color: AppColors.forestGreen),
+                child: Icon(icon, size: 34, color: AppColors.forestGreen),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Text(
                 label,
                 style: GoogleFonts.montserrat(
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.inkCharcoal,
                 ),
                 textAlign: TextAlign.center,
@@ -1013,32 +1041,83 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      leading: Container(
-        width: 46,
-        height: 46,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.forestGreen.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: AppColors.forestGreen.withValues(alpha: 0.08),
+        highlightColor: AppColors.forestGreen.withValues(alpha: 0.04),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          leading: Container(
+            width: 46,
+            height: 46,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.forestGreen.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, size: 22, color: AppColors.forestGreen),
+          ),
+          title: Text(
+            label,
+            style: GoogleFonts.montserrat(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppColors.inkCharcoal,
+            ),
+          ),
+          trailing: Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: AppColors.inkMuted,
+          ),
         ),
-        child: Icon(icon, size: 22, color: AppColors.forestGreen),
       ),
-      title: Text(
-        label,
-        style: GoogleFonts.montserrat(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: AppColors.inkCharcoal,
+    );
+  }
+}
+
+class VoiceMessagesHistoryScreen extends StatelessWidget {
+  const VoiceMessagesHistoryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Voice Messages',
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.w600,
+            color: AppColors.inkCharcoal,
+          ),
         ),
       ),
-      trailing: Icon(
-        Icons.arrow_forward_ios_rounded,
-        size: 14,
-        color: AppColors.inkMuted,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.mic_none,
+                size: 56,
+                color: AppColors.forestGreen,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Voice message history is coming soon.',
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.inkCharcoal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
-      onTap: onTap,
     );
   }
 }

@@ -19,12 +19,15 @@ import '../../presentation/pages/admin/admin_dashboard_page.dart';
 import '../../presentation/pages/admin/bouquet_approval_page.dart';
 import '../../presentation/pages/admin/perfume_approval_screen.dart';
 import '../../presentation/pages/admin/analytics_overview_page.dart';
+import '../../presentation/pages/admin/revenue_analytics_screen.dart';
 import '../../presentation/pages/admin/add_on_category_inventory_page.dart';
 import '../../presentation/pages/admin/admin_orders_page.dart';
 import '../../presentation/pages/admin/manage_add_ons_landing_page.dart';
 import '../../presentation/pages/admin/members/members_list_screen.dart';
 import '../../presentation/pages/admin/admin_vendors_management_page.dart';
 import '../../presentation/pages/admin/drivers_management_screen.dart';
+import '../../presentation/pages/admin/manage_ads_screen.dart';
+import '../../presentation/pages/admin/manage_coupons_screen.dart';
 import '../../presentation/pages/driver/driver_application_screen.dart';
 import '../../presentation/pages/driver/driver_auth_screen.dart';
 import '../../presentation/pages/driver/driver_dashboard_screen.dart';
@@ -53,6 +56,7 @@ import '../../presentation/pages/auth/registration_screen.dart';
 import '../../presentation/pages/auth/account_page.dart';
 import '../../presentation/pages/account/customer_orders_page.dart';
 import '../../presentation/pages/account/customer_addresses_page.dart';
+import '../../presentation/pages/account/wishlist_screen.dart';
 
 class AppRouter {
   /// Creates the app router with [authNotifier] so redirect waits for auth to
@@ -73,7 +77,8 @@ class AppRouter {
           return null;
         }
 
-        final user = authNotifier.currentState.when(
+        final user =
+            authNotifier.currentState.when(
               data: (u) => u,
               loading: () => null,
               error: (_, __) => null,
@@ -84,7 +89,9 @@ class AppRouter {
         // the public vendor onboarding/auth screen.
         final isVendorAuthPublic =
             location == '/vendor-auth' || location == '/vendor-auth/';
-        if (location.startsWith('/vendor') && user == null && !isVendorAuthPublic) {
+        if (location.startsWith('/vendor') &&
+            user == null &&
+            !isVendorAuthPublic) {
           return '/';
         }
 
@@ -152,7 +159,8 @@ class AppRouter {
           final d = doc.data() ?? {};
           final role = d['role']?.toString() ?? '';
           final appStatus = d['applicationStatus']?.toString() ?? '';
-          final isApprovedDriver = role == 'driver' &&
+          final isApprovedDriver =
+              role == 'driver' &&
               (appStatus == 'approved' || appStatus.isEmpty);
 
           if (location == '/driver' || location == '/driver/') {
@@ -177,246 +185,258 @@ class AppRouter {
         }
         return null;
       },
-    routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const LandingPage(),
-      ),
-      GoRoute(
-        path: '/v',
-        builder: (context, state) {
-          final url = state.uri.queryParameters['url'] ?? '';
-          return VoicePlaybackPage(audioUrl: url);
-        },
-      ),
-      GoRoute(
-        path: '/dashboard',
-        builder: (context, state) => const DashboardResolverPage(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/register',
-        builder: (context, state) => const RegistrationScreen(),
-      ),
-      GoRoute(
-        path: '/account',
-        builder: (context, state) => const AccountPage(),
-      ),
-      GoRoute(
-        path: '/vendor-auth',
-        builder: (context, state) => const VendorAuthScreen(),
-      ),
-      GoRoute(
-        path: '/driver',
-        builder: (context, state) => const DriverDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/driver-auth',
-        builder: (context, state) => const DriverAuthScreen(),
-      ),
-      GoRoute(
-        path: '/driver/application',
-        builder: (context, state) => const DriverApplicationScreen(),
-      ),
-      GoRoute(
-        path: '/driver/phone-auth',
-        builder: (context, state) => const DriverPhoneAuthScreen(),
-      ),
-      GoRoute(
-        path: '/driver/waiting',
-        builder: (context, state) => const WaitingForDriverApprovalScreen(),
-      ),
-      GoRoute(
-        path: '/orders',
-        builder: (context, state) => const CustomerOrdersPage(),
-      ),
-      GoRoute(
-        path: '/addresses',
-        builder: (context, state) => const CustomerAddressesPage(),
-      ),
-      GoRoute(
-        path: '/offers',
-        builder: (context, state) => const LandingPage(saleOnly: true),
-      ),
-      GoRoute(
-        path: '/about',
-        builder: (context, state) => const AboutUsScreen(),
-      ),
-      GoRoute(
-        path: '/terms-conditions',
-        builder: (context, state) => const TermsConditionsScreen(),
-      ),
-      GoRoute(
-        path: '/faq',
-        builder: (context, state) => const FaqScreen(),
-      ),
-      GoRoute(
-        path: '/contact-us',
-        builder: (context, state) => const ContactUsScreen(),
-      ),
-      GoRoute(
-        path: '/legal',
-        builder: (context, state) => const LegalPage(),
-      ),
-      GoRoute(
-        path: '/florists',
-        builder: (context, state) => const DesignersListPage(),
-      ),
-      GoRoute(
-        path: '/florist/:vendorId',
-        builder: (context, state) {
-          final vendorId = state.pathParameters['vendorId'] ?? '';
-          return VendorProfilePage(vendorId: vendorId);
-        },
-      ),
-      GoRoute(
-        path: '/products',
-        builder: (context, state) {
-          final category = state.uri.queryParameters['category'];
-          return ProductListingPage(filterByCategory: category);
-        },
-      ),
-      GoRoute(
-        path: '/flower/:id',
-        builder: (context, state) {
-          final id = state.pathParameters['id'] ?? '';
-          return ProductDetailPage(flowerId: id);
-        },
-        routes: [
-          GoRoute(
-            path: 'order',
-            builder: (context, state) {
-              final id = state.pathParameters['id'] ?? '';
-              return OrderCustomizationPage(flowerId: id);
-            },
-          ),
-        ],
-      ),
-      ShellRoute(
-        builder: (context, state, child) {
-          return Consumer(
-            builder: (_, ref, __) {
-              final user = ref.watch(authStateProvider).value;
-              if (user == null) return child;
-              return VendorShellLayout(child: child);
-            },
-          );
-        },
-        routes: [
-          GoRoute(
-            path: '/vendor',
-            builder: (context, state) => const VendorDashboardPage(),
-            routes: [
-              GoRoute(
-                path: 'orders',
-                builder: (_, __) => const VendorOrdersPage(),
-              ),
-              GoRoute(
-                path: 'bouquets',
-                builder: (_, __) => const VendorBouquetsPage(),
-              ),
-              GoRoute(
-                path: 'bouquets/add',
-                builder: (_, __) => const VendorAddBouquetPage(),
-              ),
-              GoRoute(
-                path: 'earnings',
-                builder: (_, __) => const VendorEarningsPage(),
-              ),
-              GoRoute(
-                path: 'notifications',
-                builder: (_, __) => const VendorNotificationsPage(),
-              ),
-              GoRoute(
-                path: 'shop-settings',
-                builder: (_, __) => const VendorShopSettingsPage(),
-              ),
-              GoRoute(
-                path: 'profile',
-                builder: (context, state) {
-                  return Consumer(
-                    builder: (_, ref, __) {
-                      final uid = ref.watch(authStateProvider).value?.uid ?? '';
-                      return VendorProfilePage(vendorId: uid);
-                    },
-                  );
-                },
-              ),
-              GoRoute(
-                path: 'support',
-                builder: (_, __) => const VendorSupportPage(),
-              ),
-            ],
-          ),
-        ],
-      ),
-      ShellRoute(
-        builder: (context, state, child) => AdminShellLayout(child: child),
-        routes: [
-          GoRoute(
-            path: '/admin',
-            builder: (context, state) => const AdminDashboardPage(),
-            routes: [
-              GoRoute(
-                path: 'add-ons',
-                builder: (_, __) => const ManageAddOnsLandingPage(),
-                routes: [
-                  GoRoute(
-                    path: 'vases',
-                    builder: (_, __) => const AddOnCategoryInventoryPage(
-                      categoryType: AddOnType.vase,
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const LandingPage()),
+        GoRoute(
+          path: '/v',
+          builder: (context, state) {
+            final url = state.uri.queryParameters['url'] ?? '';
+            return VoicePlaybackPage(audioUrl: url);
+          },
+        ),
+        GoRoute(
+          path: '/dashboard',
+          builder: (context, state) => const DashboardResolverPage(),
+        ),
+        GoRoute(
+          path: '/login',
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: '/register',
+          builder: (context, state) => const RegistrationScreen(),
+        ),
+        GoRoute(
+          path: '/account',
+          builder: (context, state) => const AccountPage(),
+        ),
+        GoRoute(
+          path: '/vendor-auth',
+          builder: (context, state) => const VendorAuthScreen(),
+        ),
+        GoRoute(
+          path: '/driver',
+          builder: (context, state) => const DriverDashboardScreen(),
+        ),
+        GoRoute(
+          path: '/driver-auth',
+          builder: (context, state) => const DriverAuthScreen(),
+        ),
+        GoRoute(
+          path: '/driver/application',
+          builder: (context, state) => const DriverApplicationScreen(),
+        ),
+        GoRoute(
+          path: '/driver/phone-auth',
+          builder: (context, state) => const DriverPhoneAuthScreen(),
+        ),
+        GoRoute(
+          path: '/driver/waiting',
+          builder: (context, state) => const WaitingForDriverApprovalScreen(),
+        ),
+        GoRoute(
+          path: '/orders',
+          builder: (context, state) => const CustomerOrdersPage(),
+        ),
+        GoRoute(
+          path: '/addresses',
+          builder: (context, state) => const CustomerAddressesPage(),
+        ),
+        GoRoute(
+          path: '/wishlist',
+          builder: (context, state) => const WishlistScreen(),
+        ),
+        GoRoute(
+          path: '/offers',
+          builder: (context, state) => const LandingPage(saleOnly: true),
+        ),
+        GoRoute(
+          path: '/about',
+          builder: (context, state) => const AboutUsScreen(),
+        ),
+        GoRoute(
+          path: '/terms-conditions',
+          builder: (context, state) => const TermsConditionsScreen(),
+        ),
+        GoRoute(path: '/faq', builder: (context, state) => const FaqScreen()),
+        GoRoute(
+          path: '/contact-us',
+          builder: (context, state) => const ContactUsScreen(),
+        ),
+        GoRoute(path: '/legal', builder: (context, state) => const LegalPage()),
+        GoRoute(
+          path: '/florists',
+          builder: (context, state) => const DesignersListPage(),
+        ),
+        GoRoute(
+          path: '/florist/:vendorId',
+          builder: (context, state) {
+            final vendorId = state.pathParameters['vendorId'] ?? '';
+            return VendorProfilePage(vendorId: vendorId);
+          },
+        ),
+        GoRoute(
+          path: '/products',
+          builder: (context, state) {
+            final category = state.uri.queryParameters['category'];
+            return ProductListingPage(filterByCategory: category);
+          },
+        ),
+        GoRoute(
+          path: '/flower/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id'] ?? '';
+            return ProductDetailPage(flowerId: id);
+          },
+          routes: [
+            GoRoute(
+              path: 'order',
+              builder: (context, state) {
+                final id = state.pathParameters['id'] ?? '';
+                return OrderCustomizationPage(flowerId: id);
+              },
+            ),
+          ],
+        ),
+        ShellRoute(
+          builder: (context, state, child) {
+            return Consumer(
+              builder: (_, ref, __) {
+                final user = ref.watch(authStateProvider).value;
+                if (user == null) return child;
+                return VendorShellLayout(child: child);
+              },
+            );
+          },
+          routes: [
+            GoRoute(
+              path: '/vendor',
+              builder: (context, state) => const VendorDashboardPage(),
+              routes: [
+                GoRoute(
+                  path: 'orders',
+                  builder: (_, __) => const VendorOrdersPage(),
+                ),
+                GoRoute(
+                  path: 'bouquets',
+                  builder: (_, __) => const VendorBouquetsPage(),
+                ),
+                GoRoute(
+                  path: 'bouquets/add',
+                  builder: (_, __) => const VendorAddBouquetPage(),
+                ),
+                GoRoute(
+                  path: 'earnings',
+                  builder: (_, __) => const VendorEarningsPage(),
+                ),
+                GoRoute(
+                  path: 'notifications',
+                  builder: (_, __) => const VendorNotificationsPage(),
+                ),
+                GoRoute(
+                  path: 'shop-settings',
+                  builder: (_, __) => const VendorShopSettingsPage(),
+                ),
+                GoRoute(
+                  path: 'profile',
+                  builder: (context, state) {
+                    return Consumer(
+                      builder: (_, ref, __) {
+                        final uid =
+                            ref.watch(authStateProvider).value?.uid ?? '';
+                        return VendorProfilePage(vendorId: uid);
+                      },
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: 'support',
+                  builder: (_, __) => const VendorSupportPage(),
+                ),
+              ],
+            ),
+          ],
+        ),
+        ShellRoute(
+          builder: (context, state, child) => AdminShellLayout(child: child),
+          routes: [
+            GoRoute(
+              path: '/admin',
+              builder: (context, state) => const AdminDashboardPage(),
+              routes: [
+                GoRoute(
+                  path: 'add-ons',
+                  builder: (_, __) => const ManageAddOnsLandingPage(),
+                  routes: [
+                    GoRoute(
+                      path: 'vases',
+                      builder: (_, __) => const AddOnCategoryInventoryPage(
+                        categoryType: AddOnType.vase,
+                      ),
                     ),
-                  ),
-                  GoRoute(
-                    path: 'chocolates',
-                    builder: (_, __) => const AddOnCategoryInventoryPage(
-                      categoryType: AddOnType.chocolate,
+                    GoRoute(
+                      path: 'chocolates',
+                      builder: (_, __) => const AddOnCategoryInventoryPage(
+                        categoryType: AddOnType.chocolate,
+                      ),
                     ),
-                  ),
-                  GoRoute(
-                    path: 'cards',
-                    builder: (_, __) => const AddOnCategoryInventoryPage(
-                      categoryType: AddOnType.card,
+                    GoRoute(
+                      path: 'cards',
+                      builder: (_, __) => const AddOnCategoryInventoryPage(
+                        categoryType: AddOnType.card,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              GoRoute(
-                path: 'analytics',
-                builder: (_, __) => const AnalyticsOverviewPage(),
-              ),
-              GoRoute(
-                path: 'approvals',
-                builder: (_, __) => const BouquetApprovalPage(),
-              ),
-              GoRoute(
-                path: 'perfume-approvals',
-                builder: (_, __) => const PerfumeApprovalScreen(),
-              ),
-              GoRoute(
-                path: 'orders',
-                builder: (_, __) => const AdminOrdersPage(),
-              ),
-              GoRoute(
-                path: 'members',
-                builder: (_, __) => const MembersListScreen(),
-              ),
-              GoRoute(
-                path: 'vendors',
-                builder: (_, __) => const AdminVendorsManagementPage(),
-              ),
-              GoRoute(
-                path: 'drivers',
-                builder: (_, __) => const DriversManagementScreen(),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ],
+                  ],
+                ),
+                GoRoute(
+                  path: 'analytics',
+                  builder: (_, __) => const AnalyticsOverviewPage(),
+                ),
+                GoRoute(
+                  path: 'revenue-analytics',
+                  builder: (_, __) => const RevenueAnalyticsScreen(),
+                ),
+                GoRoute(
+                  path: 'approvals',
+                  builder: (_, __) => const BouquetApprovalPage(),
+                ),
+                GoRoute(
+                  path: 'perfume-approvals',
+                  builder: (_, __) => const PerfumeApprovalScreen(),
+                ),
+                GoRoute(
+                  path: 'bouquet-orders',
+                  builder: (_, __) => const BouquetOmsScreen(),
+                ),
+                GoRoute(
+                  path: 'perfume-orders',
+                  builder: (_, __) => const PerfumeOmsScreen(),
+                ),
+                GoRoute(
+                  path: 'members',
+                  builder: (_, __) => const MembersListScreen(),
+                ),
+                GoRoute(
+                  path: 'vendors',
+                  builder: (_, __) => const AdminVendorsManagementPage(),
+                ),
+                GoRoute(
+                  path: 'drivers',
+                  builder: (_, __) => const DriversManagementScreen(),
+                ),
+                GoRoute(
+                  path: 'advertisements',
+                  builder: (_, __) => const ManageAdsScreen(),
+                ),
+                GoRoute(
+                  path: 'coupons',
+                  builder: (_, __) => const ManageCouponsScreen(),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

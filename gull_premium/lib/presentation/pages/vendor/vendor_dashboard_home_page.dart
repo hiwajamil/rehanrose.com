@@ -80,7 +80,7 @@ class _MiniAnalyticsSection extends StatelessWidget {
       bouquets.where((b) => b.isPendingApproval).length;
 
   int get _totalViewsClicks =>
-      bouquets.fold<int>(0, (sum, b) => sum + b.viewCount + b.orderCount);
+      bouquets.fold<int>(0, (acc, b) => acc + b.viewCount + b.orderCount);
 
   @override
   Widget build(BuildContext context) {

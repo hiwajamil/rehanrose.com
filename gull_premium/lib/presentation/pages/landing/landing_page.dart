@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ import '../../../data/models/flower_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/cards/flower_card.dart';
 import '../../widgets/common/product_grid_shimmer.dart';
+import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
 import '../../widgets/perfume_addon_sheet.dart';
@@ -43,7 +45,8 @@ class _LandingPageState extends ConsumerState<LandingPage> {
     _scrollController = ScrollController();
     updatePageMeta(
       title: kAppName,
-      description: 'Handcrafted flower bouquets for every feeling. Same-day delivery, trusted local florists.',
+      description:
+          'Handcrafted flower bouquets for every feeling. Same-day delivery, trusted local florists.',
       keywords: 'flowers, bouquets, Rehan Rose, florist, flower delivery',
     );
   }
@@ -114,17 +117,19 @@ class _HeroSectionState extends ConsumerState<_HeroSection> {
   void initState() {
     super.initState();
     _videoController = VideoPlayerController.asset(_videoAsset)
-      ..initialize().then((_) {
-        if (mounted) {
-          _videoController
-            ..setLooping(true)
-            ..setVolume(0)
-            ..play();
-          setState(() {});
-        }
-      }).catchError((_) {
-        if (mounted) setState(() {});
-      });
+      ..initialize()
+          .then((_) {
+            if (mounted) {
+              _videoController
+                ..setLooping(true)
+                ..setVolume(0)
+                ..play();
+              setState(() {});
+            }
+          })
+          .catchError((_) {
+            if (mounted) setState(() {});
+          });
     _startHintTimer();
   }
 
@@ -191,27 +196,39 @@ class _HeroSectionState extends ConsumerState<_HeroSection> {
               ),
               const SizedBox(height: 24),
               Padding(
-                padding: EdgeInsetsDirectional.only(start: isRTL ? 24 : 0, end: isRTL ? 0 : 24),
+                padding: EdgeInsetsDirectional.only(
+                  start: isRTL ? 24 : 0,
+                  end: isRTL ? 0 : 24,
+                ),
                 child: Text(
                   l10n.what_do_you_want_to_say,
                   textAlign: TextAlign.center,
                   textDirection: Directionality.of(context),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.inkMuted,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: AppColors.inkMuted,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               ...['All', ...kEmotionCategoryIds].map((id) {
                 final isAll = id == 'All';
-                final label = isAll ? l10n.filterAll : localizedEmotionCategoryTitle(l10n, kEmotionCategories.firstWhere((c) => c.id == id).titleKey);
+                final label = isAll
+                    ? l10n.filterAll
+                    : localizedEmotionCategoryTitle(
+                        l10n,
+                        kEmotionCategories
+                            .firstWhere((c) => c.id == id)
+                            .titleKey,
+                      );
                 final category = isAll ? null : getEmotionCategoryById(id);
                 return Material(
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
-                      ref.read(selectedOccasionProvider.notifier).setOccasion(id);
+                      ref
+                          .read(selectedOccasionProvider.notifier)
+                          .setOccasion(id);
                       if (!isAll) {
                         ref.read(analyticsServiceProvider).logSearch(id);
                       }
@@ -219,19 +236,27 @@ class _HeroSectionState extends ConsumerState<_HeroSection> {
                       Navigator.of(ctx).pop();
                     },
                     child: Padding(
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: isRTL ? 24 : 20, vertical: 16),
+                      padding: EdgeInsetsDirectional.symmetric(
+                        horizontal: isRTL ? 24 : 20,
+                        vertical: 16,
+                      ),
                       child: Row(
                         textDirection: Directionality.of(context),
                         children: [
                           if (category != null) ...[
-                            Icon(category.icon, size: 22, color: AppColors.rose),
+                            Icon(
+                              category.icon,
+                              size: 22,
+                              color: AppColors.rose,
+                            ),
                             const SizedBox(width: 16),
                           ] else
                             const SizedBox(width: 38),
                           Expanded(
                             child: Text(
                               label,
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(
                                     color: AppColors.ink,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -259,7 +284,9 @@ class _HeroSectionState extends ConsumerState<_HeroSection> {
 
     final locale = Localizations.localeOf(context);
     final isRTL = locale.languageCode == 'ar' || locale.languageCode == 'ku';
-    final headlineFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.cormorantGaramond;
+    final headlineFont = isRTL
+        ? GoogleFonts.notoNaskhArabic
+        : GoogleFonts.cormorantGaramond;
     final bodyFont = isRTL ? GoogleFonts.notoNaskhArabic : GoogleFonts.manrope;
 
     final selectedOccasion = ref.watch(selectedOccasionProvider);
@@ -319,7 +346,9 @@ class _HeroSectionState extends ConsumerState<_HeroSection> {
           // 3. Centered headline + subtitle only
           Center(
             child: Padding(
-              padding: EdgeInsetsDirectional.symmetric(horizontal: isMobile ? 24 : 48),
+              padding: EdgeInsetsDirectional.symmetric(
+                horizontal: isMobile ? 24 : 48,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -406,7 +435,10 @@ class _HeroSectionState extends ConsumerState<_HeroSection> {
                                   switchInCurve: Curves.easeOut,
                                   switchOutCurve: Curves.easeIn,
                                   transitionBuilder: (child, animation) =>
-                                      FadeTransition(opacity: animation, child: child),
+                                      FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      ),
                                   child: Text(
                                     currentHint,
                                     key: ValueKey<int>(_hintIndex),
@@ -416,7 +448,9 @@ class _HeroSectionState extends ConsumerState<_HeroSection> {
                                       fontSize: isMobile ? 18 : 20,
                                       fontWeight: FontWeight.w400,
                                       fontStyle: FontStyle.italic,
-                                      color: AppColors.inkMuted.withValues(alpha: 0.9),
+                                      color: AppColors.inkMuted.withValues(
+                                        alpha: 0.9,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -459,6 +493,10 @@ class _ProductsSection extends ConsumerStatefulWidget {
 class _ProductsSectionState extends ConsumerState<_ProductsSection> {
   int _bouquetLimit = 6;
   String _selectedPerfumeBrand = 'All';
+  final PageController _adsPageController = PageController();
+  Timer? _adsTimer;
+  int _adsCurrentPage = 0;
+  int _adsImageCount = 0;
   static const List<String> _premiumPerfumeBrands = [
     'All',
     'Chanel',
@@ -487,8 +525,36 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
     super.initState();
   }
 
+  void _syncAdsAutoScroll(int imageCount) {
+    if (_adsImageCount != imageCount) {
+      _adsImageCount = imageCount;
+      _adsCurrentPage = imageCount > 1 ? imageCount * 1000 : 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_adsPageController.hasClients) return;
+        _adsPageController.jumpToPage(_adsCurrentPage);
+      });
+    }
+
+    if (imageCount > 1 && _adsTimer == null) {
+      _adsTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+        if (!mounted || !_adsPageController.hasClients) return;
+        _adsCurrentPage += 1;
+        _adsPageController.animateToPage(
+          _adsCurrentPage,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      });
+    } else if (imageCount <= 1) {
+      _adsTimer?.cancel();
+      _adsTimer = null;
+    }
+  }
+
   @override
   void dispose() {
+    _adsTimer?.cancel();
+    _adsPageController.dispose();
     super.dispose();
   }
 
@@ -501,7 +567,10 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
     if (widget.saleOnly) {
       final bouquetsAsync = ref.watch(landingBouquetsProvider);
       return SectionContainer(
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 24),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: 48,
+          vertical: 24,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -511,9 +580,9 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
               child: Text(
                 l10n.specialOffersTitle,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.inkCharcoal,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.inkCharcoal,
+                ),
               ),
             ),
             SizedBox(height: isMobile ? 16 : 24),
@@ -527,10 +596,9 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                 children: [
                   Text(
                     l10n.couldNotLoadBouquets,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.inkMuted),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
                   ),
                   const SizedBox(height: 8),
                   TextButton.icon(
@@ -541,10 +609,14 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                 ],
               ),
               data: (bouquets) {
-                final list = bouquets.where((b) => b.isOnSaleEffective).toList();
+                final list = bouquets
+                    .where((b) => b.isOnSaleEffective)
+                    .toList();
                 if (list.isEmpty) {
                   if (bouquets.isNotEmpty) {
-                    final fallbackList = bouquets.take(isMobile ? 4 : 8).toList();
+                    final fallbackList = bouquets
+                        .take(isMobile ? 4 : 8)
+                        .toList();
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -552,16 +624,18 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
                             l10n.noOffersBrowseAll,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: AppColors.inkMuted,
-                                ),
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(color: AppColors.inkMuted),
                           ),
                         ),
                         Padding(
                           padding: const EdgeInsets.only(bottom: 24),
                           child: FilledButton.icon(
                             onPressed: () => context.go('/'),
-                            icon: const Icon(Icons.local_florist_outlined, size: 20),
+                            icon: const Icon(
+                              Icons.local_florist_outlined,
+                              size: 20,
+                            ),
                             label: Text(l10n.browseAllBouquets),
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.rosePrimary,
@@ -572,7 +646,9 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                         _BouquetGrid(
                           list: fallbackList,
                           isMobile: isMobile,
-                          orderButtonEnabled: ref.watch(connectivityStatusProvider).value ?? true,
+                          orderButtonEnabled:
+                              ref.watch(connectivityStatusProvider).value ??
+                              true,
                         ),
                       ],
                     );
@@ -581,17 +657,17 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                     padding: const EdgeInsets.only(bottom: 24),
                     child: Text(
                       l10n.noOffersYet,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.inkMuted),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.inkMuted,
+                      ),
                     ),
                   );
                 }
                 return _BouquetGrid(
                   list: list,
                   isMobile: isMobile,
-                  orderButtonEnabled: ref.watch(connectivityStatusProvider).value ?? true,
+                  orderButtonEnabled:
+                      ref.watch(connectivityStatusProvider).value ?? true,
                 );
               },
             ),
@@ -604,7 +680,10 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
         .collection('bouquets')
         .where('approvalStatus', isEqualTo: 'approved');
     if (selectedOccasion != 'All') {
-      bouquetQuery = bouquetQuery.where('emotionCategoryId', isEqualTo: selectedOccasion);
+      bouquetQuery = bouquetQuery.where(
+        'emotionCategoryId',
+        isEqualTo: selectedOccasion,
+      );
     }
     bouquetQuery = bouquetQuery.limit(_bouquetLimit);
 
@@ -612,11 +691,17 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
         .collection('perfumes')
         .where('approvalStatus', isEqualTo: 'approved');
     if (_selectedPerfumeBrand != 'All') {
-      perfumeQuery = perfumeQuery.where('brand', isEqualTo: _selectedPerfumeBrand);
+      perfumeQuery = perfumeQuery.where(
+        'brand',
+        isEqualTo: _selectedPerfumeBrand,
+      );
     }
 
     return SectionContainer(
-      padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 24),
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: 48,
+        vertical: 24,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -637,8 +722,8 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                     Text(
                       l10n.couldNotLoadBouquets,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.inkMuted,
-                          ),
+                        color: AppColors.inkMuted,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextButton.icon(
@@ -655,7 +740,8 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                   .map((doc) => FlowerModel.fromJson(doc.id, doc.data()))
                   .toList();
               final hasMoreBouquets = docs.length >= _bouquetLimit;
-              final isOnline = ref.watch(connectivityStatusProvider).value ?? true;
+              final isOnline =
+                  ref.watch(connectivityStatusProvider).value ?? true;
 
               if (bouquets.isEmpty) {
                 return Padding(
@@ -664,9 +750,9 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                     selectedOccasion == 'All'
                         ? l10n.noBouquetsYet
                         : l10n.noBouquetsForFeeling,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.inkMuted,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
                   ),
                 );
               }
@@ -719,6 +805,26 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
             color: AppColors.border.withValues(alpha: 0.8),
           ),
           const SizedBox(height: 22),
+          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('settings')
+                .doc('home_ads')
+                .snapshots(),
+            builder: (context, snapshot) {
+              final data = snapshot.data?.data();
+              final imageUrls = ((data?['imageUrls'] as List?) ?? const [])
+                  .map((e) => e.toString())
+                  .where((e) => e.isNotEmpty)
+                  .toList();
+              if (imageUrls.isEmpty) return const SizedBox.shrink();
+              _syncAdsAutoScroll(imageUrls.length);
+              return _LuxuryHomeAdsCarousel(
+                imageUrls: imageUrls,
+                controller: _adsPageController,
+              );
+            },
+          ),
+          const SizedBox(height: 20),
           Center(
             child: Text(
               l10n.luxury_perfumes,
@@ -747,7 +853,10 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                   onTap: () => setState(() => _selectedPerfumeBrand = brand),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? const Color(0xFFB8892A).withValues(alpha: 0.12)
@@ -764,7 +873,9 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                         brand,
                         style: GoogleFonts.montserrat(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: isSelected
                               ? const Color(0xFF8E6A1C)
                               : AppColors.inkMuted,
@@ -791,8 +902,8 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                       'More exclusive perfumes arriving soon.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.inkMuted,
-                          ),
+                        color: AppColors.inkMuted,
+                      ),
                     ),
                   ),
                 );
@@ -807,8 +918,8 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                       'More exclusive perfumes arriving soon.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.inkMuted,
-                          ),
+                        color: AppColors.inkMuted,
+                      ),
                     ),
                   ),
                 );
@@ -833,6 +944,54 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
   }
 }
 
+class _LuxuryHomeAdsCarousel extends StatelessWidget {
+  const _LuxuryHomeAdsCarousel({
+    required this.imageUrls,
+    required this.controller,
+  });
+
+  final List<String> imageUrls;
+  final PageController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        height: 190,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: PageView.builder(
+            controller: controller,
+            itemCount: imageUrls.length > 1 ? null : 1,
+            itemBuilder: (context, index) {
+              final imageUrl = imageUrls[index % imageUrls.length];
+              return AppCachedImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                errorIcon: Icons.image_not_supported_outlined,
+                errorIconSize: 34,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Reusable bouquet grid for landing and offers fallback.
 class _BouquetGrid extends StatelessWidget {
   final List<FlowerModel> list;
@@ -851,11 +1010,9 @@ class _BouquetGrid extends StatelessWidget {
     final crossAxisCount = width < kMobileBreakpoint
         ? 2
         : width < kTabletBreakpoint
-            ? 3
-            : 4;
-    final gap = width < kMobileBreakpoint
-        ? (width < 380 ? 8.0 : 10.0)
-        : 16.0;
+        ? 3
+        : 4;
+    final gap = width < kMobileBreakpoint ? (width < 380 ? 8.0 : 10.0) : 16.0;
     final gapTotal = (crossAxisCount - 1) * gap;
     final l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(
@@ -868,10 +1025,16 @@ class _BouquetGrid extends StatelessWidget {
             final imageUrl = b.listingImageUrl.isNotEmpty
                 ? b.listingImageUrl
                 : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
-            final displayPrice = b.isOnSaleEffective && b.discountPrice != null && b.discountPrice! > 0
+            final displayPrice =
+                b.isOnSaleEffective &&
+                    b.discountPrice != null &&
+                    b.discountPrice! > 0
                 ? formatPriceWithCurrency(b.discountPrice!, l10n.currencyIqd)
                 : formatPriceWithCurrency(b.priceIqd, l10n.currencyIqd);
-            final originalPrice = b.isOnSaleEffective && b.discountPrice != null && b.discountPrice! > 0
+            final originalPrice =
+                b.isOnSaleEffective &&
+                    b.discountPrice != null &&
+                    b.discountPrice! > 0
                 ? formatPriceWithCurrency(b.priceIqd, l10n.currencyIqd)
                 : null;
             return SizedBox(
@@ -904,7 +1067,10 @@ class _TrustSection extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
     return SectionContainer(
-      padding: const EdgeInsetsDirectional.symmetric(horizontal: 48, vertical: 48),
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: 48,
+        vertical: 48,
+      ),
       child: Column(
         children: [
           Seo.text(
@@ -914,9 +1080,9 @@ class _TrustSection extends StatelessWidget {
               textAlign: TextAlign.center,
               textDirection: Directionality.of(context),
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.inkMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
+                color: AppColors.inkMuted,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -954,9 +1120,12 @@ class _TrustBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: 20,
+        vertical: 12,
+      ),
       decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.border),
       ),
@@ -971,10 +1140,10 @@ class _TrustBadge extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.inkMuted,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
+                color: AppColors.inkMuted,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
             ),
           ),
         ],
@@ -1010,8 +1179,8 @@ class _PerfumeGrid extends StatelessWidget {
     final crossAxisCount = width < kMobileBreakpoint
         ? 2
         : width < kTabletBreakpoint
-            ? 3
-            : 4;
+        ? 3
+        : 4;
     final gap = width < kMobileBreakpoint ? 10.0 : 16.0;
     final gapTotal = (crossAxisCount - 1) * gap;
     return LayoutBuilder(
@@ -1040,7 +1209,7 @@ class _PerfumeGrid extends StatelessWidget {
   }
 }
 
-class _PerfumeCard extends StatelessWidget {
+class _PerfumeCard extends ConsumerWidget {
   const _PerfumeCard({
     required this.item,
     required this.imageUrl,
@@ -1064,9 +1233,8 @@ class _PerfumeCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => PerfumeAddonBottomSheet(
-        perfume: PerfumeAddonData.fromItemMap(item),
-      ),
+      builder: (ctx) =>
+          PerfumeAddonBottomSheet(perfume: PerfumeAddonData.fromItemMap(item)),
     );
   }
 
@@ -1085,7 +1253,7 @@ class _PerfumeCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final parsedPrice = priceRaw is num
         ? (priceRaw as num).toInt()
         : int.tryParse(priceRaw?.toString() ?? '') ?? 0;
@@ -1094,6 +1262,12 @@ class _PerfumeCard extends StatelessWidget {
         'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=900&q=80';
     final cardRadius = BorderRadius.circular(18);
     final l10n = AppLocalizations.of(context)!;
+    final authUser = ref.watch(authStateProvider).value;
+    final wishlist = authUser == null
+        ? const <String>[]
+        : (ref.watch(userWishlistProvider(authUser.uid)).value ?? const <String>[]);
+    final productId = item['id']?.toString() ?? '';
+    final isFavorite = productId.isNotEmpty && wishlist.contains(productId);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1119,8 +1293,50 @@ class _PerfumeCard extends StatelessWidget {
               children: [
                 AspectRatio(
                   aspectRatio: isCompact ? 1 : 1.12,
-                  child: _buildPerfumeImage(
-                    imageUrl.isEmpty ? fallbackImage : imageUrl,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _buildPerfumeImage(
+                        imageUrl.isEmpty ? fallbackImage : imageUrl,
+                      ),
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: ClipOval(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Material(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              child: InkWell(
+                                onTap: () async {
+                                  if (authUser == null) {
+                                    showLoginModalOrPush(context);
+                                    return;
+                                  }
+                                  if (productId.isEmpty) return;
+                                  await ref
+                                      .read(authRepositoryProvider)
+                                      .toggleFavorite(productId);
+                                },
+                                child: SizedBox(
+                                  width: 36,
+                                  height: 36,
+                                  child: Icon(
+                                    isFavorite
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    size: 20,
+                                    color: isFavorite
+                                        ? AppColors.rosePrimary
+                                        : Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Padding(
@@ -1171,8 +1387,9 @@ class _PerfumeCard extends StatelessWidget {
                             style: GoogleFonts.montserrat(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.inkCharcoal
-                                  .withValues(alpha: 0.78),
+                              color: AppColors.inkCharcoal.withValues(
+                                alpha: 0.78,
+                              ),
                               letterSpacing: 0.2,
                             ),
                           ),

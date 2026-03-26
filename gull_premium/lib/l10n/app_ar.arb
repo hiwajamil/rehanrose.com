@@ -381,5 +381,7 @@
   "active_perfumes": "العطور النشطة",
   "perfume_name": "اسم العطر",
   "brand": "الماركة",
-  "choose_brand": "اختر الماركة"
+  "choose_brand": "اختر الماركة",
+  "how_can_i_help": "كيف يمكنني مساعدتك؟",
+  "whatsapp_support_message": "مرحباً فريق ريحان روز، أحتاج إلى بعض المساعدة..."
 }

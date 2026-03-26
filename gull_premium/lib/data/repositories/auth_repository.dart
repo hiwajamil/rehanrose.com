@@ -172,6 +172,53 @@ class AuthRepository {
       'photoURL': user.photoURL,
       'createdAt': FieldValue.serverTimestamp(),
       'role': 'customer',
+      'wishlist': <String>[],
+    });
+  }
+
+  /// Stream current user's wishlist product ids from users/{uid}.wishlist.
+  Stream<List<String>> watchWishlist(String uid) {
+    return _firestore.collection('users').doc(uid).snapshots().map((doc) {
+      final data = doc.data();
+      if (data == null) return const <String>[];
+      final raw = data['wishlist'];
+      if (raw is! List) return const <String>[];
+      return raw
+          .map((e) => e?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+    });
+  }
+
+  /// Toggle a product id in current user's wishlist array.
+  /// Adds if absent, removes if already present.
+  Future<void> toggleFavorite(String productId) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw fa.FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'Sign in required to save favorites.',
+      );
+    }
+    final id = productId.trim();
+    if (id.isEmpty) return;
+
+    final ref = _firestore.collection('users').doc(user.uid);
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      final data = snap.data();
+      final raw = data?['wishlist'];
+      final current = <String>{
+        if (raw is List)
+          ...raw.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty),
+      };
+      if (current.contains(id)) {
+        current.remove(id);
+      } else {
+        current.add(id);
+      }
+      tx.set(ref, {'wishlist': current.toList(growable: false)}, SetOptions(merge: true));
     });
   }
 

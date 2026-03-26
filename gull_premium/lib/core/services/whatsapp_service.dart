@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/price_format_utils.dart';
@@ -6,17 +7,24 @@ import '../../data/models/add_on_model.dart';
 
 /// Formats current date/time as "YYYY-MM-DD HH:mm" for WhatsApp order messages.
 String _orderDateTimeString() {
-  final now = DateTime.now();
-  final y = now.year;
-  final m = now.month.toString().padLeft(2, '0');
-  final d = now.day.toString().padLeft(2, '0');
-  final h = now.hour.toString().padLeft(2, '0');
-  final min = now.minute.toString().padLeft(2, '0');
-  return '$y-$m-$d $h:$min';
+  return DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+}
+
+String _displayPerfumeCode(String? raw) {
+  final t = raw?.trim() ?? '';
+  if (t.isEmpty) return 'Not provided';
+  if (t.startsWith('#')) return t;
+  return '#$t';
 }
 
 /// Hardcoded Super Admin WhatsApp number (no '00' or '+').
 const String kWhatsAppOrderNumber = '9647709818181';
+
+Uri _whatsAppOrderUri(String body) {
+  return Uri.https('wa.me', '/$kWhatsAppOrderNumber', <String, String>{
+    'text': body,
+  });
+}
 
 /// Placeholder number for WhatsApp ordering (replace with real number when ready).
 const String kWhatsAppOrderPlaceholderNumber = '9647700000000';
@@ -55,6 +63,9 @@ Future<bool> launchOrderWhatsApp({
   String? voiceMessageUrl,
   bool freeDeliveryUnlocked = false,
   DeliveryLatLng? deliveryLocation,
+  String? promoCode,
+  double? promoDiscountPercentage,
+  int? discountedTotalPriceIqd,
 }) async {
   final dateTimeStr = _orderDateTimeString();
   final customerPhone =
@@ -69,7 +80,13 @@ Future<bool> launchOrderWhatsApp({
     if (selectedAddOns != null && selectedAddOns.isNotEmpty) ...[
       for (final a in selectedAddOns) 'Add-on: ${a.nameEn} - ${iqdPriceString(a.priceIqd)}',
     ],
+    if (promoCode != null &&
+        promoCode.trim().isNotEmpty &&
+        promoDiscountPercentage != null)
+      'Promo Code Applied: ${promoCode.trim().toUpperCase()} (-${promoDiscountPercentage.toStringAsFixed(promoDiscountPercentage % 1 == 0 ? 0 : 1)}%)',
     if (totalPriceIqd != null) 'Total Price: ${iqdPriceString(totalPriceIqd)}',
+    if (discountedTotalPriceIqd != null)
+      'Final Discounted Price: ${iqdPriceString(discountedTotalPriceIqd)}',
     if (freeDeliveryUnlocked) 'Delivery: FREE',
     if (voiceMessageUrl != null && voiceMessageUrl.isNotEmpty)
       'Voice Message (QR): $voiceMessageUrl',
@@ -79,10 +96,7 @@ Future<bool> launchOrderWhatsApp({
   ];
   final body = lines.join('\n');
 
-  // WhatsApp API: https://wa.me/<number>?text=<encoded>
-  final uri = Uri.parse(
-    'https://wa.me/$kWhatsAppOrderNumber?text=${Uri.encodeComponent(body)}',
-  );
+  final uri = _whatsAppOrderUri(body);
 
   if (await canLaunchUrl(uri)) {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -90,33 +104,48 @@ Future<bool> launchOrderWhatsApp({
   return false;
 }
 
-/// Opens WhatsApp with a perfume order message (separate from bouquet flow).
-/// [addOnBouquetName] is included only when non-empty.
+/// Opens WhatsApp with a perfume order message (aligned with bouquet [launchOrderWhatsApp] layout).
+///
+/// [perfumeCodeRaw] is typically [FlowerModel.bouquetCode] (e.g. PF-12 → displayed as #PF-12).
+/// [addOnBouquetName] / [addOnBouquetPriceIqd]: include the add-on line only when a bouquet is selected.
 Future<bool> launchPerfumeOrderWhatsApp({
   required String perfumeName,
   required String brand,
+  required int perfumePriceIqd,
+  required String perfumeCodeRaw,
   required int totalPriceIqd,
   String? addOnBouquetName,
-  required bool hasVoiceMessage,
-  DeliveryLatLng? deliveryLocation,
+  int? addOnBouquetPriceIqd,
+  String? productUrl,
   String? voiceMessageUrl,
+  DeliveryLatLng? deliveryLocation,
 }) async {
+  final dateTimeStr = _orderDateTimeString();
+  final customerPhone =
+      FirebaseAuth.instance.currentUser?.phoneNumber ?? 'Not provided';
+  final voiceTrimmed = voiceMessageUrl?.trim() ?? '';
+  final voiceLine = voiceTrimmed.isNotEmpty ? voiceTrimmed : 'No';
+  final addOnNameTrimmed = addOnBouquetName?.trim() ?? '';
+  final int? addOnIqd = addOnBouquetPriceIqd;
+
   final lines = <String>[
-    'Hello, I would like to order the perfume: $perfumeName by $brand.',
-    if (addOnBouquetName != null && addOnBouquetName.trim().isNotEmpty)
-      'Add-on Bouquet: $addOnBouquetName.',
-    'Voice Message: ${hasVoiceMessage ? 'Yes' : 'No'}.',
-    'Total: ${iqdPriceString(totalPriceIqd)}.',
-    if (voiceMessageUrl != null && voiceMessageUrl.isNotEmpty)
-      'Voice Message (QR): $voiceMessageUrl',
-    if (deliveryLocation != null)
-      'Delivery Location: ${deliveryLocation.googleMapsUrl}',
+    'Hello, I would like to order:',
+    'Date & Time: $dateTimeStr',
+    'Customer Phone: $customerPhone',
+    '',
+    'Item: Perfume - $perfumeName by $brand (IQD ${formatPriceIqd(perfumePriceIqd)})',
+    'Perfume Code: ${_displayPerfumeCode(perfumeCodeRaw)}',
+    if (addOnNameTrimmed.isNotEmpty && addOnIqd != null)
+      'Add-on Bouquet: $addOnNameTrimmed (IQD ${formatPriceIqd(addOnIqd)})',
+    'Total Price: IQD ${formatPriceIqd(totalPriceIqd)}',
+    'Voice Message (QR): $voiceLine',
+    if (productUrl != null && productUrl.trim().isNotEmpty)
+      'Link: ${productUrl.trim()}',
+    'Delivery Location: ${deliveryLocation != null ? deliveryLocation.googleMapsUrl : 'Not provided'}',
   ];
   final body = lines.join('\n');
 
-  final uri = Uri.parse(
-    'https://wa.me/$kWhatsAppOrderNumber?text=${Uri.encodeComponent(body)}',
-  );
+  final uri = _whatsAppOrderUri(body);
 
   if (await canLaunchUrl(uri)) {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -160,9 +189,7 @@ Future<bool> launchWhatsAppOrder({
   ];
   final body = lines.join('\n');
 
-  final uri = Uri.parse(
-    'https://wa.me/$kWhatsAppOrderNumber?text=${Uri.encodeComponent(body)}',
-  );
+  final uri = _whatsAppOrderUri(body);
 
   if (await canLaunchUrl(uri)) {
     return launchUrl(

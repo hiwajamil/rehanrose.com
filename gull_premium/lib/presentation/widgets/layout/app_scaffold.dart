@@ -16,6 +16,7 @@ import '../../../core/utils/rtl_utils.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../pages/auth/login_screen.dart';
 import '../../pages/track_order_screen.dart';
+import '../common/floating_whatsapp_button.dart';
 import 'app_footer.dart';
 
 void showDeliveryAreasDialog(BuildContext context) {
@@ -123,6 +124,11 @@ class AppScaffold extends ConsumerWidget {
     final showPublicHeader = !_isVendorDashboard(context, ref);
 
     return Scaffold(
+      floatingActionButton: const Padding(
+        padding: EdgeInsets.only(bottom: 22),
+        child: FloatingWhatsappButton(),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       drawer: showPublicHeader
           ? _MobileNavDrawer(
               onNavigate: () {

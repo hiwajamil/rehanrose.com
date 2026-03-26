@@ -1,14 +1,12 @@
-import 'dart:math';
-import 'dart:ui';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 
-/// Cinematic splash screen with a "dust assembly and dispersion" effect:
-/// characters scatter in from random positions, hold, then blow away before
-/// transitioning to the main app.
+/// Luxury splash screen:
+/// A fast-paced brand fade sequence, followed by the final slogan.
 class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;
 
@@ -20,186 +18,167 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  static const String _brandPromise =
-      'We believe that every emotion deserves to arrive beautifully.';
+  static const String _finalSlogan =
+      'We believe that every emotion deserves to arrive beautifully';
+  static const List<String> _luxuryWords = <String>[
+    'Chanel',
+    'Red Roses',
+    'Dior',
+    'Orchids',
+    'Tom Ford',
+  ];
 
-  static const int _assemblyDurationMs = 2500;
-  static const int _holdDurationMs = 2000;
-  static const int _dispersionDurationMs = 1500;
+  // Total word sequence duration: 5 * 450ms = 2250ms (~2.25s).
+  static const Duration _wordInterval = Duration(milliseconds: 450);
+  static const Duration _wordFadeDuration = Duration(milliseconds: 220);
 
-  static const double _blurAssemblyStart = 15.0;
-  static const double _scaleAssemblyStart = 0.1;
-  static const double _blurDispersionEnd = 15.0;
+  // Final slogan should remain readable for ~1 to 1.5 seconds.
+  static const Duration _sloganMinVisibleDuration =
+      Duration(milliseconds: 1400);
+  static const Duration _sloganFadeInDuration = Duration(milliseconds: 550);
+  static const Duration _sloganFadeOutDuration = Duration(milliseconds: 250);
 
-  late final AnimationController _controller;
-  late final List<Offset> _startOffsets;
-  late final List<Offset> _dispersionOffsets;
-  late final List<double> _assemblyDelays;
-  final Random _random = Random();
+  int _wordIndex = 0;
+  bool _showWords = true;
+  bool _showFinalSlogan = false;
+  bool _isExiting = false;
+  bool _didComplete = false;
 
   @override
   void initState() {
     super.initState();
-    final totalMs =
-        _assemblyDurationMs + _holdDurationMs + _dispersionDurationMs;
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: totalMs),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runSequence());
+  }
 
-    final len = _brandPromise.length;
-    _startOffsets = List.generate(
-      len,
-      (_) => Offset(
-        (_random.nextDouble() * 2 - 1) * 280,
-        (_random.nextDouble() * 2 - 1) * 180,
-      ),
-    );
-    _dispersionOffsets = List.generate(
-      len,
-      (_) => Offset(
-        (_random.nextDouble() * 2 - 1) * 220,
-        (_random.nextDouble() * 2 - 1) * 120,
-      ),
-    );
-    _assemblyDelays = List.generate(
-      len,
-      (_) => _random.nextDouble() * 0.35,
-    );
 
-    _controller.forward().then((_) {
-      if (mounted) widget.onComplete();
+  Future<void> _runSequence() async {
+    // Run brand animation concurrently with any background init.
+    final brandFuture = _runBrandSequence();
+    final backgroundFuture = _runBackgroundInitialization();
+
+    await brandFuture;
+    if (!mounted) return;
+
+    // Grand finale: fade in slogan once the word sequence finishes.
+    setState(() {
+      _showWords = false;
+      _showFinalSlogan = true;
+      _isExiting = false;
     });
+
+    // Wait until the slogan has been on screen long enough AND background
+    // work has finished (whichever is smoother).
+    await Future.wait(<Future<void>>[
+      backgroundFuture,
+      Future<void>.delayed(_sloganMinVisibleDuration),
+    ]);
+
+    if (!mounted || _didComplete) return;
+
+    // Quick fade-out so the navigation feels seamless.
+    setState(() => _isExiting = true);
+    await Future<void>.delayed(_sloganFadeOutDuration);
+
+    if (!mounted || _didComplete) return;
+    _didComplete = true;
+    widget.onComplete();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  Future<void> _runBrandSequence() async {
+    for (var i = 0; i < _luxuryWords.length; i++) {
+      if (!mounted) return;
+      setState(() => _wordIndex = i);
+      await Future<void>.delayed(_wordInterval);
+    }
   }
 
-  TextStyle get _textStyle => GoogleFonts.playfairDisplay(
-        fontSize: 28,
-        fontWeight: FontWeight.w500,
+  Future<void> _runBackgroundInitialization() async {
+    // Firebase and locale init already happens before `runApp()` in `main.dart`.
+    // This function exists to keep the splash sequencing clean and extensible
+    // if you add additional warmups later.
+    await Future<void>.delayed(Duration.zero);
+  }
+
+  TextStyle _luxuryTextStyle({required double fontSize}) =>
+      GoogleFonts.playfairDisplay(
+        fontSize: fontSize,
+        fontWeight: FontWeight.w600,
         fontStyle: FontStyle.italic,
-        letterSpacing: 0.3,
+        letterSpacing: 0.6,
+        height: 1.1,
         color: AppColors.inkCharcoal,
-        height: 1.5,
+        decoration: TextDecoration.none,
       );
+
+  TextStyle get _wordTextStyle => _luxuryTextStyle(fontSize: 48);
+
+  TextStyle get _sloganTextStyle => _luxuryTextStyle(fontSize: 22);
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final maxWidth = size.width - 80;
-    final center = Offset(size.width / 2, size.height / 2);
-
-    final painter = TextPainter(
-      text: TextSpan(text: _brandPromise, style: _textStyle),
-      textDirection: TextDirection.ltr,
-      maxLines: 10,
-    )..layout(maxWidth: maxWidth);
-
-    final textWidth = painter.width;
-    final textHeight = painter.height;
-    final contentTopLeft = Offset(
-      center.dx - textWidth / 2,
-      center.dy - textHeight / 2,
-    );
-
-    final targetOffsets = <Offset>[];
-    for (var i = 0; i <= _brandPromise.length; i++) {
-      targetOffsets.add(
-        painter.getOffsetForCaret(TextPosition(offset: i), Rect.zero),
-      );
-    }
-
-    return Container(
-      color: _splashBackground,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          final t = _controller.value;
-          final totalDuration =
-              _assemblyDurationMs + _holdDurationMs + _dispersionDurationMs;
-          final tAssembly = _assemblyDurationMs / totalDuration;
-          final tHoldEnd = (_assemblyDurationMs + _holdDurationMs) / totalDuration;
-
-          return Stack(
-            clipBehavior: Clip.none,
-            children: List.generate(_brandPromise.length, (i) {
-              double opacity;
-              double blur;
-              double scale;
-              Offset position;
-
-              if (t < tAssembly) {
-                final assemblyProgress = t / tAssembly;
-                final delay = _assemblyDelays[i];
-                final p = ((assemblyProgress - delay) / (1.0 - delay))
-                    .clamp(0.0, 1.0);
-                final curved = Curves.easeOut.transform(p);
-
-                opacity = curved;
-                blur = _blurAssemblyStart * (1 - curved);
-                scale = _scaleAssemblyStart + (1 - _scaleAssemblyStart) * curved;
-                final target = contentTopLeft + targetOffsets[i];
-                position = Offset.lerp(
-                  center + _startOffsets[i],
-                  target,
-                  curved,
-                )!;
-              } else if (t < tHoldEnd) {
-                opacity = 1.0;
-                blur = 0.0;
-                scale = 1.0;
-                position = contentTopLeft + targetOffsets[i];
-              } else {
-                final dispersionProgress =
-                    (t - tHoldEnd) / (1.0 - tHoldEnd);
-                final curved =
-                    Curves.easeIn.transform(dispersionProgress);
-
-                opacity = 1 - curved;
-                blur = _blurDispersionEnd * curved;
-                scale = 1.0 - 0.4 * curved;
-                final target = contentTopLeft + targetOffsets[i];
-                position = Offset.lerp(
-                  target,
-                  target + _dispersionOffsets[i],
-                  curved,
-                )!;
-              }
-
-              return Positioned(
-                left: position.dx,
-                top: position.dy,
-                child: IgnorePointer(
-                  child: Opacity(
-                    opacity: opacity,
-                    child: Transform.scale(
-                      scale: scale,
-                      alignment: Alignment.topLeft,
-                      child: ImageFiltered(
-                        imageFilter: ImageFilter.blur(
-                          sigmaX: blur,
-                          sigmaY: blur,
-                        ),
-                        child: Text(
-                          _brandPromise[i],
-                          style: _textStyle,
-                          textDirection: TextDirection.ltr,
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedOpacity(
+              opacity: _showWords ? 1 : 0,
+              duration: _wordFadeDuration,
+              curve: Curves.easeInOut,
+              child: AnimatedSwitcher(
+                duration: _wordFadeDuration,
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(begin: 0.98, end: 1.0).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
                         ),
                       ),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Text(
+                  _luxuryWords[_wordIndex],
+                  key: ValueKey<String>(_luxuryWords[_wordIndex]),
+                  style: _wordTextStyle,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            AnimatedOpacity(
+              opacity: _showFinalSlogan ? 1.0 : 0.0,
+              duration: _sloganFadeInDuration,
+              curve: Curves.easeInOut,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: AnimatedOpacity(
+                  // Separate opacity for exit so it can fade faster.
+                  opacity: _isExiting ? 0.0 : 1.0,
+                  duration: _sloganFadeOutDuration,
+                  curve: Curves.easeOut,
+                  child: Center(
+                    child: Text(
+                      _finalSlogan,
+                      style: _sloganTextStyle,
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-              );
-            }),
-          );
-        },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  static const Color _splashBackground = Color(0xFFFAFAF9);
 }

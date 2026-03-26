@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../core/theme/app_colors.dart';
+import '../widgets/common/order_tracking_timeline.dart';
 
 /// Premium customer-facing order tracking screen.
 ///
@@ -344,31 +345,15 @@ class _OrderTimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stepIndex = _stepIndexForStatus(order.status);
-
-    const labels = [
-      'Order Placed',
-      'Preparing',
-      'On the Way',
-      'Delivered',
-    ];
-
-    const icons = [
-      Icons.receipt_long_rounded,
-      Icons.local_florist_rounded,
-      Icons.local_shipping_rounded,
-      Icons.check_circle_rounded,
-    ];
-
     return Card(
-      elevation: 0,
+      elevation: 6,
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: AppColors.border),
+        borderRadius: BorderRadius.circular(16),
       ),
+      shadowColor: AppColors.shadow.withValues(alpha: 0.2),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -391,92 +376,7 @@ class _OrderTimelineCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Column(
-              children: List.generate(4, (index) {
-                final isCompleted = stepIndex != -1 && index < stepIndex;
-                final isActive = stepIndex != -1 && index == stepIndex;
-
-                final iconColor = isCompleted
-                    ? AppColors.forestGreen
-                    : isActive
-                        ? AppColors.accentGold
-                        : AppColors.inkMuted.withValues(alpha: 0.55);
-                final lineColor = isCompleted
-                    ? AppColors.forestGreen.withValues(alpha: 0.85)
-                    : AppColors.border.withValues(alpha: 0.65);
-
-                final circleBg = isCompleted
-                    ? AppColors.forestGreen.withValues(alpha: 0.12)
-                    : isActive
-                        ? AppColors.badgeGoldBackground
-                        : AppColors.background.withValues(alpha: 0.35);
-
-                final textColor = isActive || isCompleted
-                    ? AppColors.ink
-                    : AppColors.inkMuted.withValues(alpha: 0.55);
-
-                final fontWeight = isActive
-                    ? FontWeight.w800
-                    : isCompleted
-                        ? FontWeight.w700
-                        : FontWeight.w600;
-
-                return IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 280),
-                            curve: Curves.easeOut,
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: circleBg,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: (isCompleted || isActive)
-                                    ? AppColors.border.withValues(alpha: 0.65)
-                                    : AppColors.border,
-                              ),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                icons[index],
-                                size: 20,
-                                color: iconColor,
-                              ),
-                            ),
-                          ),
-                          if (index != 3)
-                            Expanded(
-                              child: Container(
-                                width: 2,
-                                margin:
-                                    const EdgeInsets.symmetric(vertical: 2),
-                                color: lineColor,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(width: 12),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          labels[index],
-                          style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            fontWeight: fontWeight,
-                            color: textColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ),
+            OrderTrackingTimeline(orderStatus: order.status),
           ],
         ),
       ),
@@ -549,6 +449,7 @@ int _stepIndexForStatus(String status) {
   if (s == 'pending' || s == 'received' || s == 'new') return 0;
   if (s == 'accepted' || s == 'preparing') return 1;
   if (s == 'on_the_way' || s == 'ontheway' || s == 'on-the-way') return 2;
+  if (s == 'out_for_delivery') return 2;
   if (s == 'ready') return 2; // OMS "ready" is typically near-delivery.
   if (s == 'delivered') return 3;
   return -1; // unknown

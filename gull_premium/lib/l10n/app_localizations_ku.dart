@@ -1211,4 +1211,11 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get choose_brand => 'مارکەیەک هەڵبژێرە';
+
+  @override
+  String get how_can_i_help => 'چۆن هاوکاریت بکەم؟';
+
+  @override
+  String get whatsapp_support_message =>
+      'سڵاو تیمی ڕەیحان ڕۆز، پێویستم بە هاوکارییە...';
 }

@@ -11,6 +11,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../common/app_cached_image.dart';
 import '../add_on_personalization_modal.dart';
+import '../layout/app_scaffold.dart';
 
 /// Luxury minimalist bouquet card: image-led (~70% height), glassmorphism badge,
 /// elegant typography, subtle shadow, minimal action row.
@@ -83,6 +84,11 @@ class _FlowerCardState extends ConsumerState<FlowerCard> {
     final cacheW = widget.isCompact ? 360 : 400;
     final cacheH = (cacheW / _imageAspectRatio).round();
     final montserrat = GoogleFonts.montserrat();
+    final authUser = ref.watch(authStateProvider).value;
+    final wishlist = authUser == null
+        ? const <String>[]
+        : (ref.watch(userWishlistProvider(authUser.uid)).value ?? const <String>[]);
+    final isFavorite = wishlist.contains(widget.id);
 
     return RepaintBoundary(
       child: MouseRegion(
@@ -144,8 +150,24 @@ class _FlowerCardState extends ConsumerState<FlowerCard> {
                                 // Glassmorphism badge: Free QR Voice
                                 Positioned(
                                   top: 10,
-                                  right: 10,
+                                  left: 10,
                                   child: _VoiceQrBadge(),
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: _FavoriteButton(
+                                    isFavorite: isFavorite,
+                                    onPressed: () async {
+                                      if (authUser == null) {
+                                        showLoginModalOrPush(context);
+                                        return;
+                                      }
+                                      await ref
+                                          .read(authRepositoryProvider)
+                                          .toggleFavorite(widget.id);
+                                    },
+                                  ),
                                 ),
                               ],
                             ),
@@ -250,6 +272,40 @@ class _FlowerCardState extends ConsumerState<FlowerCard> {
                     ],
                   ),
                 ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FavoriteButton extends StatelessWidget {
+  const _FavoriteButton({
+    required this.isFavorite,
+    required this.onPressed,
+  });
+
+  final bool isFavorite;
+  final Future<void> Function() onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Material(
+          color: Colors.white.withValues(alpha: 0.22),
+          child: InkWell(
+            onTap: onPressed,
+            child: SizedBox(
+              width: 36,
+              height: 36,
+              child: Icon(
+                isFavorite ? Icons.favorite : Icons.favorite_border,
+                size: 20,
+                color: isFavorite ? AppColors.rosePrimary : Colors.white,
               ),
             ),
           ),

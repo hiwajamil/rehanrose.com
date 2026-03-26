@@ -1191,4 +1191,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get choose_brand => 'اختر الماركة';
+
+  @override
+  String get how_can_i_help => 'كيف يمكنني مساعدتك؟';
+
+  @override
+  String get whatsapp_support_message =>
+      'مرحباً فريق ريحان روز، أحتاج إلى بعض المساعدة...';
 }

@@ -92,3 +92,9 @@ final userPremiumStatusProvider =
     FutureProvider.autoDispose.family<bool, String>((ref, uid) {
   return ref.read(authRepositoryProvider).isPremiumMember(uid);
 });
+
+/// Stream of product ids in users/{uid}.wishlist.
+final userWishlistProvider =
+    StreamProvider.autoDispose.family<List<String>, String>((ref, uid) {
+  return ref.read(authRepositoryProvider).watchWishlist(uid);
+});

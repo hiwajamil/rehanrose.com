@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/whatsapp_order_parser.dart';
@@ -24,6 +27,7 @@ InputDecoration _adminInputDecoration({
   );
   return InputDecoration(
     hintText: hintText,
+    hintStyle: TextStyle(color: Colors.grey.shade400),
     prefixIcon: prefixIcon,
     alignLabelWithHint: alignLabelWithHint,
     filled: true,
@@ -41,6 +45,7 @@ Widget _labeledField(
   String label,
   TextEditingController controller, {
   String? hint,
+  bool enabled = true,
 }) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,6 +60,7 @@ Widget _labeledField(
       const SizedBox(height: 8),
       TextField(
         controller: controller,
+        enabled: enabled,
         decoration: _adminInputDecoration(hintText: hint ?? ''),
         maxLines: label.toLowerCase().contains('link') ? 2 : 1,
       ),
@@ -62,15 +68,20 @@ Widget _labeledField(
   );
 }
 
-/// Admin OMS: Create Order (search by bouquet code + form) and Order Tracking (tabs by status).
-class AdminOrdersPage extends ConsumerStatefulWidget {
-  const AdminOrdersPage({super.key});
-
-  @override
-  ConsumerState<AdminOrdersPage> createState() => _AdminOrdersPageState();
+enum OmsEntryMethod {
+  viaWhatsAppMessage,
+  viaManualProductCode,
 }
 
-class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
+/// Admin OMS: Create Order (search by bouquet code + form) and Order Tracking (tabs by status).
+class BouquetOmsScreen extends ConsumerStatefulWidget {
+  const BouquetOmsScreen({super.key});
+
+  @override
+  ConsumerState<BouquetOmsScreen> createState() => _BouquetOmsScreenState();
+}
+
+class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addonsController = TextEditingController();
@@ -88,8 +99,20 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
   bool _isSubmitting = false;
   bool _didPreSelectVendor = false;
 
+  OmsEntryMethod _entryMethod = OmsEntryMethod.viaWhatsAppMessage;
+  Timer? _codeFetchDebounce;
+  String _lastFetchedCode = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchControllerChanged);
+  }
+
   @override
   void dispose() {
+    _codeFetchDebounce?.cancel();
+    _searchController.removeListener(_onSearchControllerChanged);
     _searchController.dispose();
     _phoneController.dispose();
     _addonsController.dispose();
@@ -100,6 +123,37 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
     _deliveryLocationLinkController.dispose();
     _orderDateController.dispose();
     super.dispose();
+  }
+
+  void _onSearchControllerChanged() {
+    // Only auto-fetch when admin is using manual entry mode.
+    if (_entryMethod != OmsEntryMethod.viaManualProductCode) return;
+    final code = _searchController.text.trim();
+
+    if (code.isEmpty) {
+      _codeFetchDebounce?.cancel();
+      if (_foundBouquet != null || _vendorName != null || _selectedVendor != null) {
+        setState(() {
+          _foundBouquet = null;
+          _vendorName = null;
+          _isLoadingBouquet = false;
+          _selectedVendor = null;
+          _didPreSelectVendor = false;
+          _lastFetchedCode = '';
+        });
+      }
+      return;
+    }
+
+    if (code == _lastFetchedCode) return;
+
+    _codeFetchDebounce?.cancel();
+    _codeFetchDebounce = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      _lastFetchedCode = code;
+      // Fire-and-forget; we rely on _fetchBouquetByCode() to call setState.
+      unawaited(_fetchBouquetByCode());
+    });
   }
 
   void _onAutoExtract() {
@@ -295,6 +349,8 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
               child: TabBarView(
                 children: [
                   _BuildCreateOrderTab(
+                    entryMethod: _entryMethod,
+                    onEntryMethodChanged: (v) => setState(() => _entryMethod = v),
                     searchController: _searchController,
                     phoneController: _phoneController,
                     addonsController: _addonsController,
@@ -304,6 +360,12 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
                     voiceMessageLinkController: _voiceMessageLinkController,
                     deliveryLocationLinkController: _deliveryLocationLinkController,
                     orderDateController: _orderDateController,
+                    detailsLabel: 'Bouquet Details',
+                    detailsHint: 'e.g. Bouquet - IQD 35,000',
+                    codeLabel: 'Bouquet Code',
+                    codeHint: 'e.g. AN-2 or #BQT-102',
+                    whatsAppPasteHint: 'Paste the full WhatsApp order message (Flower:, Bouquet Code:, Total Price:, etc.)',
+                    sendButtonLabel: 'Send the bouquet For preparation',
                     foundBouquet: _foundBouquet,
                     vendorName: _vendorName,
                     vendorsAsync: vendorsAsync,
@@ -326,7 +388,473 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
   }
 }
 
+/// Parses structured WhatsApp perfume order messages into separate fields.
+///
+/// Expected format (from [launchPerfumeOrderWhatsApp]):
+/// - Item: Perfume - `<name>` by `<brand>` (IQD `<price>`)
+/// - Perfume Code: `#<code>`
+/// - Total Price: IQD `<total>`
+/// - Voice Message (QR): `<url-or-No>`
+/// - Delivery Location: `<google-maps-url-or-Not provided>`
+WhatsAppOrderExtract parsePerfumeWhatsAppOrderMessage(String raw) {
+  if (raw.trim().isEmpty) return const WhatsAppOrderExtract();
+
+  (bool, String) stripPrefix(String line, String prefix, String current) {
+    final lower = line.toLowerCase();
+    final prefixLower = prefix.toLowerCase();
+    if (!lower.startsWith(prefixLower)) return (false, current);
+    final value = line.substring(prefix.length).trim();
+    return (true, value);
+  }
+
+  String customerPhone = '';
+  String orderDate = '';
+  String perfumeDetails = '';
+  String perfumeCode = '';
+  String totalPriceRaw = '';
+  String voiceMessageLink = '';
+  String deliveryLocationLink = '';
+  // Link line exists in the message, but we don't map it to voice/delivery.
+  String linkLine = '';
+
+  final lines = raw.replaceAll('\r\n', '\n').split('\n');
+  for (final line in lines) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) continue;
+
+    final dateMatch = stripPrefix(trimmed, 'Date & Time:', orderDate);
+    if (dateMatch.$1) {
+      orderDate = dateMatch.$2;
+      continue;
+    }
+
+    final phoneMatch = stripPrefix(trimmed, 'Customer Phone:', customerPhone);
+    if (phoneMatch.$1) {
+      customerPhone = phoneMatch.$2;
+      continue;
+    }
+
+    // Example: "Item: Perfume - PF-12 by BrandX (IQD 12,000)"
+    final itemMatch =
+        stripPrefix(trimmed, 'Item: Perfume -', perfumeDetails);
+    if (itemMatch.$1) {
+      perfumeDetails = 'Perfume - ${itemMatch.$2}';
+      continue;
+    }
+
+    final codeMatch =
+        stripPrefix(trimmed, 'Perfume Code:', perfumeCode);
+    if (codeMatch.$1) {
+      perfumeCode = codeMatch.$2;
+      continue;
+    }
+
+    final priceMatch = stripPrefix(trimmed, 'Total Price:', totalPriceRaw);
+    if (priceMatch.$1) {
+      totalPriceRaw = priceMatch.$2;
+      continue;
+    }
+
+    final voiceMatch = stripPrefix(
+      trimmed,
+      'Voice Message (QR):',
+      voiceMessageLink,
+    );
+    if (voiceMatch.$1) {
+      voiceMessageLink = voiceMatch.$2;
+      continue;
+    }
+
+    final linkMatch = stripPrefix(trimmed, 'Link:', linkLine);
+    if (linkMatch.$1) {
+      linkLine = linkMatch.$2;
+      continue;
+    }
+
+    final locMatch =
+        stripPrefix(trimmed, 'Delivery Location:', deliveryLocationLink);
+    if (locMatch.$1) {
+      deliveryLocationLink = locMatch.$2;
+      continue;
+    }
+  }
+
+  final normalizedVoice = voiceMessageLink.trim();
+  if (normalizedVoice.isEmpty || normalizedVoice.toLowerCase() == 'no') {
+    voiceMessageLink = '';
+  }
+
+  final normalizedDelivery = deliveryLocationLink.trim();
+  if (normalizedDelivery.isEmpty ||
+      normalizedDelivery.toLowerCase() == 'not provided') {
+    deliveryLocationLink = '';
+  }
+
+  return WhatsAppOrderExtract(
+    customerPhone: customerPhone.trim(),
+    orderDate: orderDate.trim(),
+    bouquetDetails: perfumeDetails.trim(),
+    bouquetCode: perfumeCode.trim(),
+    totalPriceRaw: totalPriceRaw.trim(),
+    voiceMessageLink: voiceMessageLink.trim(),
+    deliveryLocationLink: deliveryLocationLink.trim(),
+  );
+}
+
+/// Admin OMS (Perfumes): Create perfume orders from WhatsApp and track status.
+class PerfumeOmsScreen extends ConsumerStatefulWidget {
+  const PerfumeOmsScreen({super.key});
+
+  @override
+  ConsumerState<PerfumeOmsScreen> createState() => _PerfumeOmsScreenState();
+}
+
+class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addonsController = TextEditingController();
+  final TextEditingController _whatsAppPasteController = TextEditingController();
+  final TextEditingController _perfumeDetailsController = TextEditingController();
+  final TextEditingController _totalPriceController = TextEditingController();
+  final TextEditingController _voiceMessageLinkController =
+      TextEditingController();
+  final TextEditingController _deliveryLocationLinkController =
+      TextEditingController();
+  final TextEditingController _orderDateController = TextEditingController();
+
+  FlowerModel? _foundPerfume;
+  String? _vendorName;
+  VendorListModel? _selectedVendor;
+  bool _isLoadingPerfume = false;
+  bool _isSubmitting = false;
+  bool _didPreSelectVendor = false;
+
+  OmsEntryMethod _entryMethod = OmsEntryMethod.viaWhatsAppMessage;
+  Timer? _codeFetchDebounce;
+  String _lastFetchedCode = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    _codeFetchDebounce?.cancel();
+    _searchController.removeListener(_onSearchControllerChanged);
+    _searchController.dispose();
+    _phoneController.dispose();
+    _addonsController.dispose();
+    _whatsAppPasteController.dispose();
+    _perfumeDetailsController.dispose();
+    _totalPriceController.dispose();
+    _voiceMessageLinkController.dispose();
+    _deliveryLocationLinkController.dispose();
+    _orderDateController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchControllerChanged() {
+    if (_entryMethod != OmsEntryMethod.viaManualProductCode) return;
+    final code = _searchController.text.trim();
+
+    if (code.isEmpty) {
+      _codeFetchDebounce?.cancel();
+      if (_foundPerfume != null ||
+          _vendorName != null ||
+          _selectedVendor != null) {
+        setState(() {
+          _foundPerfume = null;
+          _vendorName = null;
+          _isLoadingPerfume = false;
+          _selectedVendor = null;
+          _didPreSelectVendor = false;
+          _lastFetchedCode = '';
+        });
+      }
+      return;
+    }
+
+    if (code == _lastFetchedCode) return;
+
+    _codeFetchDebounce?.cancel();
+    _codeFetchDebounce = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      _lastFetchedCode = code;
+      // Fire-and-forget; we rely on _fetchPerfumeByCode() to call setState.
+      unawaited(_fetchPerfumeByCode());
+    });
+  }
+
+  void _onAutoExtract() {
+    final extract = parsePerfumeWhatsAppOrderMessage(_whatsAppPasteController.text);
+    _phoneController.text = extract.customerPhone;
+    _orderDateController.text = extract.orderDate;
+    _perfumeDetailsController.text = extract.bouquetDetails;
+    _searchController.text = extract.bouquetCode;
+    _totalPriceController.text = extract.totalPriceRaw;
+    _voiceMessageLinkController.text = extract.voiceMessageLink;
+    _deliveryLocationLinkController.text = extract.deliveryLocationLink;
+    setState(() {});
+    _fetchPerfumeByCode();
+  }
+
+  Future<void> _fetchPerfumeByCode() async {
+    final rawCode = _searchController.text.trim();
+    if (rawCode.isEmpty) {
+      setState(() {
+        _foundPerfume = null;
+        _vendorName = null;
+        _isLoadingPerfume = false;
+      });
+      return;
+    }
+
+    final normalizedCode = rawCode.replaceFirst(RegExp(r'^#\\s*'), '');
+
+    setState(() {
+      _isLoadingPerfume = true;
+      _foundPerfume = null;
+      _vendorName = null;
+      _didPreSelectVendor = false;
+      _selectedVendor = null;
+    });
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('perfumes')
+          .where('bouquetCode', isEqualTo: normalizedCode)
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 15));
+
+      if (snap.docs.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _foundPerfume = null;
+            _vendorName = null;
+            _isLoadingPerfume = false;
+          });
+        }
+        return;
+      }
+
+      final doc = snap.docs.first;
+      final perfume = FlowerModel.fromJson(doc.id, doc.data());
+
+      String? vendorName;
+      if (perfume.vendorId != null && perfume.vendorId!.isNotEmpty) {
+        final authRepo = ref.read(authRepositoryProvider);
+        final vendor = await authRepo.getVendorById(perfume.vendorId!);
+        vendorName = vendor?.shopName;
+      }
+
+      if (mounted) {
+        setState(() {
+          _foundPerfume = perfume;
+          _vendorName = vendorName;
+          _isLoadingPerfume = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _foundPerfume = null;
+          _vendorName = null;
+          _isLoadingPerfume = false;
+        });
+      }
+    }
+  }
+
+  void _maybePreSelectVendor(List<VendorListModel> vendors) {
+    if (_didPreSelectVendor || _selectedVendor != null) return;
+    final vendorId = _foundPerfume?.vendorId;
+    if (vendorId == null || vendorId.isEmpty) return;
+    for (final v in vendors) {
+      if (v.id == vendorId) {
+        _didPreSelectVendor = true;
+        setState(() => _selectedVendor = v);
+        return;
+      }
+    }
+  }
+
+  Future<void> _sendForPreparation() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter customer phone number.')),
+      );
+      return;
+    }
+
+    final vendor = _selectedVendor;
+    if (vendor == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a vendor.')),
+      );
+      return;
+    }
+
+    final perfumeCode = _searchController.text.trim();
+    if (perfumeCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfume code is required.')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final repo = ref.read(omsOrderRepositoryProvider);
+      final orderId = repo.generateOrderId();
+
+      final extractedPrice = parseTotalPriceFromRaw(_totalPriceController.text.trim());
+      final perfume = _foundPerfume;
+      final price = extractedPrice > 0
+          ? extractedPrice
+          : (perfume != null
+              ? (perfume.discountPrice != null && perfume.discountPrice! > 0
+                  ? perfume.discountPrice!
+                  : perfume.priceIqd)
+              : 0);
+
+      await repo.createOmsOrder(
+        orderId: orderId,
+        data: CreateOmsOrderData(
+          bouquetId: perfume?.id ?? '',
+          bouquetCode: perfume?.bouquetCode ?? perfumeCode,
+          vendorId: vendor.id,
+          customerPhone: phone,
+          addons: _addonsController.text.trim(),
+          totalPrice: price,
+          bouquetName: perfume?.name ?? perfumeCode,
+          vendorName: vendor.shopName,
+          bouquetImageUrl: perfume?.listingImageUrl ?? '',
+          bouquetDetails: _perfumeDetailsController.text.trim(),
+          voiceMessageLink: _voiceMessageLinkController.text.trim(),
+          deliveryLocationLink: _deliveryLocationLinkController.text.trim(),
+          orderDate: _orderDateController.text.trim(),
+        ),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order $orderId created and sent for preparation.')),
+        );
+        _phoneController.clear();
+        _addonsController.clear();
+        _perfumeDetailsController.clear();
+        _totalPriceController.clear();
+        _voiceMessageLinkController.clear();
+        _deliveryLocationLinkController.clear();
+        _orderDateController.clear();
+        _searchController.clear();
+        setState(() {
+          _isSubmitting = false;
+          _foundPerfume = null;
+          _vendorName = null;
+          _selectedVendor = null;
+          _didPreSelectVendor = false;
+          _lastFetchedCode = '';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create order: $e')),
+        );
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vendorsAsync = ref.watch(vendorsListProvider);
+    final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+    final spacing = isMobile ? 16.0 : 24.0;
+
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Order Management (Perfumes)',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.ink,
+                ),
+          ),
+          SizedBox(height: spacing / 2),
+          Text(
+            'Create perfume orders from WhatsApp requests and track status.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.inkMuted,
+                ),
+          ),
+          SizedBox(height: spacing),
+          TabBar(
+            labelColor: AppColors.rosePrimary,
+            unselectedLabelColor: AppColors.inkMuted,
+            indicatorColor: AppColors.rosePrimary,
+            tabs: const [
+              Tab(text: 'Create Order'),
+              Tab(text: 'Order Tracking'),
+            ],
+          ),
+          SizedBox(height: spacing),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _BuildCreateOrderTab(
+                  entryMethod: _entryMethod,
+                  onEntryMethodChanged: (v) => setState(() => _entryMethod = v),
+                  searchController: _searchController,
+                  phoneController: _phoneController,
+                  addonsController: _addonsController,
+                  whatsAppPasteController: _whatsAppPasteController,
+                  bouquetDetailsController: _perfumeDetailsController,
+                  totalPriceController: _totalPriceController,
+                  voiceMessageLinkController: _voiceMessageLinkController,
+                  deliveryLocationLinkController: _deliveryLocationLinkController,
+                  orderDateController: _orderDateController,
+                  detailsLabel: 'Perfume Details',
+                  detailsHint: 'e.g. Perfume - Name by Brand (IQD 35,000)',
+                  codeLabel: 'Perfume Code',
+                  codeHint: 'e.g. PF-12 or #PF-12',
+                  whatsAppPasteHint:
+                      'Paste the full WhatsApp perfume order message (Date & Time, Customer Phone, Item: Perfume -, Perfume Code:, Total Price:, Voice Message (QR):, Delivery Location:, Link:).',
+                  sendButtonLabel: 'Send the perfume For preparation',
+                  foundBouquet: _foundPerfume,
+                  vendorName: _vendorName,
+                  vendorsAsync: vendorsAsync,
+                  selectedVendor: _selectedVendor,
+                  onVendorSelected: (v) => setState(() => _selectedVendor = v),
+                  onVendorsLoadedForPreSelect: _maybePreSelectVendor,
+                  isLoadingBouquet: _isLoadingPerfume,
+                  isSubmitting: _isSubmitting,
+                  onAutoExtract: _onAutoExtract,
+                  onSendForPreparation: _sendForPreparation,
+                  l10n: AppLocalizations.of(context)!,
+                ),
+                const _OrderTrackingTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _BuildCreateOrderTab extends StatelessWidget {
+  final OmsEntryMethod entryMethod;
+  final ValueChanged<OmsEntryMethod> onEntryMethodChanged;
+
   final TextEditingController searchController;
   final TextEditingController phoneController;
   final TextEditingController addonsController;
@@ -336,6 +864,12 @@ class _BuildCreateOrderTab extends StatelessWidget {
   final TextEditingController voiceMessageLinkController;
   final TextEditingController deliveryLocationLinkController;
   final TextEditingController orderDateController;
+  final String detailsLabel;
+  final String detailsHint;
+  final String codeLabel;
+  final String codeHint;
+  final String whatsAppPasteHint;
+  final String sendButtonLabel;
   final FlowerModel? foundBouquet;
   final String? vendorName;
   final AsyncValue<List<VendorListModel>> vendorsAsync;
@@ -349,6 +883,8 @@ class _BuildCreateOrderTab extends StatelessWidget {
   final AppLocalizations l10n;
 
   const _BuildCreateOrderTab({
+    required this.entryMethod,
+    required this.onEntryMethodChanged,
     required this.searchController,
     required this.phoneController,
     required this.addonsController,
@@ -358,6 +894,12 @@ class _BuildCreateOrderTab extends StatelessWidget {
     required this.voiceMessageLinkController,
     required this.deliveryLocationLinkController,
     required this.orderDateController,
+    required this.detailsLabel,
+    required this.detailsHint,
+    required this.codeLabel,
+    required this.codeHint,
+    required this.whatsAppPasteHint,
+    required this.sendButtonLabel,
     required this.foundBouquet,
     required this.vendorName,
     required this.vendorsAsync,
@@ -373,6 +915,9 @@ class _BuildCreateOrderTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final viaWhatsApp = entryMethod == OmsEntryMethod.viaWhatsAppMessage;
+    final viaManual = !viaWhatsApp;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -382,6 +927,61 @@ class _BuildCreateOrderTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ----- Entry Method Toggle -----
+                RadioGroup<OmsEntryMethod>(
+                  groupValue: entryMethod,
+                  onChanged: (v) {
+                    if (v == null) return;
+                    onEntryMethodChanged(v);
+                  },
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Radio<OmsEntryMethod>(
+                              value: OmsEntryMethod.viaWhatsAppMessage,
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Via WhatsApp Message',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.ink,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Radio<OmsEntryMethod>(
+                              value: OmsEntryMethod.viaManualProductCode,
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Via Manual Product Code',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.ink,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 // ----- Paste WhatsApp message & Auto-Extract -----
                 Text(
                   'Paste WhatsApp Message Here',
@@ -393,9 +993,10 @@ class _BuildCreateOrderTab extends StatelessWidget {
                 const SizedBox(height: 8),
                 TextField(
                   controller: whatsAppPasteController,
+                  enabled: viaWhatsApp,
                   maxLines: 6,
                   decoration: _adminInputDecoration(
-                    hintText: 'Paste the full WhatsApp order message (Flower:, Bouquet Code:, Total Price:, etc.)',
+                    hintText: whatsAppPasteHint,
                     prefixIcon: null,
                     alignLabelWithHint: true,
                   ),
@@ -404,7 +1005,7 @@ class _BuildCreateOrderTab extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: onAutoExtract,
+                    onPressed: viaWhatsApp ? onAutoExtract : null,
                     icon: const Text('✨'),
                     label: const Text('Auto-Extract Information'),
                     style: FilledButton.styleFrom(
@@ -417,13 +1018,37 @@ class _BuildCreateOrderTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 // ----- Individual extracted fields -----
-                _labeledField(context, 'Customer Phone', phoneController, hint: '+964... or Not provided'),
+                _labeledField(
+                  context,
+                  'Customer Phone',
+                  phoneController,
+                  hint: '+964... or Not provided',
+                  enabled: viaManual,
+                ),
                 const SizedBox(height: 16),
-                _labeledField(context, 'Order Date', orderDateController, hint: 'e.g. 2026-03-09 14:30'),
+                _labeledField(
+                  context,
+                  'Order Date',
+                  orderDateController,
+                  hint: 'e.g. 2026-03-09 14:30',
+                  enabled: viaManual,
+                ),
                 const SizedBox(height: 16),
-                _labeledField(context, 'Bouquet Details', bouquetDetailsController, hint: 'e.g. Bouquet - IQD 35,000'),
+                _labeledField(
+                  context,
+                  detailsLabel,
+                  bouquetDetailsController,
+                  hint: detailsHint,
+                  enabled: viaManual,
+                ),
                 const SizedBox(height: 16),
-                _labeledField(context, 'Bouquet Code', searchController, hint: 'e.g. AN-2 or #BQT-102'),
+                _labeledField(
+                  context,
+                  codeLabel,
+                  searchController,
+                  hint: codeHint,
+                  enabled: viaManual,
+                ),
                 const SizedBox(height: 12),
                 _BouquetImagePreview(
                   isLoading: isLoadingBouquet,
@@ -431,11 +1056,29 @@ class _BuildCreateOrderTab extends StatelessWidget {
                   hasCode: searchController.text.trim().isNotEmpty,
                 ),
                 const SizedBox(height: 16),
-                _labeledField(context, 'Total Price', totalPriceController, hint: 'e.g. IQD 35,000'),
+                _labeledField(
+                  context,
+                  'Total Price',
+                  totalPriceController,
+                  hint: 'e.g. IQD 35,000',
+                  enabled: viaManual,
+                ),
                 const SizedBox(height: 16),
-                _labeledField(context, 'Voice Message Link', voiceMessageLinkController, hint: 'https://...'),
+                _labeledField(
+                  context,
+                  'Voice Message Link',
+                  voiceMessageLinkController,
+                  hint: 'https://...',
+                  enabled: viaManual,
+                ),
                 const SizedBox(height: 16),
-                _labeledField(context, 'Delivery Location Link', deliveryLocationLinkController, hint: 'http://...'),
+                _labeledField(
+                  context,
+                  'Delivery Location Link',
+                  deliveryLocationLinkController,
+                  hint: 'http://...',
+                  enabled: viaManual,
+                ),
                 const SizedBox(height: 24),
                 Text(
                   'Select Vendor',
@@ -507,7 +1150,7 @@ class _BuildCreateOrderTab extends StatelessWidget {
                   child: PrimaryButton(
                     label: isSubmitting
                         ? 'Creating...'
-                        : 'Send the bouquet For preparation',
+                      : sendButtonLabel,
                     onPressed: isSubmitting ? () {} : onSendForPreparation,
                     variant: PrimaryButtonVariant.primary,
                   ),
@@ -820,6 +1463,7 @@ class _VendorPickerSheetState extends State<_VendorPickerSheet> {
                   autofocus: true,
                   decoration: InputDecoration(
                     hintText: 'Search vendors...',
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
                     prefixIcon: const Icon(Icons.search, color: AppColors.inkMuted),
                     filled: true,
                     fillColor: Colors.white,

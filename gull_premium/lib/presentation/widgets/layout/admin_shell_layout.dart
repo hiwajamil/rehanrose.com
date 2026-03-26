@@ -21,17 +21,15 @@ class AdminShellLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authAsync = ref.watch(authStateProvider);
     return authAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, __) => Scaffold(body: child),
       data: (user) {
         if (user == null) return Scaffold(body: child);
         final isAdminAsync = ref.watch(isAdminForUidProvider(user.uid));
         return isAdminAsync.when(
-          loading: () => const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ),
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
           error: (_, __) => Scaffold(body: child),
           data: (isAdmin) {
             if (!isAdmin) return Scaffold(body: child);
@@ -94,9 +92,9 @@ class _ResponsiveAdminShellState extends State<_ResponsiveAdminShell> {
           title: Text(
             l10n.appTitle,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.inkCharcoal,
-                ),
+              fontWeight: FontWeight.w700,
+              color: AppColors.inkCharcoal,
+            ),
           ),
           backgroundColor: Colors.white,
           foregroundColor: AppColors.inkCharcoal,
@@ -118,7 +116,10 @@ class _ResponsiveAdminShellState extends State<_ResponsiveAdminShell> {
               _AdminMetricsRow(),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: paddingH,
+                    vertical: paddingV,
+                  ),
                   child: widget.child,
                 ),
               ),
@@ -174,15 +175,19 @@ class _AdminSidebarContent extends StatelessWidget {
 
   final String currentPath;
   final Future<void> Function() onSignOut;
+
   /// Called after navigation (e.g. to close drawer). Null when used as permanent sidebar.
   final VoidCallback? onNavigate;
+
   /// When non-null, wrap in a fixed-width container for permanent sidebar.
   final double? width;
 
   static const double sidebarWidth = 250;
 
   bool _isSelected(String path) {
-    if (path == '/admin') return currentPath == '/admin' || currentPath == '/admin/';
+    if (path == '/admin') {
+      return currentPath == '/admin' || currentPath == '/admin/';
+    }
     return currentPath.startsWith(path);
   }
 
@@ -200,14 +205,17 @@ class _AdminSidebarContent extends StatelessWidget {
               Text(
                 l10n.appTitle,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.inkCharcoal,
-                      letterSpacing: 0.2,
-                    ),
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.inkCharcoal,
+                  letterSpacing: 0.2,
+                ),
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.rosePrimary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -219,9 +227,9 @@ class _AdminSidebarContent extends StatelessWidget {
                 child: Text(
                   l10n.adminSuperAdminDashboard,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.rosePrimary,
-                      ),
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.rosePrimary,
+                  ),
                 ),
               ),
             ],
@@ -239,6 +247,16 @@ class _AdminSidebarContent extends StatelessWidget {
                 selected: _isSelected('/admin/analytics'),
                 onTap: () {
                   context.go('/admin/analytics');
+                  onNavigate?.call();
+                },
+              ),
+              _NavTile(
+                icon: Icons.attach_money_outlined,
+                selectedIcon: Icons.attach_money_rounded,
+                label: 'Revenue Analytics',
+                selected: _isSelected('/admin/revenue-analytics'),
+                onTap: () {
+                  context.go('/admin/revenue-analytics');
                   onNavigate?.call();
                 },
               ),
@@ -285,10 +303,20 @@ class _AdminSidebarContent extends StatelessWidget {
               _NavTile(
                 icon: Icons.shopping_bag_outlined,
                 selectedIcon: Icons.shopping_bag_rounded,
-                label: l10n.adminOrders,
-                selected: _isSelected('/admin/orders'),
+                label: 'Bouquet Orders',
+                selected: _isSelected('/admin/bouquet-orders'),
                 onTap: () {
-                  context.go('/admin/orders');
+                  context.go('/admin/bouquet-orders');
+                  onNavigate?.call();
+                },
+              ),
+              _NavTile(
+                icon: Icons.local_drink_outlined,
+                selectedIcon: Icons.local_drink,
+                label: 'Perfume Orders',
+                selected: _isSelected('/admin/perfume-orders'),
+                onTap: () {
+                  context.go('/admin/perfume-orders');
                   onNavigate?.call();
                 },
               ),
@@ -322,6 +350,26 @@ class _AdminSidebarContent extends StatelessWidget {
                   onNavigate?.call();
                 },
               ),
+              _NavTile(
+                icon: Icons.campaign_outlined,
+                selectedIcon: Icons.campaign,
+                label: 'Advertisements',
+                selected: _isSelected('/admin/advertisements'),
+                onTap: () {
+                  context.push('/admin/advertisements');
+                  onNavigate?.call();
+                },
+              ),
+              _NavTile(
+                icon: Icons.local_offer_outlined,
+                selectedIcon: Icons.local_offer,
+                label: 'Promo Codes',
+                selected: _isSelected('/admin/coupons'),
+                onTap: () {
+                  context.push('/admin/coupons');
+                  onNavigate?.call();
+                },
+              ),
             ],
           ),
         ),
@@ -336,9 +384,9 @@ class _AdminSidebarContent extends StatelessWidget {
             title: Text(
               l10n.adminSignOut,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.inkMuted,
-                  ),
+                fontWeight: FontWeight.w500,
+                color: AppColors.inkMuted,
+              ),
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -360,17 +408,12 @@ class _AdminSidebarContent extends StatelessWidget {
         width: width,
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(
-            right: BorderSide(color: Colors.grey[200]!, width: 1),
-          ),
+          border: Border(right: BorderSide(color: Colors.grey[200]!, width: 1)),
         ),
         child: _buildContent(context),
       );
     }
-    return Container(
-      color: Colors.white,
-      child: _buildContent(context),
-    );
+    return Container(color: Colors.white, child: _buildContent(context));
   }
 }
 
@@ -402,13 +445,11 @@ class _NavTile extends StatelessWidget {
         title: Text(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? AppColors.rosePrimary : AppColors.ink,
-              ),
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? AppColors.rosePrimary : AppColors.ink,
+          ),
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         selected: selected,
         selectedTileColor: AppColors.rosePrimary.withValues(alpha: 0.12),
         onTap: onTap,
@@ -431,12 +472,12 @@ class _AdminMetricsRowState extends State<_AdminMetricsRow> {
   @override
   void initState() {
     super.initState();
-    _membersStream = ProviderScope.containerOf(context)
-        .read(membersRepositoryProvider)
-        .watchCustomerCount();
-    _vendorsStream = ProviderScope.containerOf(context)
-        .read(authRepositoryProvider)
-        .watchVendorApplications();
+    _membersStream = ProviderScope.containerOf(
+      context,
+    ).read(membersRepositoryProvider).watchCustomerCount();
+    _vendorsStream = ProviderScope.containerOf(
+      context,
+    ).read(authRepositoryProvider).watchVendorApplications();
   }
 
   @override
@@ -465,9 +506,7 @@ class _AdminMetricsRowState extends State<_AdminMetricsRow> {
       stream: _vendorsStream,
       builder: (context, snapshot) {
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
-        final value = snapshot.hasData
-            ? '${snapshot.data!.docs.length}'
-            : '—';
+        final value = snapshot.hasData ? '${snapshot.data!.docs.length}' : '—';
         return _MetricCard(
           icon: Icons.pending_actions_outlined,
           title: l10n.adminPendingApplications,
@@ -483,11 +522,7 @@ class _AdminMetricsRowState extends State<_AdminMetricsRow> {
       child: isNarrow
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                membersCard,
-                const SizedBox(height: 12),
-                vendorsCard,
-              ],
+              children: [membersCard, const SizedBox(height: 12), vendorsCard],
             )
           : Row(
               children: [
@@ -517,7 +552,8 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isNarrow = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+    final isNarrow =
+        MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
     final padding = isNarrow ? 16.0 : 20.0;
     return Material(
       color: Colors.transparent,
@@ -545,11 +581,7 @@ class _MetricCard extends StatelessWidget {
                   color: AppColors.rosePrimary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  size: 24,
-                  color: AppColors.rosePrimary,
-                ),
+                child: Icon(icon, size: 24, color: AppColors.rosePrimary),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -559,9 +591,9 @@ class _MetricCard extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.inkMuted,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        color: AppColors.inkMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     // Fixed-height placeholder to prevent card height jump during loading
@@ -582,9 +614,7 @@ class _MetricCard extends StatelessWidget {
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 value,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
+                                style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.rosePrimary,
