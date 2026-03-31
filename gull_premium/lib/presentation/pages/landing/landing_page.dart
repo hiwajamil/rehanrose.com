@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seo/seo.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/constants/breakpoints.dart';
@@ -21,6 +23,7 @@ import '../../../data/models/flower_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/cards/flower_card.dart';
 import '../../widgets/common/product_grid_shimmer.dart';
+import '../../widgets/common/mystery_discount_dialog.dart';
 import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/layout/app_scaffold.dart';
 import '../../widgets/layout/section_container.dart';
@@ -37,6 +40,9 @@ class LandingPage extends ConsumerStatefulWidget {
 }
 
 class _LandingPageState extends ConsumerState<LandingPage> {
+  static const String _lastMysteryDiscountDateKey =
+      'last_mystery_discount_date';
+  static const Duration _mysteryDiscountCooldown = Duration(days: 3);
   final _productsSectionKey = GlobalKey();
   late final ScrollController _scrollController;
 
@@ -49,6 +55,30 @@ class _LandingPageState extends ConsumerState<LandingPage> {
       description:
           'Handcrafted flower bouquets for every feeling. Same-day delivery, trusted local florists.',
       keywords: 'flowers, bouquets, Rehan Rose, florist, flower delivery',
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_checkMysteryDiscount());
+    });
+  }
+
+  Future<void> _checkMysteryDiscount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    final lastShownIso = prefs.getString(_lastMysteryDiscountDateKey);
+    final lastShown = lastShownIso == null ? null : DateTime.tryParse(lastShownIso);
+
+    if (lastShown != null && now.difference(lastShown) < _mysteryDiscountCooldown) {
+      return;
+    }
+    if (Random().nextInt(100) >= 20) return;
+    if (!mounted) return;
+
+    await prefs.setString(_lastMysteryDiscountDateKey, now.toIso8601String());
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (_) => const MysteryDiscountDialog(),
     );
   }
 

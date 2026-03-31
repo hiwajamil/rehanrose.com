@@ -24,9 +24,14 @@ class UserOccasionsRepository {
   }
 
   /// Add an occasion. Returns the new document id.
-  Future<String> addOccasion(String uid, {required String name, required DateTime date}) async {
+  Future<String> addOccasion(
+    String uid, {
+    required String name,
+    required DateTime date,
+    required String relation,
+  }) async {
     final ref = await _occasionsRef(uid).add(
-      UserOccasionModel(id: '', name: name, date: date).toFirestore(),
+      UserOccasionModel(id: '', name: name, date: date, relation: relation).toFirestore(),
     );
     return ref.id;
   }
@@ -37,9 +42,15 @@ class UserOccasionsRepository {
     String occasionId, {
     required String name,
     required DateTime date,
+    required String relation,
   }) async {
     await _occasionsRef(uid).doc(occasionId).update(
-          UserOccasionModel(id: occasionId, name: name, date: date).toFirestore(),
+          UserOccasionModel(
+            id: occasionId,
+            name: name,
+            date: date,
+            relation: relation,
+          ).toFirestore(),
         );
   }
 

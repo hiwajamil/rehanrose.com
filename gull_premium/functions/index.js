@@ -3,6 +3,7 @@ const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
 const functions = require('firebase-functions');
+const admin = require('firebase-admin');
 
 initializeApp();
 
@@ -268,3 +269,171 @@ exports.placeDetails = onRequest(
     }
   }
 );
+
+/**
+ * Parses a Firestore occasion date field into a JS Date.
+ * Supports Firestore Timestamp and Date.
+ */
+function parseOccasionDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === 'function') {
+    const d = value.toDate();
+    return d instanceof Date ? d : null;
+  }
+  return null;
+}
+
+/**
+ * Returns true when month/day match, ignoring year.
+ */
+function isSameMonthDay(date, month, day) {
+  return date.getMonth() + 1 === month && date.getDate() === day;
+}
+
+/**
+ * Daily retention robot:
+ * - Finds users with fcmToken
+ * - Looks for occasions exactly 7 days from "today" (month/day only)
+ * - Sends a luxury reminder with REMIND10 code
+ */
+exports.sendOccasionReminders = functions.pubsub
+  .schedule('0 9 * * *')
+  .timeZone('Asia/Baghdad')
+  .onRun(async () => {
+    const db = getFirestore();
+    const now = new Date();
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + 7);
+    const targetMonth = targetDate.getMonth() + 1;
+    const targetDay = targetDate.getDate();
+
+    const usersSnap = await db
+      .collection('users')
+      .where('fcmToken', '!=', null)
+      .get();
+
+    let sentCount = 0;
+    let checkedUsers = 0;
+
+    for (const userDoc of usersSnap.docs) {
+      checkedUsers += 1;
+      const userData = userDoc.data() || {};
+      const fcmToken = (userData.fcmToken || '').toString().trim();
+      if (!fcmToken) continue;
+
+      const occasionsSnap = await userDoc.ref.collection('occasions').get();
+      if (occasionsSnap.empty) continue;
+
+      for (const occasionDoc of occasionsSnap.docs) {
+        const occasion = occasionDoc.data() || {};
+        const occasionDate = parseOccasionDate(occasion.date);
+        if (!occasionDate) continue;
+        if (!isSameMonthDay(occasionDate, targetMonth, targetDay)) continue;
+
+        const relation = (occasion.relation || 'Loved one').toString().trim() || 'Loved one';
+        const occasionName = (occasion.name || 'Special Day').toString().trim() || 'Special Day';
+        const body = `Next week is ${relation}'s ${occasionName}! Let Rehan Rose prepare the perfect gift. Use code REMIND10 for 10% off.`;
+
+        try {
+          await admin.messaging().send({
+            token: fcmToken,
+            notification: {
+              title: '✨ A Special Day is Approaching!',
+              body,
+            },
+            data: {
+              type: 'occasion_reminder',
+              promoCode: 'REMIND10',
+              relation,
+              occasionName,
+              occasionId: occasionDoc.id,
+            },
+          });
+          sentCount += 1;
+        } catch (error) {
+          const code = error?.code || '';
+          const isDeadToken =
+            code === 'messaging/registration-token-not-registered' ||
+            code === 'messaging/invalid-registration-token';
+
+          if (isDeadToken) {
+            await userDoc.ref.set(
+              { fcmToken: admin.firestore.FieldValue.delete() },
+              { merge: true }
+            );
+          } else {
+            console.error(
+              '[sendOccasionReminders] FCM send failed for user=%s occasion=%s code=%s',
+              userDoc.id,
+              occasionDoc.id,
+              code || 'unknown'
+            );
+          }
+        }
+      }
+    }
+
+    console.log(
+      '[sendOccasionReminders] done checkedUsers=%d sent=%d targetMonth=%d targetDay=%d',
+      checkedUsers,
+      sentCount,
+      targetMonth,
+      targetDay
+    );
+    return null;
+  });
+
+/**
+ * Updates customer loyalty tier after an order is completed/delivered.
+ * Triggered only on status transition to a terminal successful state.
+ */
+exports.updateUserTierOnOrderComplete = functions.firestore
+  .document('orders/{orderId}')
+  .onUpdate(async (change, context) => {
+    const before = change.before.data() || {};
+    const after = change.after.data() || {};
+
+    const beforeStatus = (before.status || '').toString().toLowerCase().trim();
+    const afterStatus = (after.status || '').toString().toLowerCase().trim();
+    const completedStatuses = new Set(['completed', 'delivered']);
+
+    const statusJustCompleted =
+      !completedStatuses.has(beforeStatus) && completedStatuses.has(afterStatus);
+    if (!statusJustCompleted) return null;
+
+    const userId = (after.userId || '').toString().trim();
+    const orderTotalRaw = after.totalPrice;
+    const orderTotalPrice = typeof orderTotalRaw === 'number' ? orderTotalRaw : Number(orderTotalRaw || 0);
+
+    if (!userId || !Number.isFinite(orderTotalPrice) || orderTotalPrice <= 0) {
+      return null;
+    }
+
+    const db = getFirestore();
+    const userRef = db.collection('users').doc(userId);
+    const userSnap = await userRef.get();
+    if (!userSnap.exists) return null;
+
+    const userData = userSnap.data() || {};
+    const currentSpentRaw = userData.totalSpent;
+    const currentSpent = typeof currentSpentRaw === 'number' ? currentSpentRaw : Number(currentSpentRaw || 0);
+    const newTotalSpent = (Number.isFinite(currentSpent) ? currentSpent : 0) + orderTotalPrice;
+
+    let newTier = 'silver';
+    if (newTotalSpent >= 500000) {
+      newTier = 'platinum';
+    } else if (newTotalSpent >= 250000) {
+      newTier = 'gold';
+    }
+
+    await userRef.set(
+      {
+        totalSpent: newTotalSpent,
+        tier: newTier,
+      },
+      { merge: true }
+    );
+
+    return null;
+  });

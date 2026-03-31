@@ -15,16 +15,16 @@ class VipTierProgress {
 enum VipTier {
   silver,
   gold,
-  vipDiamond,
+  platinum,
 }
 
 class VipLoyaltyService {
   static const double silverUpperBound = 250000;
-  static const double goldUpperBound = 1000000;
+  static const double goldUpperBound = 500000;
 
   static VipTier resolveTier(double totalSpent) {
     if (totalSpent >= goldUpperBound) {
-      return VipTier.vipDiamond;
+      return VipTier.platinum;
     }
     if (totalSpent >= silverUpperBound) {
       return VipTier.gold;
@@ -49,13 +49,13 @@ class VipLoyaltyService {
         final progress = (spentInGold / (goldUpperBound - silverUpperBound)).clamp(0.0, 1.0);
         return VipTierProgress(
           currentTier: tier,
-          nextTier: VipTier.vipDiamond,
+          nextTier: VipTier.platinum,
           progressToNextTier: progress,
           remainingToNextTierIqd: (goldUpperBound - totalSpent).clamp(0, goldUpperBound),
         );
-      case VipTier.vipDiamond:
+      case VipTier.platinum:
         return const VipTierProgress(
-          currentTier: VipTier.vipDiamond,
+          currentTier: VipTier.platinum,
           nextTier: null,
           progressToNextTier: 1,
           remainingToNextTierIqd: 0,

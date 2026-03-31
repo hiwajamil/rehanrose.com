@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -135,7 +136,7 @@ class _CustomerDashboardView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(userProfileProvider(uid));
+    final profileAsync = ref.watch(userProfileStreamProvider(uid));
     final premiumAsync = ref.watch(userPremiumStatusProvider(uid));
 
     return profileAsync.when(
@@ -150,6 +151,7 @@ class _CustomerDashboardView extends ConsumerWidget {
         final photoUrl = profile?['photoURL'] ?? fallbackPhotoUrl;
         final totalSpentRaw = profile?['totalSpent'];
         final totalSpent = totalSpentRaw is num ? totalSpentRaw.toDouble() : 0.0;
+        final userTier = profile?['tier']?.toString() ?? '';
         final isPremium = premiumAsync.value ?? false;
 
         return _DashboardContent(
@@ -160,6 +162,7 @@ class _CustomerDashboardView extends ConsumerWidget {
           city: city,
           photoUrl: photoUrl,
           totalSpent: totalSpent,
+          userTier: userTier,
           isPremium: isPremium,
           onSignOut: onSignOut,
         );
@@ -175,6 +178,7 @@ class _CustomerDashboardView extends ConsumerWidget {
           city: '',
           photoUrl: fallbackPhotoUrl,
           totalSpent: 0.0,
+          userTier: '',
           isPremium: isPremium,
           onSignOut: onSignOut,
         );
@@ -192,6 +196,7 @@ class _DashboardContent extends ConsumerStatefulWidget {
     required this.city,
     required this.photoUrl,
     required this.totalSpent,
+    required this.userTier,
     required this.isPremium,
     required this.onSignOut,
   });
@@ -203,6 +208,7 @@ class _DashboardContent extends ConsumerStatefulWidget {
   final String city;
   final String? photoUrl;
   final double totalSpent;
+  final String userTier;
   final bool isPremium;
   final Future<void> Function() onSignOut;
 
@@ -288,11 +294,12 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
         titleText: l10n.profileAddOccasion,
         submitText: 'Save',
         successText: 'Occasion saved.',
-        onSave: (name, date) async {
+        onSave: (name, date, relation) async {
           await ref.read(userOccasionsRepositoryProvider).addOccasion(
                 widget.uid,
                 name: name,
                 date: date,
+                relation: relation,
               );
         },
         l10n: l10n,
@@ -312,12 +319,14 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
         successText: 'Occasion updated.',
         initialName: occasion.name,
         initialDate: occasion.date,
-        onSave: (name, date) async {
+        initialRelation: occasion.relation,
+        onSave: (name, date, relation) async {
           await ref.read(userOccasionsRepositoryProvider).updateOccasion(
                 widget.uid,
                 occasion.id,
                 name: name,
                 date: date,
+                relation: relation,
               );
         },
         l10n: l10n,
@@ -578,7 +587,7 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
             ),
           ),
           const SizedBox(height: sectionSpacing),
-          _VipStatusCard(totalSpent: widget.totalSpent),
+          _VipStatusCard(totalSpent: widget.totalSpent, userTier: widget.userTier),
           const SizedBox(height: sectionSpacing),
 
           // ——— Section B: Dashboard shortcuts (balanced 2x2 grid) ———
@@ -848,14 +857,15 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
 }
 
 class _VipStatusCard extends StatelessWidget {
-  const _VipStatusCard({required this.totalSpent});
+  const _VipStatusCard({required this.totalSpent, required this.userTier});
 
   final double totalSpent;
+  final String userTier;
 
   @override
   Widget build(BuildContext context) {
     final progress = VipLoyaltyService.progressFor(totalSpent);
-    final tier = progress.currentTier;
+    final tier = _resolveTier(userTier, totalSpent);
     final theme = Theme.of(context);
 
     final Gradient backgroundGradient;
@@ -890,11 +900,11 @@ class _VipStatusCard extends StatelessWidget {
         progressTrackColor = Colors.white.withValues(alpha: 0.4);
         progressValueColor = const Color(0xFF6E4100);
         break;
-      case VipTier.vipDiamond:
+      case VipTier.platinum:
         backgroundGradient = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0F1014), Color(0xFF1B1C22), Color(0xFF090A0D)],
+          colors: [Color(0xFF0F1014), Color(0xFF2A163A), Color(0xFF090A0D)],
         );
         borderColor = const Color(0xFFD4AF37);
         textColor = const Color(0xFFF7E5AF);
@@ -907,13 +917,12 @@ class _VipStatusCard extends StatelessWidget {
     final tierName = switch (tier) {
       VipTier.silver => 'Silver Member',
       VipTier.gold => 'Gold Member',
-      VipTier.vipDiamond => 'VIP Diamond Member',
+      VipTier.platinum => 'Platinum Member',
     };
-    final nextTierName = switch (progress.nextTier) {
-      VipTier.silver => 'Silver',
-      VipTier.gold => 'Gold',
-      VipTier.vipDiamond => 'VIP Diamond',
-      null => '',
+    final int remainingToNext = switch (tier) {
+      VipTier.silver => (250000 - totalSpent).clamp(0, 250000).round(),
+      VipTier.gold => (500000 - totalSpent).clamp(0, 500000).round(),
+      VipTier.platinum => 0,
     };
 
     return Container(
@@ -921,7 +930,7 @@ class _VipStatusCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: backgroundGradient,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor, width: tier == VipTier.vipDiamond ? 1.5 : 1),
+        border: Border.all(color: borderColor, width: tier == VipTier.platinum ? 1.5 : 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.12),
@@ -945,7 +954,7 @@ class _VipStatusCard extends StatelessWidget {
                   color: textColor,
                 ),
               ),
-              if (tier == VipTier.vipDiamond) ...[
+              if (tier == VipTier.platinum) ...[
                 const Spacer(),
                 Icon(Icons.auto_awesome, color: textColor.withValues(alpha: 0.9), size: 18),
               ],
@@ -971,9 +980,9 @@ class _VipStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            tier == VipTier.vipDiamond
-                ? 'You have reached the highest luxury tier! Enjoy your permanent 5% discount.'
-                : 'Spend IQD ${formatPriceIqd(progress.remainingToNextTierIqd.round())} more to reach $nextTierName.',
+            tier == VipTier.platinum
+                ? 'You are at the highest VIP tier! ✨'
+                : 'Spend ${formatPriceIqd(remainingToNext)} IQD more to reach ${tier == VipTier.silver ? 'Gold' : 'Platinum'}.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: subtitleColor,
               height: 1.35,
@@ -983,6 +992,20 @@ class _VipStatusCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  VipTier _resolveTier(String tierRaw, double totalSpent) {
+    final normalized = tierRaw.trim().toLowerCase();
+    switch (normalized) {
+      case 'silver':
+        return VipTier.silver;
+      case 'gold':
+        return VipTier.gold;
+      case 'platinum':
+        return VipTier.platinum;
+      default:
+        return VipLoyaltyService.resolveTier(totalSpent);
+    }
   }
 }
 
@@ -1402,23 +1425,34 @@ class _AddOccasionSheet extends StatefulWidget {
     required this.l10n,
     this.initialName,
     this.initialDate,
+    this.initialRelation,
   });
 
   final String titleText;
   final String submitText;
   final String successText;
-  final Future<void> Function(String name, DateTime date) onSave;
+  final Future<void> Function(String name, DateTime date, String relation) onSave;
   final AppLocalizations l10n;
   final String? initialName;
   final DateTime? initialDate;
+  final String? initialRelation;
 
   @override
   State<_AddOccasionSheet> createState() => _AddOccasionSheetState();
 }
 
 class _AddOccasionSheetState extends State<_AddOccasionSheet> {
+  static const List<String> _relationOptions = <String>[
+    'Wife',
+    'Husband',
+    'Mother',
+    'Friend',
+    'Other',
+  ];
+
   final _nameController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  String _selectedRelation = 'Other';
   bool _saving = false;
 
   @override
@@ -1430,6 +1464,12 @@ class _AddOccasionSheetState extends State<_AddOccasionSheet> {
     }
     if (widget.initialDate != null) {
       _selectedDate = widget.initialDate!;
+    }
+    final initialRelation = widget.initialRelation?.trim();
+    if (initialRelation != null && initialRelation.isNotEmpty) {
+      _selectedRelation = _relationOptions.contains(initialRelation)
+          ? initialRelation
+          : 'Other';
     }
   }
 
@@ -1472,7 +1512,8 @@ class _AddOccasionSheetState extends State<_AddOccasionSheet> {
     }
     setState(() => _saving = true);
     try {
-      await widget.onSave(name, _selectedDate);
+      await widget.onSave(name, _selectedDate, _selectedRelation);
+      HapticFeedback.mediumImpact();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1542,6 +1583,53 @@ class _AddOccasionSheetState extends State<_AddOccasionSheet> {
               ),
             ),
             textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Who is this for?',
+            style: GoogleFonts.montserrat(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.inkCharcoal,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _relationOptions.map((relation) {
+                final isSelected = _selectedRelation == relation;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: ChoiceChip(
+                    label: Text(relation),
+                    selected: isSelected,
+                    onSelected: _saving
+                        ? null
+                        : (selected) {
+                            if (!selected || _selectedRelation == relation) return;
+                            HapticFeedback.lightImpact();
+                            setState(() => _selectedRelation = relation);
+                          },
+                    labelStyle: GoogleFonts.montserrat(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? AppColors.inkCharcoal : AppColors.inkMuted,
+                    ),
+                    selectedColor: AppColors.badgeGoldBackground,
+                    backgroundColor: AppColors.surface,
+                    side: BorderSide(
+                      color: isSelected ? AppColors.accentGold : AppColors.border,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                );
+              }).toList(),
+            ),
           ),
           const SizedBox(height: 20),
           InkWell(

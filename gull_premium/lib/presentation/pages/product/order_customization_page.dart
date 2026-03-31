@@ -84,9 +84,9 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
     return discounted.round();
   }
 
-  int _finalCheckoutTotalPriceIqd(FlowerModel bouquet, {required bool isVipDiamond}) {
+  int _finalCheckoutTotalPriceIqd(FlowerModel bouquet, {required bool isPlatinum}) {
     final promoDiscounted = _discountedTotalPriceIqd(bouquet);
-    if (!isVipDiamond) return promoDiscounted;
+    if (!isPlatinum) return promoDiscounted;
     return (promoDiscounted * 0.95).round();
   }
 
@@ -435,10 +435,10 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
     final totalSpentRaw = profile?['totalSpent'];
     final totalSpent = totalSpentRaw is num ? totalSpentRaw.toDouble() : 0.0;
     final tier = VipLoyaltyService.resolveTier(totalSpent);
-    final isVipDiamond = tier == VipTier.vipDiamond;
+    final isPlatinum = tier == VipTier.platinum;
     final finalDiscountedTotal = _finalCheckoutTotalPriceIqd(
       bouquet,
-      isVipDiamond: isVipDiamond,
+      isPlatinum: isPlatinum,
     );
 
     launchOrderWhatsApp(
@@ -474,7 +474,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
     final totalSpentRaw = profileData?['totalSpent'];
     final totalSpent = totalSpentRaw is num ? totalSpentRaw.toDouble() : 0.0;
     final userTier = VipLoyaltyService.resolveTier(totalSpent);
-    final isVipDiamond = userTier == VipTier.vipDiamond;
+    final isPlatinum = userTier == VipTier.platinum;
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
 
@@ -525,11 +525,11 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
           final total = _totalPriceIqd(bouquet);
           final finalCheckoutTotal = _finalCheckoutTotalPriceIqd(
             bouquet,
-            isVipDiamond: isVipDiamond,
+            isPlatinum: isPlatinum,
           );
           final hasPromo =
               _appliedPromoCode != null && _appliedPromoDiscountPercentage != null;
-          final hasAnyDiscount = hasPromo || isVipDiamond;
+          final hasAnyDiscount = hasPromo || isPlatinum;
 
           return Column(
             children: [
@@ -854,7 +854,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                 ],
                               ),
                             ],
-                            if (isVipDiamond) ...[
+                            if (isPlatinum) ...[
                               const SizedBox(height: 8),
                               Row(
                                 children: [
@@ -866,7 +866,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
-                                      'VIP Diamond Benefit: 5% Applied ✨',
+                                      'Platinum Benefit: 5% Applied ✨',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                             color: const Color(0xFF7A5A00),
                                             fontWeight: FontWeight.w700,

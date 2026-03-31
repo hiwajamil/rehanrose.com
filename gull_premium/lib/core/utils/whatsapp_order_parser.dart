@@ -12,6 +12,8 @@ class WhatsAppOrderExtract {
   final String voiceMessageLink;
   final String deliveryLocationLink;
   final String userId;
+  final String appliedPromoCode;
+  final String addOnDetails;
 
   const WhatsAppOrderExtract({
     this.customerPhone = '',
@@ -22,6 +24,8 @@ class WhatsAppOrderExtract {
     this.voiceMessageLink = '',
     this.deliveryLocationLink = '',
     this.userId = '',
+    this.appliedPromoCode = '',
+    this.addOnDetails = '',
   });
 }
 
@@ -36,6 +40,20 @@ String? _labeledLine(String raw, String label) {
   final v = m?.group(1)?.trim();
   if (v == null) return null;
   return v;
+}
+
+/// All lines (multiline) matching `Label: value` (case-insensitive label).
+List<String> _labeledLines(String raw, String label) {
+  final re = RegExp(
+    '^\\s*${RegExp.escape(label)}\\s*:\\s*(.*)\$',
+    caseSensitive: false,
+    multiLine: true,
+  );
+  return re
+      .allMatches(raw)
+      .map((m) => (m.group(1) ?? '').trim())
+      .where((v) => v.isNotEmpty)
+      .toList();
 }
 
 /// Strips leading `#` from product codes (e.g. `#PF-12` → `PF-12`).
@@ -183,6 +201,12 @@ WhatsAppOrderExtract parseWhatsAppOrderMessage(String raw) {
   }
 
   final userId = _extractUserId(normalized);
+  final appliedPromoCode = _labeledLine(normalized, 'Promo Code Applied') ?? '';
+  final addOnLines = [
+    ..._labeledLines(normalized, 'Add-on'),
+    ..._labeledLines(normalized, 'Add-on Bouquet'),
+  ];
+  final addOnDetails = addOnLines.join(' | ');
 
   return WhatsAppOrderExtract(
     customerPhone: customerPhone.trim(),
@@ -193,6 +217,8 @@ WhatsAppOrderExtract parseWhatsAppOrderMessage(String raw) {
     voiceMessageLink: voiceMessageLink.trim(),
     deliveryLocationLink: deliveryLocationLink.trim(),
     userId: userId,
+    appliedPromoCode: appliedPromoCode.trim(),
+    addOnDetails: addOnDetails.trim(),
   );
 }
 
@@ -242,6 +268,12 @@ WhatsAppOrderExtract parsePerfumeWhatsAppOrderMessage(String raw) {
   }
 
   final userId = _extractUserId(normalized);
+  final appliedPromoCode = _labeledLine(normalized, 'Promo Code Applied') ?? '';
+  final addOnLines = [
+    ..._labeledLines(normalized, 'Add-on'),
+    ..._labeledLines(normalized, 'Add-on Bouquet'),
+  ];
+  final addOnDetails = addOnLines.join(' | ');
 
   return WhatsAppOrderExtract(
     customerPhone: customerPhone.trim(),
@@ -252,6 +284,8 @@ WhatsAppOrderExtract parsePerfumeWhatsAppOrderMessage(String raw) {
     voiceMessageLink: voiceMessageLink.trim(),
     deliveryLocationLink: deliveryLocationLink.trim(),
     userId: userId,
+    appliedPromoCode: appliedPromoCode.trim(),
+    addOnDetails: addOnDetails.trim(),
   );
 }
 

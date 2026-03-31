@@ -291,6 +291,33 @@ class AuthRepository {
     };
   }
 
+  /// Real-time profile stream from Firestore [users] collection.
+  Stream<Map<String, dynamic>?> watchUserProfile(String uid) {
+    return _firestore.collection('users').doc(uid).snapshots().map((doc) {
+      final data = doc.data();
+      if (data == null) return null;
+      final fullName = data['fullName']?.toString().trim() ??
+          data['displayName']?.toString().trim() ??
+          '';
+      final email = data['email']?.toString().trim() ?? '';
+      final phone = data['phoneNumber']?.toString().trim() ?? '';
+      final city = data['city']?.toString().trim() ?? '';
+      final photoURL = data['photoURL']?.toString();
+      final totalSpentRaw = data['totalSpent'];
+      final totalSpent = totalSpentRaw is num ? totalSpentRaw.toDouble() : 0.0;
+      final tierRaw = data['tier']?.toString().trim().toLowerCase() ?? '';
+      return {
+        'fullName': fullName,
+        'email': email,
+        'phone': phone,
+        'city': city,
+        'totalSpent': totalSpent,
+        'tier': tierRaw,
+        if (photoURL != null && photoURL.isNotEmpty) 'photoURL': photoURL,
+      };
+    });
+  }
+
   /// Returns true if the user has premium/VIP status in Firestore (isVip, vip, or premiumMember).
   Future<bool> isPremiumMember(String uid) async {
     final doc = await _firestore.collection('users').doc(uid).get();

@@ -6,11 +6,13 @@ class UserOccasionModel {
     required this.id,
     required this.name,
     required this.date,
+    required this.relation,
   });
 
   final String id;
   final String name;
   final DateTime date;
+  final String relation;
 
   static UserOccasionModel? fromFirestore(String id, Map<String, dynamic>? data) {
     if (data == null) return null;
@@ -24,11 +26,18 @@ class UserOccasionModel {
       dateTime = date;
     }
     if (dateTime == null) return null;
-    return UserOccasionModel(id: id, name: name, date: dateTime);
+    final relation = data['relation']?.toString().trim();
+    return UserOccasionModel(
+      id: id,
+      name: name,
+      date: dateTime,
+      relation: (relation == null || relation.isEmpty) ? 'Other' : relation,
+    );
   }
 
   Map<String, dynamic> toFirestore() => {
         'name': name,
         'date': Timestamp.fromDate(date),
+        'relation': relation,
       };
 }

@@ -87,6 +87,12 @@ final userProfileProvider =
   return ref.read(authRepositoryProvider).getUserProfile(uid);
 });
 
+/// Real-time customer profile from Firestore users collection.
+final userProfileStreamProvider =
+    StreamProvider.autoDispose.family<Map<String, dynamic>?, String>((ref, uid) {
+  return ref.read(authRepositoryProvider).watchUserProfile(uid);
+});
+
 /// Premium member status from Firestore (isVip, vip, or premiumMember). Used on account page.
 final userPremiumStatusProvider =
     FutureProvider.autoDispose.family<bool, String>((ref, uid) {

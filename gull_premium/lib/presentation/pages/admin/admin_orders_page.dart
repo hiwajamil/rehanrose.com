@@ -68,6 +68,24 @@ Widget _labeledField(
   );
 }
 
+String _composeAddonsNotes({
+  required String existing,
+  required String addOnDetails,
+  required String promoCodeApplied,
+}) {
+  final parts = <String>[];
+  if (existing.trim().isNotEmpty) {
+    parts.add(existing.trim());
+  }
+  if (addOnDetails.trim().isNotEmpty) {
+    parts.add('Add-on: ${addOnDetails.trim()}');
+  }
+  if (promoCodeApplied.trim().isNotEmpty) {
+    parts.add('Promo Code Applied: ${promoCodeApplied.trim()}');
+  }
+  return parts.join('\n');
+}
+
 enum OmsEntryMethod {
   viaWhatsAppMessage,
   viaManualProductCode,
@@ -170,6 +188,11 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
     _totalPriceController.text = extract.totalPriceRaw;
     _voiceMessageLinkController.text = extract.voiceMessageLink;
     _deliveryLocationLinkController.text = extract.deliveryLocationLink;
+    _addonsController.text = _composeAddonsNotes(
+      existing: _addonsController.text,
+      addOnDetails: extract.addOnDetails,
+      promoCodeApplied: extract.appliedPromoCode,
+    );
     final uid = extract.userId.trim();
     _extractedUserId = uid.isEmpty ? null : uid;
     _userIdController.text = uid;
@@ -498,6 +521,11 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
     _totalPriceController.text = extract.totalPriceRaw;
     _voiceMessageLinkController.text = extract.voiceMessageLink;
     _deliveryLocationLinkController.text = extract.deliveryLocationLink;
+    _addonsController.text = _composeAddonsNotes(
+      existing: _addonsController.text,
+      addOnDetails: extract.addOnDetails,
+      promoCodeApplied: extract.appliedPromoCode,
+    );
     _userIdController.text = extract.userId;
     setState(() {});
     _fetchPerfumeByCode();

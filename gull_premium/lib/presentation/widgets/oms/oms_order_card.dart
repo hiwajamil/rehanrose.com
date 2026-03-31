@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -574,6 +575,15 @@ class OmsOrderCard extends StatelessWidget {
 Future<void> _printOrderCard(BuildContext context, OmsOrderModel order) async {
   try {
     await printOrderCard(order);
+  } on MissingPluginException {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Printing is not available in this app build. Please update/reinstall the vendor app and try again.',
+        ),
+      ),
+    );
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
