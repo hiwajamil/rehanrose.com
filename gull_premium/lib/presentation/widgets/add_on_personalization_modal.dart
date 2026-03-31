@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -57,9 +60,15 @@ class _AddOnPersonalizationSheet extends ConsumerStatefulWidget {
 
 class _AddOnPersonalizationSheetState
     extends ConsumerState<_AddOnPersonalizationSheet> {
+  static const Color _luxuryGold = AppColors.accentGold;
   final List<AddOnModel> _selectedAddOns = [];
   String? _voiceMessageUrl;
   LatLng? _deliveryLatLng;
+  final TextEditingController _promoCodeController = TextEditingController();
+  final FocusNode _promoFocusNode = FocusNode();
+  bool _isApplyingPromo = false;
+  String? _appliedPromoCode;
+  double? _appliedPromoDiscountPercentage;
   late final ScrollController _scrollController;
 
   @override
@@ -71,6 +80,8 @@ class _AddOnPersonalizationSheetState
   @override
   void dispose() {
     _scrollController.dispose();
+    _promoCodeController.dispose();
+    _promoFocusNode.dispose();
     super.dispose();
   }
 
@@ -137,6 +148,82 @@ class _AddOnPersonalizationSheetState
     return total;
   }
 
+  int _discountedTotalIqd(FlowerModel bouquet) {
+    final base = _totalPriceIqd(bouquet);
+    final d = _appliedPromoDiscountPercentage;
+    if (_appliedPromoCode == null || d == null || d <= 0) return base;
+    return (base * ((100 - d) / 100)).round();
+  }
+
+  void _showPromoSnack(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            if (!isError) ...[
+              Icon(Icons.auto_awesome_rounded, color: _luxuryGold, size: 22),
+              const SizedBox(width: 10),
+            ],
+            Expanded(child: Text(message)),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor:
+            isError ? const Color(0xFF8B1E3F) : const Color(0xFF1B3D2F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Future<void> _applyPromoCode(FlowerModel bouquet) async {
+    if (_isApplyingPromo) return;
+    final code = _promoCodeController.text.trim().toUpperCase();
+    if (code.isEmpty) {
+      _showPromoSnack('Please enter a promo code.');
+      return;
+    }
+
+    setState(() => _isApplyingPromo = true);
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('coupons')
+          .where('code', isEqualTo: code)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        _showPromoSnack('This promo code is invalid.');
+        return;
+      }
+
+      final data = snapshot.docs.first.data();
+      final isActive = data['isActive'] == true;
+      final expiryTs = data['expiryDate'] as Timestamp?;
+      final discount = (data['discountPercentage'] is num)
+          ? (data['discountPercentage'] as num).toDouble()
+          : -1.0;
+      final isExpired =
+          expiryTs == null || expiryTs.toDate().isBefore(DateTime.now());
+
+      if (!isActive || isExpired || discount <= 0 || discount > 100) {
+        _showPromoSnack('This promo code is inactive or expired.');
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _appliedPromoCode = code;
+        _appliedPromoDiscountPercentage = discount;
+      });
+      _showPromoSnack('✨ Promo Code Applied Successfully!', isError: false);
+    } catch (_) {
+      _showPromoSnack('Unable to verify promo code right now.');
+    } finally {
+      if (mounted) setState(() => _isApplyingPromo = false);
+    }
+  }
+
   Future<void> _openVoiceMessage() async {
     if (FirebaseAuth.instance.currentUser == null) {
       showVoiceMessageAuthRequired(context);
@@ -158,6 +245,7 @@ class _AddOnPersonalizationSheetState
     final l10n = AppLocalizations.of(context)!;
     final productUrl = '${Uri.base.origin}/p/${widget.flowerId}';
     final total = _totalPriceIqd(bouquet);
+    final checkoutTotal = _discountedTotalIqd(bouquet);
     launchOrderWhatsApp(
       flowerName: bouquet.name,
       flowerPrice: formatPriceWithCurrency(bouquet.priceIqd, l10n.currencyIqd),
@@ -168,6 +256,10 @@ class _AddOnPersonalizationSheetState
       selectedAddOns:
           _selectedAddOns.isEmpty ? null : List.from(_selectedAddOns),
       totalPriceIqd: total,
+      promoCode: _appliedPromoCode,
+      promoDiscountPercentage: _appliedPromoDiscountPercentage,
+      discountedTotalPriceIqd:
+          checkoutTotal != total ? checkoutTotal : null,
       productUrl: productUrl,
       voiceMessageUrl: _voiceMessageUrl,
       freeDeliveryUnlocked: total >= freeDeliveryThreshold,
@@ -234,6 +326,9 @@ class _AddOnPersonalizationSheetState
                   orElse: () => <AddOnModel>[],
                 );
                 final total = _totalPriceIqd(bouquet);
+                final checkoutTotal = _discountedTotalIqd(bouquet);
+                final hasPromo = _appliedPromoCode != null &&
+                    _appliedPromoDiscountPercentage != null;
                 final sectionTitleStyle = GoogleFonts.montserrat(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -486,8 +581,143 @@ class _AddOnPersonalizationSheetState
                         ],
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.border.withValues(alpha: 0.85),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.shadow.withValues(alpha: 0.05),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  CupertinoIcons.tag,
+                                  size: 22,
+                                  color: AppColors.inkMuted,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _promoCodeController,
+                                    focusNode: _promoFocusNode,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    onTap: () =>
+                                        HapticFeedback.lightImpact(),
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: 0.6,
+                                      color: AppColors.ink,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'Enter Promo Code',
+                                      isDense: true,
+                                      filled: false,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      hintStyle: GoogleFonts.montserrat(
+                                        fontSize: 14,
+                                        color: AppColors.inkMuted
+                                            .withValues(alpha: 0.75),
+                                      ),
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (_isApplyingPromo)
+                                  const Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 8),
+                                    child: SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.2,
+                                        color: AppColors.accentGold,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  TextButton(
+                                    onPressed: () async {
+                                      HapticFeedback.mediumImpact();
+                                      await _applyPromoCode(bouquet);
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: _luxuryGold,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: Text(
+                                      'Apply',
+                                      style: GoogleFonts.montserrat(
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.4,
+                                        color: _luxuryGold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (hasPromo) ...[
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.verified_rounded,
+                                    size: 18,
+                                    color: const Color(0xFF166534),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      'Promo ${_appliedPromoCode!} (-${_appliedPromoDiscountPercentage!.toStringAsFixed(_appliedPromoDiscountPercentage! % 1 == 0 ? 0 : 1)}%) applied',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: const Color(0xFF166534),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
                     _StickyCheckoutBar(
-                      total: total,
+                      subtotalIqd: total,
+                      checkoutTotalIqd: checkoutTotal,
+                      showDiscounted: hasPromo && checkoutTotal != total,
                       l10n: l10n,
                       onOrder: () {
                         if (_deliveryLatLng == null) {
@@ -551,17 +781,23 @@ class _AddOnPersonalizationSheetState
 
 /// Sticky bottom bar: total on the left, Order via WhatsApp button on the right.
 class _StickyCheckoutBar extends StatelessWidget {
-  final int total;
+  final int subtotalIqd;
+  final int checkoutTotalIqd;
+  final bool showDiscounted;
   final AppLocalizations l10n;
   final VoidCallback onOrder;
   final bool enabled;
 
   const _StickyCheckoutBar({
-    required this.total,
+    required this.subtotalIqd,
+    required this.checkoutTotalIqd,
+    required this.showDiscounted,
     required this.l10n,
     required this.onOrder,
     required this.enabled,
   });
+
+  static const Color _luxuryGold = AppColors.accentGold;
 
   @override
   Widget build(BuildContext context) {
@@ -599,13 +835,41 @@ class _StickyCheckoutBar extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${l10n.currencyIqd} ${formatPriceIqd(total)}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.ink,
-                          fontWeight: FontWeight.w700,
+                  if (showDiscounted)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${l10n.currencyIqd} ${formatPriceIqd(subtotalIqd)}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: AppColors.inkMuted,
+                                decoration: TextDecoration.lineThrough,
+                              ),
                         ),
-                  ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${l10n.currencyIqd} ${formatPriceIqd(checkoutTotalIqd)}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
+                                color: _luxuryGold,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      '${l10n.currencyIqd} ${formatPriceIqd(subtotalIqd)}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: AppColors.ink,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                 ],
               ),
             ),

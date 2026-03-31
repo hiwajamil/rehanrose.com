@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/app_scaffold.dart';
 
 /// Firestore keys for driver application (read by admin approval UI).
@@ -271,9 +272,11 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_loadingProfile) {
       return AppScaffold(
-        title: 'Drive with Rehan Rose',
+        title: l10n.driveWithRehanRose,
         child: const Center(
           child: CircularProgressIndicator(color: AppColors.rosePrimary),
         ),
@@ -282,7 +285,7 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
 
     if (_loadError != null) {
       return AppScaffold(
-        title: 'Drive with Rehan Rose',
+        title: l10n.driveWithRehanRose,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -314,7 +317,7 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
     }
 
     return AppScaffold(
-      title: 'Drive with Rehan Rose',
+      title: l10n.driveWithRehanRose,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 48),
         child: Center(

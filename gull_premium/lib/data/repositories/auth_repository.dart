@@ -170,6 +170,7 @@ class AuthRepository {
       'email': user.email,
       'displayName': user.displayName,
       'photoURL': user.photoURL,
+      'totalSpent': 0.0,
       'createdAt': FieldValue.serverTimestamp(),
       'role': 'customer',
       'wishlist': <String>[],
@@ -265,9 +266,9 @@ class AuthRepository {
   }
 
   /// Fetches the current user's profile from Firestore [users] collection.
-  /// Returns a map with fullName (or displayName), email, phone (phoneNumber), city, photoURL.
+  /// Returns a map with fullName (or displayName), email, phone, city, photoURL, totalSpent.
   /// Returns null if the document does not exist.
-  Future<Map<String, String>?> getUserProfile(String uid) async {
+  Future<Map<String, dynamic>?> getUserProfile(String uid) async {
     final doc = await _firestore.collection('users').doc(uid).get();
     final data = doc.data();
     if (data == null) return null;
@@ -278,11 +279,14 @@ class AuthRepository {
     final phone = data['phoneNumber']?.toString().trim() ?? '';
     final city = data['city']?.toString().trim() ?? '';
     final photoURL = data['photoURL']?.toString();
+    final totalSpentRaw = data['totalSpent'];
+    final totalSpent = totalSpentRaw is num ? totalSpentRaw.toDouble() : 0.0;
     return {
       'fullName': fullName,
       'email': email,
       'phone': phone,
       'city': city,
+      'totalSpent': totalSpent,
       if (photoURL != null && photoURL.isNotEmpty) 'photoURL': photoURL,
     };
   }

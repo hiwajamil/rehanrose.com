@@ -11,6 +11,10 @@
   "navHelp": "یارمەتی",
   "helpDeliveryAreas": "ناوچەکانی گەیاندن",
   "helpContactUs": "پەیوەندیمان پێوە بکە",
+  "termsAndConditions": "مەرج و ڕێنماییەکان",
+  "contactUs": "پەیوەندیمان پێوە بکە",
+  "driveWithRehanRose": "ببە بە شۆفێری گەیاندن",
+  "seeMoreBouquets": "بینینی چەپکە گوڵی زیاتر",
   "helpFaq": "پرسیارە باوەکان",
   "occasionsShopByRecipient": "بە وەرگر بکڕە",
   "occasionsForMom": "بۆ دایک",
@@ -383,5 +387,6 @@
   "brand": "مارکە (براند)",
   "choose_brand": "مارکەیەک هەڵبژێرە",
   "how_can_i_help": "چۆن هاوکاریت بکەم؟",
-  "whatsapp_support_message": "سڵاو تیمی ڕەیحان ڕۆز، پێویستم بە هاوکارییە..."
+  "whatsapp_support_message": "سڵاو تیمی ڕەیحان ڕۆز، پێویستم بە هاوکارییە...",
+  "favoriteUpdateFailed": "نوێکردنەوەی دڵخوازەکان سەرکەوتوو نەبوو. پەیوەندی بپشکنە."
 }

@@ -91,6 +91,10 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
   final TextEditingController _voiceMessageLinkController = TextEditingController();
   final TextEditingController _deliveryLocationLinkController = TextEditingController();
   final TextEditingController _orderDateController = TextEditingController();
+  final TextEditingController _userIdController = TextEditingController();
+
+  /// Set when Auto-Extract finds `[Ref: uid]`; also mirrored in [_userIdController].
+  String? _extractedUserId;
 
   FlowerModel? _foundBouquet;
   String? _vendorName;
@@ -122,6 +126,7 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
     _voiceMessageLinkController.dispose();
     _deliveryLocationLinkController.dispose();
     _orderDateController.dispose();
+    _userIdController.dispose();
     super.dispose();
   }
 
@@ -165,6 +170,9 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
     _totalPriceController.text = extract.totalPriceRaw;
     _voiceMessageLinkController.text = extract.voiceMessageLink;
     _deliveryLocationLinkController.text = extract.deliveryLocationLink;
+    final uid = extract.userId.trim();
+    _extractedUserId = uid.isEmpty ? null : uid;
+    _userIdController.text = uid;
     setState(() {});
     _fetchBouquetByCode();
   }
@@ -264,6 +272,7 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
       await repo.createOmsOrder(
         orderId: orderId,
         data: CreateOmsOrderData(
+          userId: _userIdController.text.trim(),
           bouquetId: bouquet?.id ?? '',
           bouquetCode: bouquet?.bouquetCode ?? bouquetCode,
           vendorId: vendor.id,
@@ -290,9 +299,11 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
         _voiceMessageLinkController.clear();
         _deliveryLocationLinkController.clear();
         _orderDateController.clear();
+        _userIdController.clear();
         _searchController.clear();
         setState(() {
           _isSubmitting = false;
+          _extractedUserId = null;
           _foundBouquet = null;
           _vendorName = null;
           _selectedVendor = null;
@@ -360,11 +371,13 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
                     voiceMessageLinkController: _voiceMessageLinkController,
                     deliveryLocationLinkController: _deliveryLocationLinkController,
                     orderDateController: _orderDateController,
+                    userIdController: _userIdController,
                     detailsLabel: 'Bouquet Details',
                     detailsHint: 'e.g. Bouquet - IQD 35,000',
                     codeLabel: 'Bouquet Code',
                     codeHint: 'e.g. AN-2 or #BQT-102',
-                    whatsAppPasteHint: 'Paste the full WhatsApp order message (Flower:, Bouquet Code:, Total Price:, etc.)',
+                    whatsAppPasteHint:
+                        'Paste the full WhatsApp order (Date & Time, Customer Phone, Flower:, Bouquet Code:, Total Price:, Voice Message (QR):, Link:, Delivery Location:, [Ref: …]).',
                     sendButtonLabel: 'Send the bouquet For preparation',
                     foundBouquet: _foundBouquet,
                     vendorName: _vendorName,
@@ -388,119 +401,6 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
   }
 }
 
-/// Parses structured WhatsApp perfume order messages into separate fields.
-///
-/// Expected format (from [launchPerfumeOrderWhatsApp]):
-/// - Item: Perfume - `<name>` by `<brand>` (IQD `<price>`)
-/// - Perfume Code: `#<code>`
-/// - Total Price: IQD `<total>`
-/// - Voice Message (QR): `<url-or-No>`
-/// - Delivery Location: `<google-maps-url-or-Not provided>`
-WhatsAppOrderExtract parsePerfumeWhatsAppOrderMessage(String raw) {
-  if (raw.trim().isEmpty) return const WhatsAppOrderExtract();
-
-  (bool, String) stripPrefix(String line, String prefix, String current) {
-    final lower = line.toLowerCase();
-    final prefixLower = prefix.toLowerCase();
-    if (!lower.startsWith(prefixLower)) return (false, current);
-    final value = line.substring(prefix.length).trim();
-    return (true, value);
-  }
-
-  String customerPhone = '';
-  String orderDate = '';
-  String perfumeDetails = '';
-  String perfumeCode = '';
-  String totalPriceRaw = '';
-  String voiceMessageLink = '';
-  String deliveryLocationLink = '';
-  // Link line exists in the message, but we don't map it to voice/delivery.
-  String linkLine = '';
-
-  final lines = raw.replaceAll('\r\n', '\n').split('\n');
-  for (final line in lines) {
-    final trimmed = line.trim();
-    if (trimmed.isEmpty) continue;
-
-    final dateMatch = stripPrefix(trimmed, 'Date & Time:', orderDate);
-    if (dateMatch.$1) {
-      orderDate = dateMatch.$2;
-      continue;
-    }
-
-    final phoneMatch = stripPrefix(trimmed, 'Customer Phone:', customerPhone);
-    if (phoneMatch.$1) {
-      customerPhone = phoneMatch.$2;
-      continue;
-    }
-
-    // Example: "Item: Perfume - PF-12 by BrandX (IQD 12,000)"
-    final itemMatch =
-        stripPrefix(trimmed, 'Item: Perfume -', perfumeDetails);
-    if (itemMatch.$1) {
-      perfumeDetails = 'Perfume - ${itemMatch.$2}';
-      continue;
-    }
-
-    final codeMatch =
-        stripPrefix(trimmed, 'Perfume Code:', perfumeCode);
-    if (codeMatch.$1) {
-      perfumeCode = codeMatch.$2;
-      continue;
-    }
-
-    final priceMatch = stripPrefix(trimmed, 'Total Price:', totalPriceRaw);
-    if (priceMatch.$1) {
-      totalPriceRaw = priceMatch.$2;
-      continue;
-    }
-
-    final voiceMatch = stripPrefix(
-      trimmed,
-      'Voice Message (QR):',
-      voiceMessageLink,
-    );
-    if (voiceMatch.$1) {
-      voiceMessageLink = voiceMatch.$2;
-      continue;
-    }
-
-    final linkMatch = stripPrefix(trimmed, 'Link:', linkLine);
-    if (linkMatch.$1) {
-      linkLine = linkMatch.$2;
-      continue;
-    }
-
-    final locMatch =
-        stripPrefix(trimmed, 'Delivery Location:', deliveryLocationLink);
-    if (locMatch.$1) {
-      deliveryLocationLink = locMatch.$2;
-      continue;
-    }
-  }
-
-  final normalizedVoice = voiceMessageLink.trim();
-  if (normalizedVoice.isEmpty || normalizedVoice.toLowerCase() == 'no') {
-    voiceMessageLink = '';
-  }
-
-  final normalizedDelivery = deliveryLocationLink.trim();
-  if (normalizedDelivery.isEmpty ||
-      normalizedDelivery.toLowerCase() == 'not provided') {
-    deliveryLocationLink = '';
-  }
-
-  return WhatsAppOrderExtract(
-    customerPhone: customerPhone.trim(),
-    orderDate: orderDate.trim(),
-    bouquetDetails: perfumeDetails.trim(),
-    bouquetCode: perfumeCode.trim(),
-    totalPriceRaw: totalPriceRaw.trim(),
-    voiceMessageLink: voiceMessageLink.trim(),
-    deliveryLocationLink: deliveryLocationLink.trim(),
-  );
-}
-
 /// Admin OMS (Perfumes): Create perfume orders from WhatsApp and track status.
 class PerfumeOmsScreen extends ConsumerStatefulWidget {
   const PerfumeOmsScreen({super.key});
@@ -521,6 +421,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
   final TextEditingController _deliveryLocationLinkController =
       TextEditingController();
   final TextEditingController _orderDateController = TextEditingController();
+  final TextEditingController _userIdController = TextEditingController();
 
   FlowerModel? _foundPerfume;
   String? _vendorName;
@@ -552,6 +453,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
     _voiceMessageLinkController.dispose();
     _deliveryLocationLinkController.dispose();
     _orderDateController.dispose();
+    _userIdController.dispose();
     super.dispose();
   }
 
@@ -596,6 +498,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
     _totalPriceController.text = extract.totalPriceRaw;
     _voiceMessageLinkController.text = extract.voiceMessageLink;
     _deliveryLocationLinkController.text = extract.deliveryLocationLink;
+    _userIdController.text = extract.userId;
     setState(() {});
     _fetchPerfumeByCode();
   }
@@ -611,7 +514,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
       return;
     }
 
-    final normalizedCode = rawCode.replaceFirst(RegExp(r'^#\\s*'), '');
+    final normalizedCode = rawCode.replaceFirst(RegExp(r'^#\s*'), '');
 
     setState(() {
       _isLoadingPerfume = true;
@@ -724,6 +627,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
       await repo.createOmsOrder(
         orderId: orderId,
         data: CreateOmsOrderData(
+          userId: _userIdController.text.trim(),
           bouquetId: perfume?.id ?? '',
           bouquetCode: perfume?.bouquetCode ?? perfumeCode,
           vendorId: vendor.id,
@@ -751,6 +655,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
         _voiceMessageLinkController.clear();
         _deliveryLocationLinkController.clear();
         _orderDateController.clear();
+        _userIdController.clear();
         _searchController.clear();
         setState(() {
           _isSubmitting = false;
@@ -822,6 +727,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
                   voiceMessageLinkController: _voiceMessageLinkController,
                   deliveryLocationLinkController: _deliveryLocationLinkController,
                   orderDateController: _orderDateController,
+                  userIdController: _userIdController,
                   detailsLabel: 'Perfume Details',
                   detailsHint: 'e.g. Perfume - Name by Brand (IQD 35,000)',
                   codeLabel: 'Perfume Code',
@@ -864,6 +770,7 @@ class _BuildCreateOrderTab extends StatelessWidget {
   final TextEditingController voiceMessageLinkController;
   final TextEditingController deliveryLocationLinkController;
   final TextEditingController orderDateController;
+  final TextEditingController userIdController;
   final String detailsLabel;
   final String detailsHint;
   final String codeLabel;
@@ -894,6 +801,7 @@ class _BuildCreateOrderTab extends StatelessWidget {
     required this.voiceMessageLinkController,
     required this.deliveryLocationLinkController,
     required this.orderDateController,
+    required this.userIdController,
     required this.detailsLabel,
     required this.detailsHint,
     required this.codeLabel,
@@ -1077,6 +985,14 @@ class _BuildCreateOrderTab extends StatelessWidget {
                   'Delivery Location Link',
                   deliveryLocationLinkController,
                   hint: 'http://...',
+                  enabled: viaManual,
+                ),
+                const SizedBox(height: 16),
+                _labeledField(
+                  context,
+                  'Customer User ID (Ref)',
+                  userIdController,
+                  hint: 'Firebase uid from [Ref: …]',
                   enabled: viaManual,
                 ),
                 const SizedBox(height: 24),

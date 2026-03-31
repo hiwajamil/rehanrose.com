@@ -274,6 +274,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     final sectionSpacing = isMobile ? 24.0 : 40.0;
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

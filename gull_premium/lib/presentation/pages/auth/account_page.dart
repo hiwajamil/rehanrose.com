@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,9 @@ import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../controllers/controllers.dart';
+import '../../../core/services/vip_loyalty_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/user_occasion_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/app_scaffold.dart';
@@ -145,6 +148,8 @@ class _CustomerDashboardView extends ConsumerWidget {
         final email = profileEmail.isNotEmpty ? profileEmail : fallbackEmail;
         final city = profile?['city'] ?? '';
         final photoUrl = profile?['photoURL'] ?? fallbackPhotoUrl;
+        final totalSpentRaw = profile?['totalSpent'];
+        final totalSpent = totalSpentRaw is num ? totalSpentRaw.toDouble() : 0.0;
         final isPremium = premiumAsync.value ?? false;
 
         return _DashboardContent(
@@ -154,6 +159,7 @@ class _CustomerDashboardView extends ConsumerWidget {
           email: email,
           city: city,
           photoUrl: photoUrl,
+          totalSpent: totalSpent,
           isPremium: isPremium,
           onSignOut: onSignOut,
         );
@@ -168,6 +174,7 @@ class _CustomerDashboardView extends ConsumerWidget {
           email: fallbackEmail,
           city: '',
           photoUrl: fallbackPhotoUrl,
+          totalSpent: 0.0,
           isPremium: isPremium,
           onSignOut: onSignOut,
         );
@@ -184,6 +191,7 @@ class _DashboardContent extends ConsumerStatefulWidget {
     required this.email,
     required this.city,
     required this.photoUrl,
+    required this.totalSpent,
     required this.isPremium,
     required this.onSignOut,
   });
@@ -194,6 +202,7 @@ class _DashboardContent extends ConsumerStatefulWidget {
   final String email;
   final String city;
   final String? photoUrl;
+  final double totalSpent;
   final bool isPremium;
   final Future<void> Function() onSignOut;
 
@@ -569,6 +578,8 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
             ),
           ),
           const SizedBox(height: sectionSpacing),
+          _VipStatusCard(totalSpent: widget.totalSpent),
+          const SizedBox(height: sectionSpacing),
 
           // ——— Section B: Dashboard shortcuts (balanced 2x2 grid) ———
           LayoutBuilder(
@@ -836,6 +847,145 @@ class _DashboardContentState extends ConsumerState<_DashboardContent> {
   }
 }
 
+class _VipStatusCard extends StatelessWidget {
+  const _VipStatusCard({required this.totalSpent});
+
+  final double totalSpent;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = VipLoyaltyService.progressFor(totalSpent);
+    final tier = progress.currentTier;
+    final theme = Theme.of(context);
+
+    final Gradient backgroundGradient;
+    final Color borderColor;
+    final Color textColor;
+    final Color subtitleColor;
+    final Color progressTrackColor;
+    final Color progressValueColor;
+
+    switch (tier) {
+      case VipTier.silver:
+        backgroundGradient = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFEEF1F5), Color(0xFFB7C0CA), Color(0xFF8C98A6)],
+        );
+        borderColor = const Color(0xFFD4DBE3);
+        textColor = const Color(0xFF24303D);
+        subtitleColor = const Color(0xFF344454);
+        progressTrackColor = Colors.white.withValues(alpha: 0.45);
+        progressValueColor = const Color(0xFF5A6878);
+        break;
+      case VipTier.gold:
+        backgroundGradient = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.amber.shade300, Colors.orange.shade700],
+        );
+        borderColor = Colors.amber.shade100;
+        textColor = const Color(0xFF2A1B00);
+        subtitleColor = const Color(0xFF4A2E00);
+        progressTrackColor = Colors.white.withValues(alpha: 0.4);
+        progressValueColor = const Color(0xFF6E4100);
+        break;
+      case VipTier.vipDiamond:
+        backgroundGradient = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F1014), Color(0xFF1B1C22), Color(0xFF090A0D)],
+        );
+        borderColor = const Color(0xFFD4AF37);
+        textColor = const Color(0xFFF7E5AF);
+        subtitleColor = const Color(0xFFEAD8A3);
+        progressTrackColor = Colors.white.withValues(alpha: 0.16);
+        progressValueColor = const Color(0xFFEFCB75);
+        break;
+    }
+
+    final tierName = switch (tier) {
+      VipTier.silver => 'Silver Member',
+      VipTier.gold => 'Gold Member',
+      VipTier.vipDiamond => 'VIP Diamond Member',
+    };
+    final nextTierName = switch (progress.nextTier) {
+      VipTier.silver => 'Silver',
+      VipTier.gold => 'Gold',
+      VipTier.vipDiamond => 'VIP Diamond',
+      null => '',
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        gradient: backgroundGradient,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: tier == VipTier.vipDiamond ? 1.5 : 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.workspace_premium_rounded, color: textColor, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                tierName,
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+              if (tier == VipTier.vipDiamond) ...[
+                const Spacer(),
+                Icon(Icons.auto_awesome, color: textColor.withValues(alpha: 0.9), size: 18),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Total spent: IQD ${formatPriceIqd(totalSpent.round())}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: subtitleColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: progress.progressToNextTier,
+              minHeight: 7,
+              backgroundColor: progressTrackColor,
+              valueColor: AlwaysStoppedAnimation<Color>(progressValueColor),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            tier == VipTier.vipDiamond
+                ? 'You have reached the highest luxury tier! Enjoy your permanent 5% discount.'
+                : 'Spend IQD ${formatPriceIqd(progress.remainingToNextTierIqd.round())} more to reach $nextTierName.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: subtitleColor,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ContactRow extends StatelessWidget {
   const _ContactRow({
     required this.icon,
@@ -1083,6 +1233,7 @@ class VoiceMessagesHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uid = fa.FirebaseAuth.instance.currentUser?.uid;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -1093,31 +1244,150 @@ class VoiceMessagesHistoryScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.mic_none,
-                size: 56,
-                color: AppColors.forestGreen,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Voice message history is coming soon.',
-                style: GoogleFonts.montserrat(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.inkCharcoal,
+      body: uid == null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Sign in to see your voice messages.',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.inkMuted,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
-            ],
-          ),
-        ),
-      ),
+            )
+          : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('voice_messages')
+                  .where('userId', isEqualTo: uid)
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Could not load messages.',
+                        style: GoogleFonts.montserrat(
+                          color: AppColors.inkMuted,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.forestGreen),
+                  );
+                }
+                final docs = snapshot.data?.docs ?? [];
+                if (docs.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.mic_none,
+                            size: 56,
+                            color: AppColors.forestGreen,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No voice messages yet. Record one when you personalize an order.',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.inkCharcoal,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data();
+                    final url = data['audioUrl'] as String? ?? '';
+                    final created = data['createdAt'] as Timestamp?;
+                    String subtitle;
+                    if (created != null) {
+                      subtitle = DateFormat.yMMMd().add_jm().format(created.toDate());
+                    } else {
+                      subtitle = 'Voice message';
+                    }
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: url.isEmpty
+                            ? null
+                            : () => context.push(
+                                  '/v?url=${Uri.encodeComponent(url)}',
+                                ),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            color: AppColors.forestGreen.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.forestGreen.withValues(alpha: 0.15),
+                            ),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            leading: Container(
+                              width: 46,
+                              height: 46,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppColors.forestGreen.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: AppColors.forestGreen,
+                              ),
+                            ),
+                            title: Text(
+                              'Voice message',
+                              style: GoogleFonts.montserrat(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.inkCharcoal,
+                              ),
+                            ),
+                            subtitle: Text(
+                              subtitle,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 13,
+                                color: AppColors.inkMuted,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.inkMuted,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 }

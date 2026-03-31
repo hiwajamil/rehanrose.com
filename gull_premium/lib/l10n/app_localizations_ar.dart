@@ -42,6 +42,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get helpContactUs => 'اتصل بنا';
 
   @override
+  String get termsAndConditions => 'الشروط والأحكام';
+
+  @override
+  String get contactUs => 'اتصل بنا';
+
+  @override
+  String get driveWithRehanRose => 'انضم كمندوب توصيل';
+
+  @override
+  String get seeMoreBouquets => 'عرض المزيد من الباقات';
+
+  @override
   String get helpFaq => 'الأسئلة الشائعة';
 
   @override
@@ -1198,4 +1210,7 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get whatsapp_support_message =>
       'مرحباً فريق ريحان روز، أحتاج إلى بعض المساعدة...';
+
+  @override
+  String get favoriteUpdateFailed => 'تعذّر تحديث المفضّلة. تحقق من اتصالك.';
 }

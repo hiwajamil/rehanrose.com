@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/constants/emotion_category.dart';
 import '../../../core/theme/app_colors.dart';
@@ -78,7 +79,10 @@ class _EmotionCardState extends State<_EmotionCard> {
       onExit: (_) => setState(() => _hovered = false),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: widget.onTap,
+        onTap: () {
+          HapticFeedback.lightImpact();
+          widget.onTap();
+        },
         child: Container(
           padding: const EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(

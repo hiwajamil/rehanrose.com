@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -149,7 +150,7 @@ class _WishlistContent extends ConsumerWidget {
   }
 }
 
-class _WishlistCard extends ConsumerWidget {
+class _WishlistCard extends ConsumerStatefulWidget {
   const _WishlistCard({
     required this.item,
     required this.currencyLabel,
@@ -161,11 +162,71 @@ class _WishlistCard extends ConsumerWidget {
   final bool isCompact;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final price = formatPriceWithCurrency(item.model.priceIqd, currencyLabel);
-    final imageUrl = item.model.listingImageUrl.isNotEmpty
-        ? item.model.listingImageUrl
-        : (item.type == _WishlistType.perfume
+  ConsumerState<_WishlistCard> createState() => _WishlistCardState();
+}
+
+class _WishlistCardState extends ConsumerState<_WishlistCard> {
+  static const Duration _favoriteAnimDuration = Duration(milliseconds: 220);
+
+  /// True while we show "unfavorited" before Firestore confirms removal.
+  bool _optimisticUnfavorited = false;
+
+  bool _favoriteToggleInFlight = false;
+
+  bool _effectiveFavorite(List<String> ids) {
+    if (_optimisticUnfavorited) return false;
+    return ids.contains(widget.item.model.id);
+  }
+
+  void _syncOptimistic(List<String> ids) {
+    if (!_optimisticUnfavorited) return;
+    if (!ids.contains(widget.item.model.id)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _optimisticUnfavorited = false);
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite(List<String> ids) async {
+    if (_favoriteToggleInFlight) return;
+    if (!mounted) return;
+    if (!ids.contains(widget.item.model.id)) return;
+    setState(() {
+      _favoriteToggleInFlight = true;
+      _optimisticUnfavorited = true;
+    });
+    try {
+      await ref.read(authRepositoryProvider).toggleFavorite(widget.item.model.id);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _optimisticUnfavorited = false);
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      final msg = AppLocalizations.of(context)?.favoriteUpdateFailed ??
+          'Failed to update favorites. Please check your connection.';
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _favoriteToggleInFlight = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.watch(authStateProvider).value;
+    final ids = user == null
+        ? const <String>[]
+        : (ref.watch(userWishlistProvider(user.uid)).value ?? const <String>[]);
+    _syncOptimistic(ids);
+    final isFavorite = _effectiveFavorite(ids);
+    final price = formatPriceWithCurrency(widget.item.model.priceIqd, widget.currencyLabel);
+    final imageUrl = widget.item.model.listingImageUrl.isNotEmpty
+        ? widget.item.model.listingImageUrl
+        : (widget.item.type == _WishlistType.perfume
             ? 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=900&q=80'
             : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80');
 
@@ -174,21 +235,21 @@ class _WishlistCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () {
-          if (item.type == _WishlistType.perfume) {
+          if (widget.item.type == _WishlistType.perfume) {
             showModalBottomSheet<void>(
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
               builder: (ctx) => PerfumeAddonBottomSheet(
                 perfume: PerfumeAddonData(
-                  product: item.model,
-                  brand: item.brand ?? 'Luxury Brand',
+                  product: widget.item.model,
+                  brand: widget.item.brand ?? 'Luxury Brand',
                 ),
               ),
             );
             return;
           }
-          showAddOnPersonalizationModal(context, item.model.id);
+          showAddOnPersonalizationModal(context, widget.item.model.id);
         },
         child: Ink(
           decoration: BoxDecoration(
@@ -202,7 +263,7 @@ class _WishlistCard extends ConsumerWidget {
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                 child: AspectRatio(
-                  aspectRatio: isCompact ? 1 : 1.08,
+                  aspectRatio: widget.isCompact ? 1 : 1.08,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -214,10 +275,30 @@ class _WishlistCard extends ConsumerWidget {
                           color: Colors.white.withValues(alpha: 0.85),
                           shape: const CircleBorder(),
                           child: IconButton(
-                            icon: Icon(Icons.favorite, color: AppColors.rosePrimary, size: 20),
                             onPressed: () {
-                              ref.read(authRepositoryProvider).toggleFavorite(item.model.id);
+                              HapticFeedback.lightImpact();
+                              _toggleFavorite(ids);
                             },
+                            icon: AnimatedSwitcher(
+                              duration: _favoriteAnimDuration,
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              transitionBuilder: (child, animation) => FadeTransition(
+                                opacity: animation,
+                                child: ScaleTransition(
+                                  scale: Tween<double>(begin: 0.88, end: 1.0).animate(animation),
+                                  child: child,
+                                ),
+                              ),
+                              child: Icon(
+                                key: ValueKey<bool>(isFavorite),
+                                isFavorite ? Icons.favorite : Icons.favorite_border,
+                                color: isFavorite
+                                    ? AppColors.rosePrimary
+                                    : AppColors.inkMuted,
+                                size: 20,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -230,19 +311,21 @@ class _WishlistCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (item.type == _WishlistType.perfume && (item.brand ?? '').isNotEmpty)
+                    if (widget.item.type == _WishlistType.perfume &&
+                        (widget.item.brand ?? '').isNotEmpty)
                       Text(
-                        item.brand!,
+                        widget.item.brand!,
                         style: GoogleFonts.montserrat(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF9A7A2D),
                         ),
                       ),
-                    if (item.type == _WishlistType.perfume && (item.brand ?? '').isNotEmpty)
+                    if (widget.item.type == _WishlistType.perfume &&
+                        (widget.item.brand ?? '').isNotEmpty)
                       const SizedBox(height: 6),
                     Text(
-                      item.model.name,
+                      widget.item.model.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.montserrat(

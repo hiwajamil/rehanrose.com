@@ -5,8 +5,29 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/order_model.dart';
+import '../../../data/repositories/order_repository.dart';
 import '../../widgets/layout/section_container.dart';
 import '../../widgets/oms/oms_order_card.dart';
+
+Future<void> _updateVendorOrderStatus(
+  BuildContext context,
+  OmsOrderRepository repo, {
+  required String orderId,
+  required OmsOrderStatus status,
+}) async {
+  try {
+    await repo.updateOmsOrderStatus(
+      orderId: orderId,
+      status: status,
+      applyCompletionFinancials: false,
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Could not update order: $e')),
+    );
+  }
+}
 
 /// OMS orders for vendor: New Requests (pending), Preparing, Ready. Single Firestore stream, filter in UI.
 /// Supports ?tab=new query param to show New Requests tab when navigating from the notification bell.
@@ -221,13 +242,17 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
                 showVendorLine: false,
                 showOrderIdInSubtitle: true,
                 onAccept: widget.status == OmsOrderStatus.pending
-                    ? () => repo.updateOmsOrderStatus(
+                    ? () => _updateVendorOrderStatus(
+                          context,
+                          repo,
                           orderId: order.orderId,
                           status: OmsOrderStatus.preparing,
                         )
                     : null,
                 onReady: widget.status == OmsOrderStatus.preparing
-                    ? () => repo.updateOmsOrderStatus(
+                    ? () => _updateVendorOrderStatus(
+                          context,
+                          repo,
                           orderId: order.orderId,
                           status: OmsOrderStatus.ready,
                         )

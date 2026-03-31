@@ -166,6 +166,30 @@ abstract class AppLocalizations {
   /// **'Contact Us'**
   String get helpContactUs;
 
+  /// No description provided for @termsAndConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms & Conditions'**
+  String get termsAndConditions;
+
+  /// No description provided for @contactUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Us'**
+  String get contactUs;
+
+  /// No description provided for @driveWithRehanRose.
+  ///
+  /// In en, this message translates to:
+  /// **'Drive with Rehan Rose'**
+  String get driveWithRehanRose;
+
+  /// No description provided for @seeMoreBouquets.
+  ///
+  /// In en, this message translates to:
+  /// **'See more Bouquets'**
+  String get seeMoreBouquets;
+
   /// No description provided for @helpFaq.
   ///
   /// In en, this message translates to:
@@ -2349,6 +2373,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hello Rehan Rose team, I need some help...'**
   String get whatsapp_support_message;
+
+  /// No description provided for @favoriteUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update favorites. Please check your connection.'**
+  String get favoriteUpdateFailed;
 }
 
 class _AppLocalizationsDelegate

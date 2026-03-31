@@ -1,15 +1,20 @@
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 /// Uploads voice message bytes to Firebase Storage and returns the download URL.
 /// Path: voice_messages/{userId}/message_{timestamp}.m4a for accountability.
+/// Also writes a row to Firestore `voice_messages` for profile history.
 class VoiceMessageRepository {
   VoiceMessageRepository({
     FirebaseStorage? storage,
-  }) : _storage = storage ?? FirebaseStorage.instance;
+    FirebaseFirestore? firestore,
+  })  : _storage = storage ?? FirebaseStorage.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseStorage _storage;
+  final FirebaseFirestore _firestore;
   static const String _pathPrefix = 'voice_messages';
 
   /// Uploads [bytes] (e.g. m4a or wav) and returns the download URL.
@@ -31,6 +36,13 @@ class VoiceMessageRepository {
           SettableMetadata(contentType: contentType),
         )
         .timeout(const Duration(seconds: 60));
-    return ref.getDownloadURL();
+    final downloadUrl = await ref.getDownloadURL();
+    await _firestore.collection('voice_messages').add({
+      'userId': userId,
+      'audioUrl': downloadUrl,
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'sent',
+    });
+    return downloadUrl;
   }
 }

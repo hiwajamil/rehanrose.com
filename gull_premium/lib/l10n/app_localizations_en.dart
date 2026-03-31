@@ -42,6 +42,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get helpContactUs => 'Contact Us';
 
   @override
+  String get termsAndConditions => 'Terms & Conditions';
+
+  @override
+  String get contactUs => 'Contact Us';
+
+  @override
+  String get driveWithRehanRose => 'Drive with Rehan Rose';
+
+  @override
+  String get seeMoreBouquets => 'See more Bouquets';
+
+  @override
   String get helpFaq => 'FAQ';
 
   @override
@@ -1209,4 +1221,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get whatsapp_support_message =>
       'Hello Rehan Rose team, I need some help...';
+
+  @override
+  String get favoriteUpdateFailed =>
+      'Failed to update favorites. Please check your connection.';
 }

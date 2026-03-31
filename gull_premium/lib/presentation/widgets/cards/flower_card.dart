@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -47,6 +48,56 @@ class FlowerCard extends ConsumerStatefulWidget {
 class _FlowerCardState extends ConsumerState<FlowerCard> {
   bool _hovered = false;
 
+  /// When non-null, overrides the wishlist stream until Firestore matches or the request fails.
+  bool? _wishlistOptimistic;
+
+  bool _favoriteToggleInFlight = false;
+
+  bool _effectiveFavorite(List<String> wishlist) =>
+      _wishlistOptimistic ?? wishlist.contains(widget.id);
+
+  void _syncWishlistOptimistic(List<String> wishlist) {
+    final o = _wishlistOptimistic;
+    if (o == null) return;
+    if (wishlist.contains(widget.id) == o) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _wishlistOptimistic = null);
+      });
+    }
+  }
+
+  Future<void> _toggleFavoriteOptimistic(List<String> wishlist, String? uid) async {
+    if (_favoriteToggleInFlight) return;
+    if (!mounted) return;
+    if (uid == null) {
+      showLoginModalOrPush(context);
+      return;
+    }
+    final was = _effectiveFavorite(wishlist);
+    setState(() {
+      _favoriteToggleInFlight = true;
+      _wishlistOptimistic = !was;
+    });
+    try {
+      await ref.read(authRepositoryProvider).toggleFavorite(widget.id);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _wishlistOptimistic = null);
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      final msg = AppLocalizations.of(context)?.favoriteUpdateFailed ??
+          'Failed to update favorites. Please check your connection.';
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _favoriteToggleInFlight = false);
+    }
+  }
+
   /// Soft diffuse shadow for luxury feel.
   static List<BoxShadow> get _cardShadow => [
         BoxShadow(
@@ -88,7 +139,8 @@ class _FlowerCardState extends ConsumerState<FlowerCard> {
     final wishlist = authUser == null
         ? const <String>[]
         : (ref.watch(userWishlistProvider(authUser.uid)).value ?? const <String>[]);
-    final isFavorite = wishlist.contains(widget.id);
+    _syncWishlistOptimistic(wishlist);
+    final isFavorite = _effectiveFavorite(wishlist);
 
     return RepaintBoundary(
       child: MouseRegion(
@@ -158,15 +210,10 @@ class _FlowerCardState extends ConsumerState<FlowerCard> {
                                   right: 10,
                                   child: _FavoriteButton(
                                     isFavorite: isFavorite,
-                                    onPressed: () async {
-                                      if (authUser == null) {
-                                        showLoginModalOrPush(context);
-                                        return;
-                                      }
-                                      await ref
-                                          .read(authRepositoryProvider)
-                                          .toggleFavorite(widget.id);
-                                    },
+                                    onPressed: () => _toggleFavoriteOptimistic(
+                                      wishlist,
+                                      authUser?.uid,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -254,6 +301,7 @@ class _FlowerCardState extends ConsumerState<FlowerCard> {
                               children: [
                                 _OrderCtaButton(
                                   onTap: () {
+                                    HapticFeedback.lightImpact();
                                     ref
                                         .read(analyticsServiceProvider)
                                         .logClickWhatsApp(
@@ -288,7 +336,9 @@ class _FavoriteButton extends StatelessWidget {
   });
 
   final bool isFavorite;
-  final Future<void> Function() onPressed;
+  final VoidCallback onPressed;
+
+  static const Duration _animDuration = Duration(milliseconds: 220);
 
   @override
   Widget build(BuildContext context) {
@@ -298,14 +348,32 @@ class _FavoriteButton extends StatelessWidget {
         child: Material(
           color: Colors.white.withValues(alpha: 0.22),
           child: InkWell(
-            onTap: onPressed,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onPressed();
+            },
             child: SizedBox(
               width: 36,
               height: 36,
-              child: Icon(
-                isFavorite ? Icons.favorite : Icons.favorite_border,
-                size: 20,
-                color: isFavorite ? AppColors.rosePrimary : Colors.white,
+              child: Center(
+                child: AnimatedSwitcher(
+                  duration: _animDuration,
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(begin: 0.88, end: 1.0).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: Icon(
+                    key: ValueKey<bool>(isFavorite),
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    size: 20,
+                    color: isFavorite ? AppColors.rosePrimary : Colors.white,
+                  ),
+                ),
               ),
             ),
           ),
@@ -360,7 +428,7 @@ class _VoiceQrBadge extends StatelessWidget {
 }
 
 /// Minimal "Order >" CTA with WhatsApp icon.
-class _OrderCtaButton extends StatelessWidget {
+class _OrderCtaButton extends StatefulWidget {
   final VoidCallback onTap;
   final bool enabled;
 
@@ -370,44 +438,60 @@ class _OrderCtaButton extends StatelessWidget {
   });
 
   @override
+  State<_OrderCtaButton> createState() => _OrderCtaButtonState();
+}
+
+class _OrderCtaButtonState extends State<_OrderCtaButton> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FaIcon(
-                FontAwesomeIcons.whatsapp,
-                size: 18,
-                color: enabled
-                    ? const Color(0xFF25D366)
-                    : AppColors.inkMuted.withValues(alpha: 0.5),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                AppLocalizations.of(context)?.order ?? 'Order',
-                style: GoogleFonts.montserrat(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: enabled
+    return AnimatedScale(
+      scale: _pressed ? 0.95 : 1.0,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOutBack,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.enabled ? widget.onTap : null,
+          onHighlightChanged: (isHighlighted) {
+            if (!mounted) return;
+            setState(() => _pressed = isHighlighted);
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FaIcon(
+                  FontAwesomeIcons.whatsapp,
+                  size: 18,
+                  color: widget.enabled
+                      ? const Color(0xFF25D366)
+                      : AppColors.inkMuted.withValues(alpha: 0.5),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  AppLocalizations.of(context)?.order ?? 'Order',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: widget.enabled
+                        ? AppColors.inkCharcoal
+                        : AppColors.inkMuted.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 16,
+                  color: widget.enabled
                       ? AppColors.inkCharcoal
                       : AppColors.inkMuted.withValues(alpha: 0.6),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_rounded,
-                size: 16,
-                color: enabled
-                    ? AppColors.inkCharcoal
-                    : AppColors.inkMuted.withValues(alpha: 0.6),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

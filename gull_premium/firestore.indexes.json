@@ -97,6 +97,14 @@
         { "fieldPath": "approvalStatus", "order": "ASCENDING" },
         { "fieldPath": "brand", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "voice_messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -267,6 +267,7 @@ OmsOrderStatus? omsOrderStatusFromString(String? value) {
 /// Stored in Firestore collection [oms_orders].
 class OmsOrderModel {
   final String orderId;
+  final String userId;
   final String bouquetId;
   final String bouquetCode;
   final String vendorId;
@@ -292,6 +293,7 @@ class OmsOrderModel {
 
   const OmsOrderModel({
     required this.orderId,
+    required this.userId,
     required this.bouquetId,
     required this.bouquetCode,
     required this.vendorId,
@@ -312,6 +314,7 @@ class OmsOrderModel {
   /// For local use only. Repository sets createdAt with serverTimestamp on create.
   Map<String, dynamic> toMap() => {
         'orderId': orderId,
+        'userId': userId,
         'bouquetId': bouquetId,
         'bouquetCode': bouquetCode,
         'vendorId': vendorId,
@@ -351,6 +354,7 @@ class OmsOrderModel {
     if (totalPrice is int) price = totalPrice;
     return OmsOrderModel(
       orderId: docId,
+      userId: data['userId']?.toString() ?? '',
       bouquetId: data['bouquetId']?.toString() ?? '',
       bouquetCode: data['bouquetCode']?.toString() ?? '',
       vendorId: data['vendorId']?.toString() ?? '',
@@ -372,6 +376,7 @@ class OmsOrderModel {
 
 /// Data required to create an OMS order (admin creates after WhatsApp request).
 class CreateOmsOrderData {
+  final String userId;
   final String bouquetId;
   final String bouquetCode;
   final String vendorId;
@@ -387,6 +392,7 @@ class CreateOmsOrderData {
   final String orderDate;
 
   const CreateOmsOrderData({
+    this.userId = '',
     required this.bouquetId,
     required this.bouquetCode,
     required this.vendorId,

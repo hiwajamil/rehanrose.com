@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../controllers/controllers.dart';
+import '../../../core/services/vip_loyalty_service.dart';
 import '../../../core/services/whatsapp_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
@@ -31,6 +34,7 @@ class OrderCustomizationPage extends ConsumerStatefulWidget {
 class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage> {
   static const Color _luxuryGold = AppColors.accentGold;
   final TextEditingController _promoCodeController = TextEditingController();
+  final FocusNode _promoFocusNode = FocusNode();
   AddOnModel? _selectedVase;
   AddOnModel? _selectedChocolate;
   AddOnModel? _selectedCard;
@@ -41,6 +45,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
   @override
   void dispose() {
     _promoCodeController.dispose();
+    _promoFocusNode.dispose();
     super.dispose();
   }
 
@@ -77,6 +82,12 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
     if (discount == null || discount <= 0) return total;
     final discounted = total * ((100 - discount) / 100);
     return discounted.round();
+  }
+
+  int _finalCheckoutTotalPriceIqd(FlowerModel bouquet, {required bool isVipDiamond}) {
+    final promoDiscounted = _discountedTotalPriceIqd(bouquet);
+    if (!isVipDiamond) return promoDiscounted;
+    return (promoDiscounted * 0.95).round();
   }
 
   Future<void> _applyPromoCode(FlowerModel bouquet) async {
@@ -120,9 +131,8 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
         _appliedPromoDiscountPercentage = discount;
       });
 
-      final discounted = _discountedTotalPriceIqd(bouquet);
       _showPromoSnack(
-        'Promo applied! You now pay ${l10nCurrency(discounted)}.',
+        '✨ Promo Code Applied Successfully!',
         isError: false,
       );
     } catch (_) {
@@ -134,19 +144,23 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
     }
   }
 
-  String l10nCurrency(int amount) {
-    final l10n = AppLocalizations.of(context)!;
-    return '${l10n.currencyIqd} ${formatPriceIqd(amount)}';
-  }
-
   void _showPromoSnack(String message, {bool isError = true}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            if (!isError) ...[
+              Icon(Icons.auto_awesome_rounded, color: _luxuryGold, size: 22),
+              const SizedBox(width: 10),
+            ],
+            Expanded(child: Text(message)),
+          ],
+        ),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isError ? const Color(0xFF8B1E3F) : const Color(0xFF1F6E43),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor:
+            isError ? const Color(0xFF8B1E3F) : const Color(0xFF1B3D2F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }
@@ -410,6 +424,23 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
   void _orderViaWhatsApp(FlowerModel bouquet) {
     final l10n = AppLocalizations.of(context)!;
     final productUrl = '${Uri.base.origin}/p/${widget.flowerId}';
+    HapticFeedback.mediumImpact();
+    final user = ref.read(authStateProvider).value;
+    final profile = user == null
+        ? null
+        : ref.read(userProfileProvider(user.uid)).maybeWhen(
+              data: (value) => value,
+              orElse: () => null,
+            );
+    final totalSpentRaw = profile?['totalSpent'];
+    final totalSpent = totalSpentRaw is num ? totalSpentRaw.toDouble() : 0.0;
+    final tier = VipLoyaltyService.resolveTier(totalSpent);
+    final isVipDiamond = tier == VipTier.vipDiamond;
+    final finalDiscountedTotal = _finalCheckoutTotalPriceIqd(
+      bouquet,
+      isVipDiamond: isVipDiamond,
+    );
+
     launchOrderWhatsApp(
       flowerName: bouquet.name,
       flowerPrice: formatPriceWithCurrency(bouquet.priceIqd, l10n.currencyIqd),
@@ -423,7 +454,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
       totalPriceIqd: _totalPriceIqd(bouquet),
       promoCode: _appliedPromoCode,
       promoDiscountPercentage: _appliedPromoDiscountPercentage,
-      discountedTotalPriceIqd: _discountedTotalPriceIqd(bouquet),
+      discountedTotalPriceIqd: finalDiscountedTotal,
       productUrl: productUrl,
     );
   }
@@ -432,6 +463,18 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
   Widget build(BuildContext context) {
     final bouquetAsync = ref.watch(bouquetDetailProvider(widget.flowerId));
     final addOnsAsync = ref.watch(addOnsProvider(null));
+    final authUser = ref.watch(authStateProvider).value;
+    final userProfileAsync = authUser == null
+        ? const AsyncValue<Map<String, dynamic>?>.data(null)
+        : ref.watch(userProfileProvider(authUser.uid));
+    final profileData = userProfileAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => null,
+    );
+    final totalSpentRaw = profileData?['totalSpent'];
+    final totalSpent = totalSpentRaw is num ? totalSpentRaw.toDouble() : 0.0;
+    final userTier = VipLoyaltyService.resolveTier(totalSpent);
+    final isVipDiamond = userTier == VipTier.vipDiamond;
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
 
@@ -480,9 +523,13 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
           final addOns = addOnsAsync.maybeWhen(
               data: (list) => list, orElse: () => <AddOnModel>[]);
           final total = _totalPriceIqd(bouquet);
-          final discountedTotal = _discountedTotalPriceIqd(bouquet);
+          final finalCheckoutTotal = _finalCheckoutTotalPriceIqd(
+            bouquet,
+            isVipDiamond: isVipDiamond,
+          );
           final hasPromo =
               _appliedPromoCode != null && _appliedPromoDiscountPercentage != null;
+          final hasAnyDiscount = hasPromo || isVipDiamond;
 
           return Column(
             children: [
@@ -678,15 +725,20 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border),
+                          border: Border.all(
+                            color: AppColors.border.withValues(alpha: 0.85),
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.shadow.withValues(alpha: 0.06),
-                              blurRadius: 10,
+                              color: AppColors.shadow.withValues(alpha: 0.05),
+                              blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
                           ],
@@ -694,58 +746,87 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                         child: Column(
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
+                                Icon(
+                                  CupertinoIcons.tag,
+                                  size: 22,
+                                  color: AppColors.inkMuted,
+                                ),
+                                const SizedBox(width: 10),
                                 Expanded(
                                   child: TextField(
                                     controller: _promoCodeController,
+                                    focusNode: _promoFocusNode,
                                     textCapitalization: TextCapitalization.characters,
+                                    onTap: () =>
+                                        HapticFeedback.lightImpact(),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: 0.6,
+                                        ),
                                     decoration: InputDecoration(
                                       hintText: 'Enter Promo Code',
                                       isDense: true,
-                                      filled: true,
-                                      fillColor: AppColors.background,
-                                      contentPadding: const EdgeInsets.symmetric(
+                                      filled: false,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      hintStyle: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: AppColors.inkMuted
+                                                .withValues(alpha: 0.75),
+                                          ),
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (_isApplyingPromo)
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 8),
+                                    child: SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.2,
+                                        color: AppColors.accentGold,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  TextButton(
+                                    onPressed: () async {
+                                      HapticFeedback.mediumImpact();
+                                      await _applyPromoCode(bouquet);
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: _luxuryGold,
+                                      padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
-                                        vertical: 12,
+                                        vertical: 8,
                                       ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.border,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.border,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.rosePrimary,
-                                        ),
-                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: Text(
+                                      'Apply',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.4,
+                                            color: _luxuryGold,
+                                          ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  height: 46,
-                                  child: ElevatedButton(
-                                    onPressed: _isApplyingPromo
-                                        ? null
-                                        : () => _applyPromoCode(bouquet),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.ink,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: Text(_isApplyingPromo ? '...' : 'Apply'),
-                                  ),
-                                ),
                               ],
                             ),
                             if (hasPromo) ...[
@@ -773,6 +854,28 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                 ],
                               ),
                             ],
+                            if (isVipDiamond) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    size: 18,
+                                    color: Color(0xFFD4AF37),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      'VIP Diamond Benefit: 5% Applied ✨',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: const Color(0xFF7A5A00),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -788,7 +891,7 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                 ),
                             textDirection: Directionality.of(context),
                           ),
-                          hasPromo
+                          hasAnyDiscount
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
@@ -806,12 +909,14 @@ class _OrderCustomizationPageState extends ConsumerState<OrderCustomizationPage>
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${l10n.currencyIqd} ${formatPriceIqd(discountedTotal)}',
+                                      '${l10n.currencyIqd} ${formatPriceIqd(finalCheckoutTotal)}',
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleLarge
                                           ?.copyWith(
-                                            color: const Color(0xFF166534),
+                                            color: hasPromo
+                                                ? _luxuryGold
+                                                : const Color(0xFF166534),
                                             fontWeight: FontWeight.w800,
                                           ),
                                       textDirection: Directionality.of(context),

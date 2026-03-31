@@ -42,6 +42,18 @@ class AppLocalizationsKu extends AppLocalizations {
   String get helpContactUs => 'پەیوەندیمان پێوە بکە';
 
   @override
+  String get termsAndConditions => 'مەرج و ڕێنماییەکان';
+
+  @override
+  String get contactUs => 'پەیوەندیمان پێوە بکە';
+
+  @override
+  String get driveWithRehanRose => 'ببە بە شۆفێری گەیاندن';
+
+  @override
+  String get seeMoreBouquets => 'بینینی چەپکە گوڵی زیاتر';
+
+  @override
   String get helpFaq => 'پرسیارە باوەکان';
 
   @override
@@ -1218,4 +1230,8 @@ class AppLocalizationsKu extends AppLocalizations {
   @override
   String get whatsapp_support_message =>
       'سڵاو تیمی ڕەیحان ڕۆز، پێویستم بە هاوکارییە...';
+
+  @override
+  String get favoriteUpdateFailed =>
+      'نوێکردنەوەی دڵخوازەکان سەرکەوتوو نەبوو. پەیوەندی بپشکنە.';
 }

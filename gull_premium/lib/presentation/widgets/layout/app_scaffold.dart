@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -567,6 +568,7 @@ class _OccasionsAccordionState extends State<_OccasionsAccordion> {
                     padding: const EdgeInsets.only(bottom: 4),
                     child: InkWell(
                       onTap: () {
+                        HapticFeedback.lightImpact();
                         context.go('/products?category=${cat.id}');
                         widget.onNavigate();
                       },
@@ -834,7 +836,7 @@ class _MobileNavDrawer extends ConsumerWidget {
                               color: Colors.white.withValues(alpha: 0.9),
                             ),
                             title: Text(
-                              'Terms & Conditions',
+                              l10n.termsAndConditions,
                               style: GoogleFonts.montserrat(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -862,7 +864,7 @@ class _MobileNavDrawer extends ConsumerWidget {
                               color: Colors.white.withValues(alpha: 0.9),
                             ),
                             title: Text(
-                              'Contact Us',
+                              l10n.contactUs,
                               style: GoogleFonts.montserrat(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -1042,7 +1044,7 @@ class _MobileNavDrawer extends ConsumerWidget {
   }
 
   Widget _buildJoinDeliveryFleetTile(BuildContext context) {
-    const title = 'Drive with Rehan Rose';
+    final l10n = AppLocalizations.of(context)!;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -1064,7 +1066,7 @@ class _MobileNavDrawer extends ConsumerWidget {
             color: AppColors.rosePrimary,
           ),
           title: Text(
-            title,
+            l10n.driveWithRehanRose,
             style: GoogleFonts.montserrat(
               fontSize: 15,
               fontWeight: FontWeight.w600,

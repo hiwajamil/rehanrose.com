@@ -11,6 +11,10 @@
   "navHelp": "المساعدة",
   "helpDeliveryAreas": "مناطق التوصيل",
   "helpContactUs": "اتصل بنا",
+  "termsAndConditions": "الشروط والأحكام",
+  "contactUs": "اتصل بنا",
+  "driveWithRehanRose": "انضم كمندوب توصيل",
+  "seeMoreBouquets": "عرض المزيد من الباقات",
   "helpFaq": "الأسئلة الشائعة",
   "occasionsShopByRecipient": "تسوق حسب المستلم",
   "occasionsForMom": "للأم",
@@ -383,5 +387,6 @@
   "brand": "الماركة",
   "choose_brand": "اختر الماركة",
   "how_can_i_help": "كيف يمكنني مساعدتك؟",
-  "whatsapp_support_message": "مرحباً فريق ريحان روز، أحتاج إلى بعض المساعدة..."
+  "whatsapp_support_message": "مرحباً فريق ريحان روز، أحتاج إلى بعض المساعدة...",
+  "favoriteUpdateFailed": "تعذّر تحديث المفضّلة. تحقق من اتصالك."
 }

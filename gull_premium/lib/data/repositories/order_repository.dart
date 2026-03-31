@@ -177,6 +177,7 @@ class OmsOrderRepository {
     final ref = _firestore.collection(_omsCollection).doc(orderId);
     await ref.set({
       'orderId': orderId,
+      'userId': data.userId,
       'bouquetId': data.bouquetId,
       'bouquetCode': data.bouquetCode,
       'vendorId': data.vendorId,
@@ -300,11 +301,31 @@ class OmsOrderRepository {
   }
 
   /// Updates OMS order status (e.g. pending → preparing, preparing → ready).
+  ///
+  /// Vendors may only change [status] per Firestore rules (`hasOnly(['status'])`).
+  /// Set [applyCompletionFinancials] to false for vendor clients so the transition
+  /// to ready does not also write `financialsApplied` / user stats in the same
+  /// transaction (which would be denied). Admin or backend can apply earnings separately.
   Future<void> updateOmsOrderStatus({
     required String orderId,
     required OmsOrderStatus status,
+    bool applyCompletionFinancials = true,
   }) async {
     final orderRef = _firestore.collection(_omsCollection).doc(orderId);
+
+    if (!applyCompletionFinancials) {
+      await _firestore.runTransaction((tx) async {
+        final orderSnap = await tx.get(orderRef);
+        final orderData = orderSnap.data();
+        if (!orderSnap.exists || orderData == null) {
+          throw StateError('OMS order not found: $orderId');
+        }
+        final previousStatus = (orderData['status'] ?? '').toString();
+        if (previousStatus == status.value) return;
+        tx.update(orderRef, {'status': status.value});
+      }).timeout(_timeout);
+      return;
+    }
 
     await _firestore.runTransaction((tx) async {
       final orderSnap = await tx.get(orderRef);

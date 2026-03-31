@@ -4,7 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// Minimalist CTA: Dark charcoal, rounded 8, white text, WhatsApp icon, no shadow.
-class OrderViaWhatsAppButton extends StatelessWidget {
+class OrderViaWhatsAppButton extends StatefulWidget {
   final VoidCallback? onPressed;
   /// Label: 'Order via WhatsApp' or Kurdish 'داواکردن بە نامە'.
   final String label;
@@ -37,9 +37,16 @@ class OrderViaWhatsAppButton extends StatelessWidget {
   static const double _minHeight = 48.0;
 
   @override
+  State<OrderViaWhatsAppButton> createState() => _OrderViaWhatsAppButtonState();
+}
+
+class _OrderViaWhatsAppButtonState extends State<OrderViaWhatsAppButton> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).shortestSide < 600;
-    final fontSize = _buttonFontSize(context);
+    final fontSize = OrderViaWhatsAppButton._buttonFontSize(context);
     final iconSize = isMobile ? 20.0 : 18.0;
     final padding = isMobile
         ? const EdgeInsets.symmetric(horizontal: 20, vertical: 14)
@@ -57,47 +64,56 @@ class OrderViaWhatsAppButton extends StatelessWidget {
         );
 
     final textChild = Text(
-      label,
+      widget.label,
       style: textStyle,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     );
 
-    final effectiveOnPressed = enabled ? onPressed : null;
-    final showDisabledStyle = !enabled || appearsDisabled;
+    final effectiveOnPressed = widget.enabled ? widget.onPressed : null;
+    final showDisabledStyle = !widget.enabled || widget.appearsDisabled;
 
-    final button = Opacity(
-      opacity: showDisabledStyle ? 0.5 : 1.0,
-      child: Material(
-        color: showDisabledStyle && appearsDisabled
-            ? const Color(0xFF9E9E9E)
-            : _buttonColor,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: effectiveOnPressed,
+    final button = AnimatedScale(
+      scale: _pressed ? 0.95 : 1.0,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOutBack,
+      child: Opacity(
+        opacity: showDisabledStyle ? 0.5 : 1.0,
+        child: Material(
+          color: showDisabledStyle && widget.appearsDisabled
+              ? const Color(0xFF9E9E9E)
+              : OrderViaWhatsAppButton._buttonColor,
           borderRadius: BorderRadius.circular(8),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: _minHeight),
-            child: Padding(
-              padding: padding,
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FaIcon(
-                    FontAwesomeIcons.whatsapp,
-                    color: Colors.white,
-                    size: iconSize,
-                  ),
-                  SizedBox(width: isMobile ? 12 : 10),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: textChild,
+          child: InkWell(
+            onTap: effectiveOnPressed,
+            onHighlightChanged: (isHighlighted) {
+              if (!mounted) return;
+              setState(() => _pressed = isHighlighted);
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: OrderViaWhatsAppButton._minHeight),
+              child: Padding(
+                padding: padding,
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FaIcon(
+                      FontAwesomeIcons.whatsapp,
+                      color: Colors.white,
+                      size: iconSize,
                     ),
-                  ),
-                ],
+                    SizedBox(width: isMobile ? 12 : 10),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: textChild,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -106,9 +122,9 @@ class OrderViaWhatsAppButton extends StatelessWidget {
     );
 
     final l10n = AppLocalizations.of(context)!;
-    final subtitleText = valueProposition == null
+    final subtitleText = widget.valueProposition == null
         ? l10n.includesFreeVoiceMessageQRCode
-        : valueProposition!;
+        : widget.valueProposition!;
     if (subtitleText.isEmpty) {
       return button;
     }

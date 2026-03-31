@@ -83,7 +83,7 @@ final vendorStatusForUidProvider =
 /// Customer profile from Firestore users collection (fullName, email, phone, city, photoURL).
 /// Used on the account/dashboard page for authenticated customers.
 final userProfileProvider =
-    FutureProvider.autoDispose.family<Map<String, String>?, String>((ref, uid) {
+    FutureProvider.autoDispose.family<Map<String, dynamic>?, String>((ref, uid) {
   return ref.read(authRepositoryProvider).getUserProfile(uid);
 });
 

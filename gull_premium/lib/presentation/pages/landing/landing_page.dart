@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -226,6 +227,7 @@ class _HeroSectionState extends ConsumerState<_HeroSection> {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
+                      HapticFeedback.lightImpact();
                       ref
                           .read(selectedOccasionProvider.notifier)
                           .setOccasion(id);
@@ -785,7 +787,7 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                             ),
                           ),
                           child: Text(
-                            'See more Bouquets',
+                            l10n.seeMoreBouquets,
                             style: GoogleFonts.montserrat(
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.2,
@@ -850,7 +852,10 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                 final isSelected = _selectedPerfumeBrand == brand;
                 return InkWell(
                   borderRadius: BorderRadius.circular(24),
-                  onTap: () => setState(() => _selectedPerfumeBrand = brand),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() => _selectedPerfumeBrand = brand);
+                  },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     padding: const EdgeInsets.symmetric(
@@ -1209,7 +1214,7 @@ class _PerfumeGrid extends StatelessWidget {
   }
 }
 
-class _PerfumeCard extends ConsumerWidget {
+class _PerfumeCard extends ConsumerStatefulWidget {
   const _PerfumeCard({
     required this.item,
     required this.imageUrl,
@@ -1228,13 +1233,76 @@ class _PerfumeCard extends ConsumerWidget {
   final String currencyLabel;
   final bool isCompact;
 
+  @override
+  ConsumerState<_PerfumeCard> createState() => _PerfumeCardState();
+}
+
+class _PerfumeCardState extends ConsumerState<_PerfumeCard> {
+  static const Duration _favoriteAnimDuration = Duration(milliseconds: 220);
+
+  bool? _wishlistOptimistic;
+
+  bool _favoriteToggleInFlight = false;
+
+  bool _effectiveFavorite(List<String> wishlist, String productId) {
+    if (productId.isEmpty) return false;
+    return _wishlistOptimistic ?? wishlist.contains(productId);
+  }
+
+  void _syncWishlistOptimistic(List<String> wishlist, String productId) {
+    final o = _wishlistOptimistic;
+    if (o == null || productId.isEmpty) return;
+    if (wishlist.contains(productId) == o) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _wishlistOptimistic = null);
+      });
+    }
+  }
+
+  Future<void> _toggleFavoriteOptimistic(
+    List<String> wishlist,
+    String? uid,
+    String productId,
+  ) async {
+    if (_favoriteToggleInFlight) return;
+    if (!mounted) return;
+    if (uid == null) {
+      showLoginModalOrPush(context);
+      return;
+    }
+    if (productId.isEmpty) return;
+    final was = _effectiveFavorite(wishlist, productId);
+    setState(() {
+      _favoriteToggleInFlight = true;
+      _wishlistOptimistic = !was;
+    });
+    try {
+      await ref.read(authRepositoryProvider).toggleFavorite(productId);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _wishlistOptimistic = null);
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      final msg = AppLocalizations.of(context)?.favoriteUpdateFailed ??
+          'Failed to update favorites. Please check your connection.';
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _favoriteToggleInFlight = false);
+    }
+  }
+
   void _openPerfumeSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) =>
-          PerfumeAddonBottomSheet(perfume: PerfumeAddonData.fromItemMap(item)),
+          PerfumeAddonBottomSheet(perfume: PerfumeAddonData.fromItemMap(widget.item)),
     );
   }
 
@@ -1253,11 +1321,11 @@ class _PerfumeCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final parsedPrice = priceRaw is num
-        ? (priceRaw as num).toInt()
-        : int.tryParse(priceRaw?.toString() ?? '') ?? 0;
-    final displayPrice = formatPriceWithCurrency(parsedPrice, currencyLabel);
+  Widget build(BuildContext context) {
+    final parsedPrice = widget.priceRaw is num
+        ? (widget.priceRaw as num).toInt()
+        : int.tryParse(widget.priceRaw?.toString() ?? '') ?? 0;
+    final displayPrice = formatPriceWithCurrency(parsedPrice, widget.currencyLabel);
     final fallbackImage =
         'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=900&q=80';
     final cardRadius = BorderRadius.circular(18);
@@ -1266,8 +1334,9 @@ class _PerfumeCard extends ConsumerWidget {
     final wishlist = authUser == null
         ? const <String>[]
         : (ref.watch(userWishlistProvider(authUser.uid)).value ?? const <String>[]);
-    final productId = item['id']?.toString() ?? '';
-    final isFavorite = productId.isNotEmpty && wishlist.contains(productId);
+    final productId = widget.item['id']?.toString() ?? '';
+    _syncWishlistOptimistic(wishlist, productId);
+    final isFavorite = _effectiveFavorite(wishlist, productId);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1292,12 +1361,12 @@ class _PerfumeCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AspectRatio(
-                  aspectRatio: isCompact ? 1 : 1.12,
+                  aspectRatio: widget.isCompact ? 1 : 1.12,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
                       _buildPerfumeImage(
-                        imageUrl.isEmpty ? fallbackImage : imageUrl,
+                        widget.imageUrl.isEmpty ? fallbackImage : widget.imageUrl,
                       ),
                       Positioned(
                         top: 10,
@@ -1308,27 +1377,42 @@ class _PerfumeCard extends ConsumerWidget {
                             child: Material(
                               color: Colors.white.withValues(alpha: 0.22),
                               child: InkWell(
-                                onTap: () async {
-                                  if (authUser == null) {
-                                    showLoginModalOrPush(context);
-                                    return;
-                                  }
-                                  if (productId.isEmpty) return;
-                                  await ref
-                                      .read(authRepositoryProvider)
-                                      .toggleFavorite(productId);
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _toggleFavoriteOptimistic(
+                                    wishlist,
+                                    authUser?.uid,
+                                    productId,
+                                  );
                                 },
                                 child: SizedBox(
                                   width: 36,
                                   height: 36,
-                                  child: Icon(
-                                    isFavorite
-                                        ? Icons.favorite
-                                        : Icons.favorite_border,
-                                    size: 20,
-                                    color: isFavorite
-                                        ? AppColors.rosePrimary
-                                        : Colors.white,
+                                  child: Center(
+                                    child: AnimatedSwitcher(
+                                      duration: _favoriteAnimDuration,
+                                      switchInCurve: Curves.easeOutCubic,
+                                      switchOutCurve: Curves.easeInCubic,
+                                      transitionBuilder: (child, animation) =>
+                                          FadeTransition(
+                                        opacity: animation,
+                                        child: ScaleTransition(
+                                          scale: Tween<double>(begin: 0.88, end: 1.0)
+                                              .animate(animation),
+                                          child: child,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        key: ValueKey<bool>(isFavorite),
+                                        isFavorite
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        size: 20,
+                                        color: isFavorite
+                                            ? AppColors.rosePrimary
+                                            : Colors.white,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1345,7 +1429,7 @@ class _PerfumeCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        brand,
+                        widget.brand,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.montserrat(
@@ -1357,7 +1441,7 @@ class _PerfumeCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        name,
+                        widget.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.montserrat(

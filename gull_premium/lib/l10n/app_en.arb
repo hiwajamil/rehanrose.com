@@ -11,6 +11,10 @@
   "navHelp": "Help",
   "helpDeliveryAreas": "Delivery Areas",
   "helpContactUs": "Contact Us",
+  "termsAndConditions": "Terms & Conditions",
+  "contactUs": "Contact Us",
+  "driveWithRehanRose": "Drive with Rehan Rose",
+  "seeMoreBouquets": "See more Bouquets",
   "helpFaq": "FAQ",
   "occasionsShopByRecipient": "Shop by Recipient",
   "occasionsForMom": "For Mom",
@@ -428,5 +432,6 @@
   "brand": "Brand",
   "choose_brand": "Choose Brand",
   "how_can_i_help": "How can I help you?",
-  "whatsapp_support_message": "Hello Rehan Rose team, I need some help..."
+  "whatsapp_support_message": "Hello Rehan Rose team, I need some help...",
+  "favoriteUpdateFailed": "Failed to update favorites. Please check your connection."
 }

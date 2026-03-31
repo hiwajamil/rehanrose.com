@@ -1,30 +1,38 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Admin: in admins collection OR users/{uid}.role == 'admin' (aligned with Firestore rules).
-    function isAdmin() {
-      return isSignedIn()
-          && (
-            firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
-            || (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
-                && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'));
-    }
-
-    match /bouquets/{userId}/{fileName} {
+    match /bouquets/{allPaths=**} {
       allow read: if true;
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn();
     }
 
-    match /addons/{fileName} {
+    match /perfumes/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn();
     }
 
-    match /voice_messages/{fileName} {
+    match /advertisements/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /addons/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /voice_messages/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // ئەمە دەرگا گشتییەکەیە بۆ پاراستن لە هەر ئێرۆرێک
+    match /{allPaths=**} {
       allow read: if true;
       allow write: if isSignedIn();
     }

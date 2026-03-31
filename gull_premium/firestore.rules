@@ -30,22 +30,15 @@ service cloud.firestore {
     }
 
     // ─── users ─────────────────────────────────────────────────────────────
-    // User: read/write own document only. Admin: read/write all.
     match /users/{userId} {
       allow read, write: if isAdmin() || isOwner(userId);
     }
 
-    // ─── users/{userId}/occasions (My Occasions) ───────────────────────────
-    // Authenticated users can read and write only their own occasions.
     match /users/{userId}/occasions/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     // ─── products ──────────────────────────────────────────────────────────
-    // Read (Public): only when status == 'approved'.
-    // Read (Vendor): own products (any status) so they can see pending items.
-    // Read/Write (Admin): full access.
-    // Create: admin or vendor. Update/Delete: admin, or vendor (own product only).
     match /products/{productId} {
       allow read: if resource.data.status == 'approved'
           || (isVendor() && resource.data.vendorId == request.auth.uid)
@@ -69,19 +62,11 @@ service cloud.firestore {
               && resource.data.vendorId == request.auth.uid);
     }
 
-    // ─── counters (e.g. bouquet code sequence) ──────────────────────────────
-    // Vendors need to reserve next bouquet code when publishing; admins too.
-    // Read: authenticated. Write: admin or vendor only (prevents customers from manipulating codes).
     match /counters/{counterId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin() || isVendor();
     }
 
-    // ─── bouquets (flower products) ────────────────────────────────────────
-    // Read: public. Create: admin (any) or vendor (only with approvalStatus == 'pending').
-    // Fallback create by owner (vendorId == uid) so publish works on mobile when isVendor() get() fails.
-    // Update: admins; or analytics-only (viewCount/orderCount); or vendor own (priceIqd, imageUrls, thumbnailUrls).
-    // Delete: admins; or vendor for their own bouquets (owner fallback for mobile).
     match /bouquets/{bouquetId} {
       allow read: if true;
       allow create: if isAdmin()
@@ -100,7 +85,6 @@ service cloud.firestore {
               && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['priceIqd'])
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls'])
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])))
-          // Vendor resubmit: change rejected -> pending (clears rejectionReason, rejectionNote)
           || (resource.data.vendorId == request.auth.uid
               && resource.data.approvalStatus == 'rejected'
               && request.resource.data.approvalStatus == 'pending'
@@ -108,7 +92,6 @@ service cloud.firestore {
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'rejectionReason', 'rejectionNote'])));
     }
 
-    // ─── perfumes (luxury perfume products; same approval flow as bouquets) ─
     match /perfumes/{perfumeId} {
       allow read: if true;
       allow create: if isAdmin()
@@ -136,11 +119,6 @@ service cloud.firestore {
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'rejectionReason', 'rejectionNote'])));
     }
 
-    // ─── orders ────────────────────────────────────────────────────────────
-    // Create: any authenticated user. Must include denormalized user snapshot
-    // (userName, userPhone, userAddress) for admin list views (fewer reads).
-    // Read: owner or admin. Admin reads all for order list (no user join needed).
-    // Update: admins only (e.g. status). Users cannot update after create.
     match /orders/{orderId} {
       allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid;
@@ -149,8 +127,6 @@ service cloud.firestore {
               resource.data.userId == request.auth.uid
               || isAdmin()
               || (
-                // Vendors can view only their own completed orders to power
-                // the earnings/payout breakdown.
                 resource.data.vendorId == request.auth.uid
                 && (
                   resource.data.status == 'ready'
@@ -162,22 +138,16 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ─── vendors ───────────────────────────────────────────────────────────
-    // Read: public. Write: admins only.
     match /vendors/{vendorId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
-    // ─── admins ───────────────────────────────────────────────────────────
-    // Used to grant admin access. Read: authenticated (to check isAdmin). Write: console only.
     match /admins/{adminId} {
       allow read: if isAuthenticated();
       allow write: if false;
     }
 
-    // ─── vendor_applications ──────────────────────────────────────────────
-    // Create: new vendor applicant (doc id = their uid). Read/update: admin only (list pending, approve/reject).
     match /vendor_applications/{applicationId} {
       allow read: if isAdmin();
       allow create: if isAuthenticated() && applicationId == request.auth.uid;
@@ -185,20 +155,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ─── addons (vases, chocolates, cards) ─────────────────────────────────
-    // Read: public (customers see add-ons at checkout).
-    // Write: admin only (Super Admin manages add-on inventory).
     match /addons/{addonId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
-    // ─── oms_orders (Order Management System – WhatsApp checkout) ─────────
-    // Create: admin only (Super Admin creates order and assigns to vendor).
-    // Read: admin (all); vendor (only documents where vendorId == uid).
-    // Update: admin (any); vendor (own orders only, status field only, valid transitions).
-    // Vendor allowed transitions: pending→preparing, preparing→ready.
-    // Delete: admin only.
     function vendorOmsUpdateAllowed() {
       return isVendor()
           && resource.data.vendorId == request.auth.uid
@@ -208,12 +169,41 @@ service cloud.firestore {
             || (resource.data.status == 'preparing' && request.resource.data.status == 'ready')
           );
     }
+    
     match /oms_orders/{orderId} {
       allow create: if isAdmin();
       allow read: if isAdmin()
-          || (isVendor() && resource.data.vendorId == request.auth.uid);
+          || (isVendor() && resource.data.vendorId == request.auth.uid)
+          || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow update: if isAdmin() || vendorOmsUpdateAllowed();
       allow delete: if isAdmin();
+    }
+
+    // ─── settings (بۆ ڕیکلامەکان و ڕێکخستنەکانی ئەپ) ───
+    match /settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ─── coupons (کۆدی داشکاندن) ───
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ─── reviews (ڕای کڕیاران و ئەستێرەکان) ───
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // Voice messages (profile history + Storage accountability)
+    match /voice_messages/{messageId} {
+      allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // Default: deny all other paths

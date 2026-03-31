@@ -17,6 +17,12 @@ String _displayPerfumeCode(String? raw) {
   return '#$t';
 }
 
+String _userRefLine() {
+  final uid = FirebaseAuth.instance.currentUser?.uid.trim();
+  if (uid == null || uid.isEmpty) return '[Ref: unknown]';
+  return '[Ref: $uid]';
+}
+
 /// Hardcoded Super Admin WhatsApp number (no '00' or '+').
 const String kWhatsAppOrderNumber = '9647709818181';
 
@@ -85,14 +91,18 @@ Future<bool> launchOrderWhatsApp({
         promoDiscountPercentage != null)
       'Promo Code Applied: ${promoCode.trim().toUpperCase()} (-${promoDiscountPercentage.toStringAsFixed(promoDiscountPercentage % 1 == 0 ? 0 : 1)}%)',
     if (totalPriceIqd != null) 'Total Price: ${iqdPriceString(totalPriceIqd)}',
-    if (discountedTotalPriceIqd != null)
-      'Final Discounted Price: ${iqdPriceString(discountedTotalPriceIqd)}',
+    if (discountedTotalPriceIqd != null &&
+        totalPriceIqd != null &&
+        discountedTotalPriceIqd != totalPriceIqd)
+      'Discounted Total: ${iqdPriceString(discountedTotalPriceIqd)}',
     if (freeDeliveryUnlocked) 'Delivery: FREE',
     if (voiceMessageUrl != null && voiceMessageUrl.isNotEmpty)
       'Voice Message (QR): $voiceMessageUrl',
     if (productUrl != null && productUrl.isNotEmpty) 'Link: $productUrl',
     if (deliveryLocation != null)
       'Delivery Location: ${deliveryLocation.googleMapsUrl}',
+    '',
+    _userRefLine(),
   ];
   final body = lines.join('\n');
 
@@ -119,6 +129,9 @@ Future<bool> launchPerfumeOrderWhatsApp({
   String? productUrl,
   String? voiceMessageUrl,
   DeliveryLatLng? deliveryLocation,
+  String? promoCode,
+  double? promoDiscountPercentage,
+  int? discountedTotalPriceIqd,
 }) async {
   final dateTimeStr = _orderDateTimeString();
   final customerPhone =
@@ -137,11 +150,20 @@ Future<bool> launchPerfumeOrderWhatsApp({
     'Perfume Code: ${_displayPerfumeCode(perfumeCodeRaw)}',
     if (addOnNameTrimmed.isNotEmpty && addOnIqd != null)
       'Add-on Bouquet: $addOnNameTrimmed (IQD ${formatPriceIqd(addOnIqd)})',
+    if (promoCode != null &&
+        promoCode.trim().isNotEmpty &&
+        promoDiscountPercentage != null)
+      'Promo Code Applied: ${promoCode.trim().toUpperCase()} (-${promoDiscountPercentage.toStringAsFixed(promoDiscountPercentage % 1 == 0 ? 0 : 1)}%)',
     'Total Price: IQD ${formatPriceIqd(totalPriceIqd)}',
+    if (discountedTotalPriceIqd != null &&
+        discountedTotalPriceIqd != totalPriceIqd)
+      'Discounted Total: IQD ${formatPriceIqd(discountedTotalPriceIqd)}',
     'Voice Message (QR): $voiceLine',
     if (productUrl != null && productUrl.trim().isNotEmpty)
       'Link: ${productUrl.trim()}',
     'Delivery Location: ${deliveryLocation != null ? deliveryLocation.googleMapsUrl : 'Not provided'}',
+    '',
+    _userRefLine(),
   ];
   final body = lines.join('\n');
 
@@ -186,6 +208,8 @@ Future<bool> launchWhatsAppOrder({
     '🆔 Code: $code',
     '💰 Price: $price',
     if (productUrl != null && productUrl.isNotEmpty) 'Link: $productUrl',
+    '',
+    _userRefLine(),
   ];
   final body = lines.join('\n');
 

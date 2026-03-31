@@ -51,6 +51,8 @@
 	<string>This app uses the camera to take photos of bouquets.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photos to select images for bouquets.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>This app uses notifications to keep you updated about your order status.</string>
 	<!-- Live tracking: When In Use = "Allow While Using". For background / "Always",
 	     add NSLocationAlwaysAndWhenInUseUsageDescription and UIBackgroundModes → location. -->
 	<key>NSLocationWhenInUseUsageDescription</key>

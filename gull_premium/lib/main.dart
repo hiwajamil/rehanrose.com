@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import 'core/constants/breakpoints.dart';
 import 'core/routing/app_router.dart';
 import 'core/routing/auth_redirect_notifier.dart';
 import 'core/services/firebase_init.dart' as fb;
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'controllers/controllers.dart';
 import 'core/utils/locale_provider.dart';
@@ -186,6 +188,90 @@ class MainAppWithSplash extends ConsumerStatefulWidget {
 
 class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
   bool _splashComplete = false;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _customerOrderSubscription;
+  final Map<String, String> _lastKnownOrderStatuses = {};
+  String? _listenerUid;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_initializeNotificationsAndListener());
+  }
+
+  Future<void> _initializeNotificationsAndListener() async {
+    await NotificationService.instance.initialize();
+    await NotificationService.instance.requestPermissions();
+    await _configureOrderListenerForUser(ref.read(authStateProvider).value);
+  }
+
+  Future<void> _configureOrderListenerForUser(fa.User? user) async {
+    final uid = user?.uid;
+    if (_listenerUid == uid) return;
+
+    await _customerOrderSubscription?.cancel();
+    _customerOrderSubscription = null;
+    _lastKnownOrderStatuses.clear();
+    _listenerUid = uid;
+
+    if (uid == null) return;
+
+        _customerOrderSubscription = FirebaseFirestore.instance
+        .collection('oms_orders')
+        .where('userId', isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) async {
+      for (final change in snapshot.docChanges) {
+        final data = change.doc.data();
+        if (data == null) continue;
+
+        final orderId = change.doc.id;
+        final newStatus = (data['status'] ?? '').toString().trim().toLowerCase();
+
+        if (change.type == DocumentChangeType.removed) {
+          _lastKnownOrderStatuses.remove(orderId);
+          continue;
+        }
+
+        if (change.type == DocumentChangeType.added) {
+          _lastKnownOrderStatuses[orderId] = newStatus;
+          continue;
+        }
+
+        if (change.type == DocumentChangeType.modified) {
+          final oldStatus = _lastKnownOrderStatuses[orderId];
+          _lastKnownOrderStatuses[orderId] = newStatus;
+          if (oldStatus == null || oldStatus == newStatus) continue;
+          await _showOrderStatusNotificationForTransition(newStatus);
+        }
+      }
+    });
+  }
+
+  Future<void> _showOrderStatusNotificationForTransition(String status) async {
+    switch (status) {
+      case 'preparing':
+        await NotificationService.instance.showOrderStatusNotification(
+          'Great News! 🌸',
+          'Your luxury order is now being prepared by our artisan florists.',
+        );
+        return;
+      case 'ready':
+        await NotificationService.instance.showOrderStatusNotification(
+          'Order Ready! ✨',
+          'Your beautiful order is fully prepared and ready.',
+        );
+        return;
+      default:
+        return;
+    }
+  }
+
+  @override
+  void dispose() {
+    _customerOrderSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,10 +282,23 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
       if (next.value != null) {
         ref.read(localeProvider.notifier).syncFromFirestoreIfLoggedIn();
       }
+      unawaited(_configureOrderListenerForUser(next.value));
     });
     final locale = ref.watch(localeProvider);
     final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    final theme = isMobile ? AppTheme.lightMobile(locale) : AppTheme.light(locale);
+    final baseTheme = isMobile ? AppTheme.lightMobile(locale) : AppTheme.light(locale);
+    final theme = baseTheme.copyWith(
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+    );
     final direction = textDirectionForLocale(locale);
 
     if (kDebugMode && _debugOnlyShowVendorsManagementPage) {
