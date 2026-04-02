@@ -175,9 +175,10 @@ class OmsOrderRepository {
     required CreateOmsOrderData data,
   }) async {
     final ref = _firestore.collection(_omsCollection).doc(orderId);
+    final trimmedUserId = data.userId.trim();
     await ref.set({
       'orderId': orderId,
-      'userId': data.userId,
+      'userId': trimmedUserId.isEmpty ? null : trimmedUserId,
       'bouquetId': data.bouquetId,
       'bouquetCode': data.bouquetCode,
       'vendorId': data.vendorId,

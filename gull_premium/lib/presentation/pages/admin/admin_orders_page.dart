@@ -401,7 +401,7 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
                     codeHint: 'e.g. AN-2 or #BQT-102',
                     whatsAppPasteHint:
                         'Paste the full WhatsApp order (Date & Time, Customer Phone, Flower:, Bouquet Code:, Total Price:, Voice Message (QR):, Link:, Delivery Location:, [Ref: …]).',
-                    sendButtonLabel: 'Send the bouquet For preparation',
+                    sendButtonLabel: 'Send Order For Preparation',
                     foundBouquet: _foundBouquet,
                     vendorName: _vendorName,
                     vendorsAsync: vendorsAsync,
@@ -775,7 +775,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
                   onSendForPreparation: _sendForPreparation,
                   l10n: AppLocalizations.of(context)!,
                 ),
-                const _OrderTrackingTab(),
+                const _OrderTrackingTab(usePerfumeLabels: true),
               ],
             ),
           ),
@@ -1467,7 +1467,9 @@ class _VendorPickerSheetState extends State<_VendorPickerSheet> {
 }
 
 class _OrderTrackingTab extends ConsumerStatefulWidget {
-  const _OrderTrackingTab();
+  const _OrderTrackingTab({this.usePerfumeLabels = false});
+
+  final bool usePerfumeLabels;
 
   @override
   ConsumerState<_OrderTrackingTab> createState() => _OrderTrackingTabState();
@@ -1480,7 +1482,7 @@ class _OrderTrackingTabState extends ConsumerState<_OrderTrackingTab>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -1499,11 +1501,27 @@ class _OrderTrackingTabState extends ConsumerState<_OrderTrackingTab>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: const [
-              _AdminOrderListByStatus(status: OmsOrderStatus.pending),
-              _AdminOrderListByStatus(status: OmsOrderStatus.preparing),
-              _AdminOrderListByStatus(status: OmsOrderStatus.ready),
-              _AdminOrderListByStatus(status: OmsOrderStatus.delivered),
+            children: [
+              _AdminOrderListByStatus(
+                status: OmsOrderStatus.pending,
+                usePerfumeLabels: widget.usePerfumeLabels,
+              ),
+              _AdminOrderListByStatus(
+                status: OmsOrderStatus.preparing,
+                usePerfumeLabels: widget.usePerfumeLabels,
+              ),
+              _AdminOrderListByStatus(
+                status: OmsOrderStatus.ready,
+                usePerfumeLabels: widget.usePerfumeLabels,
+              ),
+              _AdminOrderListByStatus(
+                status: OmsOrderStatus.delivered,
+                usePerfumeLabels: widget.usePerfumeLabels,
+              ),
+              _AdminOrderListByStatus(
+                status: OmsOrderStatus.deleted,
+                usePerfumeLabels: widget.usePerfumeLabels,
+              ),
             ],
           ),
         ),
@@ -1513,7 +1531,7 @@ class _OrderTrackingTabState extends ConsumerState<_OrderTrackingTab>
 }
 
 /// Pill-shaped segmented control for admin order status tabs (matches vendor_orders_page style).
-/// Scrollable so all 4 tabs fit on narrow screens.
+/// Scrollable so all tabs fit on narrow screens.
 class _AdminPillTabBar extends StatelessWidget {
   final TabController controller;
 
@@ -1559,9 +1577,10 @@ class _AdminPillTabBar extends StatelessWidget {
         labelPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         tabs: const [
           Tab(text: 'Pending'),
-          Tab(text: 'Bouquet Preparation'),
-          Tab(text: 'Ready Bouquets'),
+          Tab(text: 'Preparing'),
+          Tab(text: 'Ready'),
           Tab(text: 'Delivered'),
+          Tab(text: 'Deleted'),
         ],
       ),
     );
@@ -1570,8 +1589,12 @@ class _AdminPillTabBar extends StatelessWidget {
 
 class _AdminOrderListByStatus extends ConsumerStatefulWidget {
   final OmsOrderStatus status;
+  final bool usePerfumeLabels;
 
-  const _AdminOrderListByStatus({required this.status});
+  const _AdminOrderListByStatus({
+    required this.status,
+    this.usePerfumeLabels = false,
+  });
 
   @override
   ConsumerState<_AdminOrderListByStatus> createState() => _AdminOrderListByStatusState();
@@ -1586,28 +1609,28 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
 
   double _mainAxisExtentForWidth(double width) {
     // Keep cards visually consistent in a grid and avoid overflow on narrower widths.
-    if (width > 1100) return 300;
-    if (width > 700) return 320;
-    return 340;
+    if (width > 1100) return 252;
+    if (width > 700) return 268;
+    return 288;
   }
 
-  Future<void> _confirmAndDeletePendingOrder(OmsOrderModel order) async {
+  Future<void> _confirmAndSoftDeleteOrder(OmsOrderModel order) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel Order?'),
+        title: const Text('Delete order'),
         content: const Text(
-          'Are you sure you want to delete this pending order? This action cannot be undone.',
+          'Are you sure you want to delete this order?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('No, Keep it'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text(
-              'Yes, Delete',
+              'Delete',
               style: TextStyle(color: Colors.red),
             ),
           ),
@@ -1618,15 +1641,18 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
     if (confirmed != true || !mounted) return;
 
     try {
-      await ref.read(omsOrderRepositoryProvider).deleteOmsOrder(orderId: order.orderId);
+      await ref.read(omsOrderRepositoryProvider).updateOmsOrderStatus(
+            orderId: order.orderId,
+            status: OmsOrderStatus.deleted,
+          );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order deleted successfully')),
+        const SnackBar(content: Text('Order moved to Deleted')),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete order')),
+        const SnackBar(content: Text('Could not update order')),
       );
     }
   }
@@ -1716,7 +1742,7 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    _emptyLabel(widget.status),
+                    _emptyLabel(widget.status, widget.usePerfumeLabels),
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: AppColors.inkMuted,
                           fontWeight: FontWeight.w500,
@@ -1749,9 +1775,10 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
                   order: order,
                   showVendorLine: true,
                   showOrderIdInSubtitle: true,
-                  onDelete: widget.status == OmsOrderStatus.pending
-                      ? () => _confirmAndDeletePendingOrder(order)
-                      : null,
+                  usePerfumeLabels: widget.usePerfumeLabels,
+                  onDelete: widget.status == OmsOrderStatus.deleted
+                      ? null
+                      : () => _confirmAndSoftDeleteOrder(order),
                 );
               },
             );
@@ -1761,16 +1788,20 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
     );
   }
 
-  static String _emptyLabel(OmsOrderStatus s) {
+  static String _emptyLabel(OmsOrderStatus s, bool usePerfumeLabels) {
     switch (s) {
       case OmsOrderStatus.pending:
         return 'No pending orders.';
       case OmsOrderStatus.preparing:
         return 'No orders in preparation.';
       case OmsOrderStatus.ready:
-        return 'No ready bouquets.';
+        return usePerfumeLabels
+            ? 'No ready perfumes.'
+            : 'No ready bouquets.';
       case OmsOrderStatus.delivered:
         return 'No delivered orders.';
+      case OmsOrderStatus.deleted:
+        return 'No deleted orders.';
     }
   }
 }

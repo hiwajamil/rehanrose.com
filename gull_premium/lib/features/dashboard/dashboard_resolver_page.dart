@@ -103,11 +103,11 @@ class _RoleResolverState extends ConsumerState<_RoleResolver> {
           }
           return const _LoadingView();
         }
-        // Customer or unknown role: go to home (member/customer experience).
+        // Customer or unknown role: go to main bottom navigation shell.
         if (!_redirectScheduled) {
           _redirectScheduled = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) context.go('/');
+            if (context.mounted) context.go('/main');
           });
         }
         return const _LoadingView();

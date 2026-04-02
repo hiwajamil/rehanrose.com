@@ -143,17 +143,20 @@ class OmsDetailRow extends StatelessWidget {
 }
 
 /// Card dimensions for cached image decode (2x for retina).
-const int _kOrderCardImageSize = 80;
-const int _kOrderCardImageCacheSize = 160;
+const int _kOrderCardImageSize = 64;
+const int _kOrderCardImageCacheSize = 128;
 
-/// Reusable OMS order card for admin and vendor. Shows image, bouquet info, details, optional actions.
-/// When [preparedCount] is set (e.g. for Ready tab grouped view), shows how many of this bouquet are ready.
+/// Reusable OMS order card for admin and vendor. Shows image, product info, details, optional actions.
+/// When [preparedCount] is set (e.g. for Ready tab grouped view), shows how many of this product are ready.
+/// When [usePerfumeLabels] is true, UI copy says "Perfume" instead of "Bouquet".
 class OmsOrderCard extends StatelessWidget {
   final OmsOrderModel order;
   final bool showVendorLine;
   final bool showOrderIdInSubtitle;
   /// When non-null, shows "N prepared" for grouped Ready section so vendor sees quantity.
   final int? preparedCount;
+  /// Perfume vendors / admin perfume OMS: "Perfume:" and "Perfume Is Ready".
+  final bool usePerfumeLabels;
   final VoidCallback? onAccept;
   final VoidCallback? onReady;
   final Future<void> Function()? onDelete;
@@ -164,6 +167,7 @@ class OmsOrderCard extends StatelessWidget {
     this.showVendorLine = false,
     this.showOrderIdInSubtitle = false,
     this.preparedCount,
+    this.usePerfumeLabels = false,
     this.onAccept,
     this.onReady,
     this.onDelete,
@@ -177,6 +181,11 @@ class OmsOrderCard extends StatelessWidget {
   }
 
   bool get _isVendorView => onAccept != null || onReady != null;
+
+  String get _productLabel => usePerfumeLabels ? 'Perfume' : 'Bouquet';
+
+  String get _readyButtonLabel =>
+      usePerfumeLabels ? 'Perfume Is Ready' : 'Bouquet Is Ready';
 
   @override
   Widget build(BuildContext context) {
@@ -266,7 +275,7 @@ class OmsOrderCard extends StatelessWidget {
               _FloristRow(label: 'Order', value: order.orderId, valueStyle: valueStyle, labelStyle: labelStyle),
               _FloristRow(label: 'Date & Time', value: orderDateStr, valueStyle: valueStyle, labelStyle: labelStyle),
               _FloristRow(label: 'Customer', value: order.customerPhone, valueStyle: valueStyle, labelStyle: labelStyle),
-              _FloristRow(label: 'Bouquet', value: order.bouquetName ?? '—', valueStyle: valueStyle, labelStyle: labelStyle),
+              _FloristRow(label: _productLabel, value: order.bouquetName ?? '—', valueStyle: valueStyle, labelStyle: labelStyle),
               _FloristRow(label: 'Code', value: order.bouquetCode, valueStyle: valueStyle, labelStyle: labelStyle),
               if (order.bouquetDetails != null && order.bouquetDetails!.isNotEmpty)
                 _FloristRow(label: 'Details', value: order.bouquetDetails!, valueStyle: valueStyle, labelStyle: labelStyle),
@@ -316,7 +325,7 @@ class OmsOrderCard extends StatelessWidget {
                   if (onAccept != null && onReady != null) const SizedBox(width: 12),
                   if (onReady != null)
                     Expanded(
-                      child: PrimaryButton(label: 'Bouquet Is Ready', onPressed: onReady!),
+                      child: PrimaryButton(label: _readyButtonLabel, onPressed: onReady!),
                     ),
                 ],
               ),
@@ -366,11 +375,11 @@ class OmsOrderCard extends StatelessWidget {
     final showPreparedCount = preparedCount != null && preparedCount! > 0;
     final canDelete = onDelete != null;
     final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
-    final padding = isMobile ? 16.0 : 20.0;
+    final padding = isMobile ? 12.0 : 16.0;
 
     return RepaintBoundary(
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -385,131 +394,127 @@ class OmsOrderCard extends StatelessWidget {
         ),
         child: Padding(
           padding: EdgeInsets.all(padding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Row(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (hasImage) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: AppCachedImage(
-                        key: ValueKey<String>(order.bouquetImageUrl!),
-                        imageUrl: order.bouquetImageUrl!,
-                        width: _kOrderCardImageSize.toDouble(),
-                        height: _kOrderCardImageSize.toDouble(),
-                        fit: BoxFit.cover,
-                        memCacheWidth: _kOrderCardImageCacheSize,
-                        memCacheHeight: _kOrderCardImageCacheSize,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                order.bouquetName ?? 'Bouquet',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.ink,
-                                    ),
-                              ),
-                            ),
-                            if (canDelete)
-                              IconButton(
-                                onPressed: () async => await onDelete!(),
-                                tooltip: 'Delete',
-                                icon: Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.red.shade300,
-                                ),
-                                splashRadius: 18,
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            if (showPreparedCount)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.rosePrimary.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppColors.rosePrimary.withValues(alpha: 0.4)),
-                                ),
-                                child: Text(
-                                  '×${preparedCount!} prepared',
-                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                        color: AppColors.rosePrimary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.inkMuted,
-                              ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: AppColors.border, width: 1),
-                            ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (hasImage) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: AppCachedImage(
+                            key: ValueKey<String>(order.bouquetImageUrl!),
+                            imageUrl: order.bouquetImageUrl!,
+                            width: _kOrderCardImageSize.toDouble(),
+                            height: _kOrderCardImageSize.toDouble(),
+                            fit: BoxFit.cover,
+                            memCacheWidth: _kOrderCardImageCacheSize,
+                            memCacheHeight: _kOrderCardImageCacheSize,
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          child: isMobile && showVendorLine
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _OrderCardDetailCell(
-                                      label: 'Customer',
-                                      value: order.customerPhone,
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(right: canDelete ? 36 : 0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      order.bouquetName ?? _productLabel,
+                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.ink,
+                                          ),
                                     ),
-                                    const SizedBox(height: 8),
-                                    _OrderCardDetailCell(
-                                      label: 'Vendor',
-                                      value: order.vendorName ?? '—',
-                                    ),
-                                  ],
-                                )
-                              : Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: _OrderCardDetailCell(
-                                        label: 'Customer',
-                                        value: order.customerPhone,
+                                  ),
+                                  if (showPreparedCount)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.rosePrimary.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: AppColors.rosePrimary.withValues(alpha: 0.4)),
+                                      ),
+                                      child: Text(
+                                        '×${preparedCount!} prepared',
+                                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                              color: AppColors.rosePrimary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                       ),
                                     ),
-                                    if (showVendorLine)
-                                      Expanded(
-                                        child: _OrderCardDetailCell(
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.inkMuted,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: AppColors.border, width: 1),
+                                ),
+                              ),
+                              child: isMobile && showVendorLine
+                                  ? Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _OrderCardDetailCell(
+                                          label: 'Customer',
+                                          value: order.customerPhone,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _OrderCardDetailCell(
                                           label: 'Vendor',
                                           value: order.vendorName ?? '—',
                                         ),
-                                      ),
-                                  ],
-                                ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: order.addons.isNotEmpty
-                                  ? BorderSide(color: AppColors.border, width: 1)
-                                  : BorderSide.none,
+                                      ],
+                                    )
+                                  : Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: _OrderCardDetailCell(
+                                            label: 'Customer',
+                                            value: order.customerPhone,
+                                          ),
+                                        ),
+                                        if (showVendorLine)
+                                          Expanded(
+                                            child: _OrderCardDetailCell(
+                                              label: 'Vendor',
+                                              value: order.vendorName ?? '—',
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                             ),
-                          ),
-                          child: isMobile
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: order.addons.isNotEmpty
+                                      ? BorderSide(color: AppColors.border, width: 1)
+                                      : BorderSide.none,
+                                ),
+                              ),
+                              child: isMobile
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -540,29 +545,45 @@ class OmsOrderCard extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                        ),
-                        if (order.addons.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: _OrderCardDetailCell(
-                              label: 'Add-ons',
-                              value: order.addons,
                             ),
-                          ),
-                      ],
-                    ),
+                            if (order.addons.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: _OrderCardDetailCell(
+                                  label: 'Add-ons',
+                                  value: order.addons,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                  if (onAccept != null || onReady != null) ...[
+                    const SizedBox(height: 12),
+                    if (onAccept != null)
+                      PrimaryButton(label: 'Accept Order', onPressed: onAccept!),
+                    if (onReady != null) ...[
+                      if (onAccept != null) const SizedBox(height: 8),
+                      PrimaryButton(label: _readyButtonLabel, onPressed: onReady!),
+                    ],
+                  ],
                 ],
               ),
-              if (onAccept != null || onReady != null) ...[
-                const SizedBox(height: 16),
-                if (onAccept != null)
-                  PrimaryButton(label: 'Accept Order', onPressed: onAccept!),
-                if (onReady != null) ...[
-                  if (onAccept != null) const SizedBox(height: 8),
-                  PrimaryButton(label: 'Bouquet Is Ready', onPressed: onReady!),
-                ],
-              ],
+              if (canDelete)
+                Positioned(
+                  top: -6,
+                  right: -8,
+                  child: IconButton(
+                    onPressed: () async => await onDelete!(),
+                    tooltip: 'Delete',
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    splashRadius: 20,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  ),
+                ),
             ],
           ),
         ),
@@ -571,7 +592,7 @@ class OmsOrderCard extends StatelessWidget {
   }
 }
 
-/// Opens the system print dialog for a vendor bouquet tag PDF ([printOrderCard]).
+/// Opens the system print dialog for a vendor order card PDF ([printOrderCard]).
 Future<void> _printOrderCard(BuildContext context, OmsOrderModel order) async {
   try {
     await printOrderCard(order);

@@ -437,3 +437,68 @@ exports.updateUserTierOnOrderComplete = functions.firestore
 
     return null;
   });
+
+/**
+ * Notifies the customer (FCM) when an OMS order moves into "preparing".
+ * OMS documents live in `oms_orders` (Super Admin create + vendor status updates).
+ */
+exports.notifyUserOnOrderPreparing = functions.firestore
+  .document('oms_orders/{orderId}')
+  .onUpdate(async (change, context) => {
+    const beforeStatus = change.before.data()?.status;
+    const afterStatus = change.after.data()?.status;
+
+    if (beforeStatus === 'preparing' || afterStatus !== 'preparing') {
+      return null;
+    }
+
+    const after = change.after.data() || {};
+    const userId = (after.userId || '').toString().trim();
+    if (!userId) return null;
+
+    const db = getFirestore();
+    const userSnap = await db.collection('users').doc(userId).get();
+    if (!userSnap.exists) return null;
+
+    const fcmToken = (userSnap.data()?.fcmToken || '').toString().trim();
+    if (!fcmToken) return null;
+
+    const orderId = context.params.orderId;
+
+    try {
+      await admin.messaging().send({
+        token: fcmToken,
+        notification: {
+          title: 'Order Accepted! 🎉',
+          body:
+            'The vendor has started preparing your order. It will be ready soon!',
+        },
+        data: {
+          orderId,
+          type: 'order_status',
+          status: 'preparing',
+        },
+      });
+    } catch (error) {
+      const code = error?.code || '';
+      const isDeadToken =
+        code === 'messaging/registration-token-not-registered' ||
+        code === 'messaging/invalid-registration-token';
+
+      if (isDeadToken) {
+        await db.collection('users').doc(userId).set(
+          { fcmToken: admin.firestore.FieldValue.delete() },
+          { merge: true }
+        );
+      } else {
+        console.error(
+          '[notifyUserOnOrderPreparing] FCM send failed order=%s user=%s code=%s',
+          orderId,
+          userId,
+          code || 'unknown'
+        );
+      }
+    }
+
+    return null;
+  });

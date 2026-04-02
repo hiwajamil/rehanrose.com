@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,19 @@ import '../../../data/models/order_model.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../widgets/layout/section_container.dart';
 import '../../widgets/oms/oms_order_card.dart';
+
+final _vendorStoreCategoryProvider = StreamProvider.autoDispose<String>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value('flowers');
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) {
+    final raw = doc.data()?['storeCategory']?.toString().trim().toLowerCase();
+    return raw == 'perfumes' ? 'perfumes' : 'flowers';
+  });
+});
 
 Future<void> _updateVendorOrderStatus(
   BuildContext context,
@@ -58,6 +72,12 @@ class _VendorOrdersPageState extends ConsumerState<VendorOrdersPage>
 
   @override
   Widget build(BuildContext context) {
+    final storeCategory = ref.watch(_vendorStoreCategoryProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => 'flowers',
+        );
+    final usePerfumeLabels = storeCategory == 'perfumes';
+
     return SingleChildScrollView(
       child: SectionContainer(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
@@ -86,9 +106,18 @@ class _VendorOrdersPageState extends ConsumerState<VendorOrdersPage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _VendorOrderList(status: OmsOrderStatus.pending),
-                  _VendorOrderList(status: OmsOrderStatus.preparing),
-                  _VendorOrderList(status: OmsOrderStatus.ready),
+                  _VendorOrderList(
+                    status: OmsOrderStatus.pending,
+                    usePerfumeLabels: usePerfumeLabels,
+                  ),
+                  _VendorOrderList(
+                    status: OmsOrderStatus.preparing,
+                    usePerfumeLabels: usePerfumeLabels,
+                  ),
+                  _VendorOrderList(
+                    status: OmsOrderStatus.ready,
+                    usePerfumeLabels: usePerfumeLabels,
+                  ),
                 ],
               ),
             ),
@@ -152,8 +181,12 @@ class _PillTabBar extends StatelessWidget {
 
 class _VendorOrderList extends ConsumerStatefulWidget {
   final OmsOrderStatus status;
+  final bool usePerfumeLabels;
 
-  const _VendorOrderList({required this.status});
+  const _VendorOrderList({
+    required this.status,
+    required this.usePerfumeLabels,
+  });
 
   @override
   ConsumerState<_VendorOrderList> createState() => _VendorOrderListState();
@@ -164,16 +197,20 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
   @override
   bool get wantKeepAlive => true;
 
-  static String _emptyLabel(OmsOrderStatus s) {
+  String _emptyLabel(OmsOrderStatus s) {
     switch (s) {
       case OmsOrderStatus.pending:
         return 'No new requests.';
       case OmsOrderStatus.preparing:
         return 'No orders in preparation.';
       case OmsOrderStatus.ready:
-        return 'No ready bouquets.';
+        return widget.usePerfumeLabels
+            ? 'No ready perfumes.'
+            : 'No ready bouquets.';
       case OmsOrderStatus.delivered:
         return 'No delivered orders.';
+      case OmsOrderStatus.deleted:
+        return 'No orders.';
     }
   }
 
@@ -201,6 +238,7 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
             message: _emptyLabel(widget.status),
           );
         }
+        final usePerfume = widget.usePerfumeLabels;
         final repo = ref.read(omsOrderRepositoryProvider);
 
         // Ready tab: group by bouquet so vendor sees how many of each bouquet are prepared.
@@ -224,6 +262,7 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
                   showVendorLine: false,
                   showOrderIdInSubtitle: true,
                   preparedCount: count,
+                  usePerfumeLabels: usePerfume,
                 ),
               );
             },
@@ -241,6 +280,7 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
                 order: order,
                 showVendorLine: false,
                 showOrderIdInSubtitle: true,
+                usePerfumeLabels: usePerfume,
                 onAccept: widget.status == OmsOrderStatus.pending
                     ? () => _updateVendorOrderStatus(
                           context,
@@ -286,6 +326,8 @@ class _OrdersEmptyState extends StatelessWidget {
         return Icons.check_circle_outline;
       case OmsOrderStatus.delivered:
         return Icons.local_shipping_outlined;
+      case OmsOrderStatus.deleted:
+        return Icons.delete_outline;
     }
   }
 

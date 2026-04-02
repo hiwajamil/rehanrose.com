@@ -57,6 +57,7 @@ import '../../presentation/pages/auth/account_page.dart';
 import '../../presentation/pages/account/customer_orders_page.dart';
 import '../../presentation/pages/account/customer_addresses_page.dart';
 import '../../presentation/pages/account/wishlist_screen.dart';
+import '../../presentation/pages/navigation/main_navigation_screen.dart';
 
 class AppRouter {
   /// Creates the app router with [authNotifier] so redirect waits for auth to
@@ -112,6 +113,7 @@ class AppRouter {
           if (role == 'admin') return '/admin';
           if (role == 'vendor') return '/vendor';
           if (role == 'driver') return '/driver';
+          return '/main';
         }
 
         // Admin routes: allow unauthenticated access so /admin shows its own admin
@@ -197,6 +199,10 @@ class AppRouter {
         GoRoute(
           path: '/dashboard',
           builder: (context, state) => const DashboardResolverPage(),
+        ),
+        GoRoute(
+          path: '/main',
+          builder: (context, state) => const MainNavigationScreen(),
         ),
         GoRoute(
           path: '/login',

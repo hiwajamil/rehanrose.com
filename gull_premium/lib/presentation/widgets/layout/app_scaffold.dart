@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -369,12 +368,7 @@ class _AuthHeaderAction extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     if (user != null) {
-      return _HeaderAccountAvatar(
-        photoUrl: user.photoURL,
-        displayName: user.displayName,
-        email: user.email,
-        minimalStyle: minimalStyle,
-      );
+      return const SizedBox(width: 40);
     }
 
     if (minimalStyle) {
@@ -385,61 +379,6 @@ class _AuthHeaderAction extends ConsumerWidget {
       );
     }
     return _SignInRegisterButton(label: l10n.signInRegister);
-  }
-}
-
-class _HeaderAccountAvatar extends StatelessWidget {
-  final String? photoUrl;
-  final String? displayName;
-  final String? email;
-  final bool minimalStyle;
-
-  const _HeaderAccountAvatar({
-    this.photoUrl,
-    this.displayName,
-    this.email,
-    this.minimalStyle = false,
-  });
-
-  String get _initial {
-    if (displayName != null && displayName!.isNotEmpty) return displayName![0];
-    if (email != null && email!.isNotEmpty) return email![0];
-    return '?';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
-    return GestureDetector(
-      onTap: () => context.go('/account'),
-      child: hasPhoto
-          ? CachedNetworkImage(
-              imageUrl: photoUrl!,
-              imageBuilder: (_, imageProvider) => CircleAvatar(
-                radius: 18,
-                backgroundColor: minimalStyle ? Colors.white24 : null,
-                backgroundImage: imageProvider,
-              ),
-              placeholder: (_, __) => _buildInitialAvatar(),
-              errorWidget: (_, __, ___) => _buildInitialAvatar(),
-            )
-          : _buildInitialAvatar(),
-    );
-  }
-
-  Widget _buildInitialAvatar() {
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: minimalStyle ? Colors.white24 : AppColors.border,
-      child: Text(
-        _initial.toUpperCase(),
-        style: TextStyle(
-          color: minimalStyle ? Colors.white : AppColors.inkMuted,
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
-      ),
-    );
   }
 }
 

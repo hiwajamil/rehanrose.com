@@ -147,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   /// Navigate to the correct screen based on user role
-  /// (admin → /admin, vendor → /vendor, driver → /driver, else → home).
+  /// (admin → /admin, vendor → /vendor, driver → /driver, else → /main).
   Future<void> _navigateAfterSignIn(String uid) async {
     final role = await ref.read(authRepositoryProvider).getRoleForRouting(uid);
     if (!mounted) return;
@@ -157,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ? '/vendor'
             : role == 'driver'
                 ? '/driver'
-            : '/';
+            : '/main';
     context.go(path);
   }
 

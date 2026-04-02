@@ -224,11 +224,13 @@ class CustomerOrderItem {
 // --- OMS (Order Management System) for WhatsApp checkout flow ---
 
 /// OMS order status: pending → preparing → ready → delivered.
+/// [deleted] is a soft-delete bucket (admin only); document stays in Firestore.
 enum OmsOrderStatus {
   pending,
   preparing,
   ready,
   delivered,
+  deleted,
 }
 
 extension OmsOrderStatusExtension on OmsOrderStatus {
@@ -242,6 +244,8 @@ extension OmsOrderStatusExtension on OmsOrderStatus {
         return 'ready';
       case OmsOrderStatus.delivered:
         return 'delivered';
+      case OmsOrderStatus.deleted:
+        return 'deleted';
     }
   }
 }
@@ -258,6 +262,8 @@ OmsOrderStatus? omsOrderStatusFromString(String? value) {
       return OmsOrderStatus.ready;
     case 'delivered':
       return OmsOrderStatus.delivered;
+    case 'deleted':
+      return OmsOrderStatus.deleted;
     default:
       return null;
   }
