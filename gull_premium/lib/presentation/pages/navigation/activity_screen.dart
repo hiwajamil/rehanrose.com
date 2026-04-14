@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/user_occasion_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../cart/cart_screen.dart';
 import '../../widgets/account/add_occasion_sheet.dart';
 import '../../widgets/oms/oms_order_card.dart';
 
@@ -35,6 +37,7 @@ class ActivityScreen extends StatelessWidget {
               color: AppColors.inkCharcoal,
             ),
           ),
+          actions: const [_CartAppBarAction()],
         ),
         body: Center(
           child: Padding(
@@ -68,6 +71,7 @@ class ActivityScreen extends StatelessWidget {
               color: AppColors.inkCharcoal,
             ),
           ),
+          actions: const [_CartAppBarAction()],
           bottom: TabBar(
             indicatorColor: AppColors.accentGold,
             indicatorWeight: 3,
@@ -89,8 +93,14 @@ class ActivityScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            const OrdersListView(),
-            OccasionsListView(uid: uid),
+            OrdersListView(
+              key: const PageStorageKey<String>('activity-orders-tab'),
+              uid: uid,
+            ),
+            OccasionsListView(
+              key: const PageStorageKey<String>('activity-occasions-tab'),
+              uid: uid,
+            ),
           ],
         ),
       ),
@@ -98,8 +108,55 @@ class ActivityScreen extends StatelessWidget {
   }
 }
 
-class OrdersListView extends StatelessWidget {
-  const OrdersListView({super.key});
+class _CartAppBarAction extends StatelessWidget {
+  const _CartAppBarAction();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return IconButton(
+        tooltip: 'Cart',
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+        },
+        icon: const Icon(Icons.shopping_bag_outlined),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('cart')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.data?.docs.length ?? 0;
+        final icon = IconButton(
+          tooltip: 'Cart',
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+          },
+          icon: const Icon(Icons.shopping_bag_outlined),
+        );
+        if (count <= 0) return icon;
+        return Badge(
+          label: Text('$count'),
+          child: icon,
+        );
+      },
+    );
+  }
+}
+
+class OrdersListView extends StatefulWidget {
+  const OrdersListView({super.key, required this.uid});
+
+  final String uid;
 
   static String _shortDocId(String id) {
     if (id.length <= 6) return id;
@@ -173,21 +230,49 @@ class OrdersListView extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final stream = FirebaseFirestore.instance
+  State<OrdersListView> createState() => _OrdersListViewState();
+}
+
+class _OrdersListViewState extends State<OrdersListView>
+    with AutomaticKeepAliveClientMixin<OrdersListView> {
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _ordersStream;
+  QuerySnapshot<Map<String, dynamic>>? _lastSnapshot;
+
+  @override
+  void initState() {
+    super.initState();
+    _ordersStream = FirebaseFirestore.instance
         .collection('oms_orders')
-        .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+        .where('userId', isEqualTo: widget.uid)
         .orderBy('createdAt', descending: true)
-        .snapshots();
+        .snapshots()
+        .map((snapshot) {
+          _lastSnapshot = snapshot;
+          return snapshot;
+        });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: stream,
+      stream: _ordersStream,
+      initialData: _lastSnapshot,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        final docs = snapshot.data?.docs ?? const [];
+
+        if (snapshot.connectionState == ConnectionState.waiting && docs.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
+          debugPrint(
+            'OrdersListView stream error (uid=${widget.uid}): ${snapshot.error}',
+          );
+          if (snapshot.stackTrace != null) {
+            debugPrint(snapshot.stackTrace.toString());
+          }
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -199,7 +284,6 @@ class OrdersListView extends StatelessWidget {
             ),
           );
         }
-        final docs = snapshot.data?.docs ?? const [];
         if (docs.isEmpty) {
           return Center(
             child: SingleChildScrollView(
@@ -244,14 +328,14 @@ class OrdersListView extends StatelessWidget {
           itemBuilder: (context, index) {
             final doc = docs[index];
             final data = doc.data();
-            final created = _parseCreatedAt(data);
+            final created = OrdersListView._parseCreatedAt(data);
             final dateStr = created != null
                 ? formatOmsOrderDate(created, short: true)
                 : '—';
-            final shortId = _shortDocId(doc.id);
-            final total = _parseTotalPriceIqd(data);
+            final shortId = OrdersListView._shortDocId(doc.id);
+            final total = OrdersListView._parseTotalPriceIqd(data);
             final statusRaw = data['status']?.toString();
-            final chip = _statusChipStyle(statusRaw);
+            final chip = OrdersListView._statusChipStyle(statusRaw);
             final priceStr = total > 0
                 ? '${l10n.currencyIqd} ${formatPriceIqd(total)}'
                 : '—';
@@ -348,6 +432,9 @@ class OrdersListView extends StatelessWidget {
       },
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 class OccasionsListView extends ConsumerWidget {

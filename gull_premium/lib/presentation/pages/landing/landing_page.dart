@@ -40,6 +40,7 @@ class LandingPage extends ConsumerStatefulWidget {
 }
 
 class _LandingPageState extends ConsumerState<LandingPage> {
+  static const bool _enableMysteryDiscountAutoPopup = false;
   static const String _lastMysteryDiscountDateKey =
       'last_mystery_discount_date';
   static const Duration _mysteryDiscountCooldown = Duration(days: 3);
@@ -57,7 +58,10 @@ class _LandingPageState extends ConsumerState<LandingPage> {
       keywords: 'flowers, bouquets, Rehan Rose, florist, flower delivery',
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_checkMysteryDiscount());
+      // Temporarily disabled campaign auto-popup on /main.
+      if (_enableMysteryDiscountAutoPopup) {
+        unawaited(_checkMysteryDiscount());
+      }
     });
   }
 
@@ -1131,11 +1135,11 @@ class _TrustSection extends StatelessWidget {
                 label: l10n.sameDayDelivery,
               ),
               _TrustBadge(
-                icon: Icons.store_outlined,
+                icon: Icons.verified_outlined,
                 label: l10n.trustedLocalFlorists,
               ),
               _TrustBadge(
-                icon: Icons.eco_outlined,
+                icon: Icons.redeem,
                 label: l10n.handcraftedBouquets,
               ),
             ],
@@ -1369,78 +1373,87 @@ class _PerfumeCardState extends ConsumerState<_PerfumeCard> {
     final isFavorite = _effectiveFavorite(wishlist, productId);
     return Material(
       color: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: cardRadius),
       child: InkWell(
         onTap: () => _openPerfumeSheet(context),
         borderRadius: cardRadius,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: cardRadius,
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.85)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: cardRadius,
+        child: ClipRRect(
+          borderRadius: cardRadius,
+          clipBehavior: Clip.antiAlias,
+          child: Ink(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: cardRadius,
+              border: Border.all(color: AppColors.border.withValues(alpha: 0.85)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AspectRatio(
-                  aspectRatio: widget.isCompact ? 1 : 1.12,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _buildPerfumeImage(
-                        widget.imageUrl.isEmpty ? fallbackImage : widget.imageUrl,
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: ClipOval(
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Material(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              child: InkWell(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  _toggleFavoriteOptimistic(
-                                    wishlist,
-                                    authUser?.uid,
-                                    productId,
-                                  );
-                                },
-                                child: SizedBox(
-                                  width: 36,
-                                  height: 36,
-                                  child: Center(
-                                    child: AnimatedSwitcher(
-                                      duration: _favoriteAnimDuration,
-                                      switchInCurve: Curves.easeOutCubic,
-                                      switchOutCurve: Curves.easeInCubic,
-                                      transitionBuilder: (child, animation) =>
-                                          FadeTransition(
-                                        opacity: animation,
-                                        child: ScaleTransition(
-                                          scale: Tween<double>(begin: 0.88, end: 1.0)
-                                              .animate(animation),
-                                          child: child,
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: AspectRatio(
+                    aspectRatio: widget.isCompact ? 1 : 1.12,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildPerfumeImage(
+                          widget.imageUrl.isEmpty ? fallbackImage : widget.imageUrl,
+                        ),
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: ClipOval(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Material(
+                                color: Colors.white.withValues(alpha: 0.22),
+                                child: InkWell(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    _toggleFavoriteOptimistic(
+                                      wishlist,
+                                      authUser?.uid,
+                                      productId,
+                                    );
+                                  },
+                                  child: SizedBox(
+                                    width: 36,
+                                    height: 36,
+                                    child: Center(
+                                      child: AnimatedSwitcher(
+                                        duration: _favoriteAnimDuration,
+                                        switchInCurve: Curves.easeOutCubic,
+                                        switchOutCurve: Curves.easeInCubic,
+                                        transitionBuilder: (child, animation) =>
+                                            FadeTransition(
+                                          opacity: animation,
+                                          child: ScaleTransition(
+                                            scale: Tween<double>(begin: 0.88, end: 1.0)
+                                                .animate(animation),
+                                            child: child,
+                                          ),
                                         ),
-                                      ),
-                                      child: Icon(
-                                        key: ValueKey<bool>(isFavorite),
-                                        isFavorite
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        size: 20,
-                                        color: isFavorite
-                                            ? AppColors.rosePrimary
-                                            : Colors.white,
+                                        child: Icon(
+                                          key: ValueKey<bool>(isFavorite),
+                                          isFavorite
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          size: 20,
+                                          color: isFavorite
+                                              ? AppColors.rosePrimary
+                                              : Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1449,8 +1462,8 @@ class _PerfumeCardState extends ConsumerState<_PerfumeCard> {
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 Padding(

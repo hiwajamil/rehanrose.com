@@ -571,7 +571,7 @@ abstract class AppLocalizations {
   /// No description provided for @carefullyCurated.
   ///
   /// In en, this message translates to:
-  /// **'Carefully curated. Thoughtfully delivered.'**
+  /// **'Signature Scents. Elegantly Delivered.'**
   String get carefullyCurated;
 
   /// No description provided for @sameDayDelivery.
@@ -583,13 +583,13 @@ abstract class AppLocalizations {
   /// No description provided for @trustedLocalFlorists.
   ///
   /// In en, this message translates to:
-  /// **'Trusted local florists'**
+  /// **'100% Authentic Brands'**
   String get trustedLocalFlorists;
 
   /// No description provided for @handcraftedBouquets.
   ///
   /// In en, this message translates to:
-  /// **'Handcrafted bouquets'**
+  /// **'Premium Packaging'**
   String get handcraftedBouquets;
 
   /// No description provided for @splashMission.

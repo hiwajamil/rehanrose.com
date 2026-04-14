@@ -96,12 +96,24 @@ String _extractUserId(String raw) => extractRefUserIdFromWhatsAppPaste(raw);
 
 bool _isPlaceholderVoice(String v) {
   final t = v.trim().toLowerCase();
-  return t.isEmpty || t == 'no' || t == 'none' || t == 'n/a';
+  return t.isEmpty || t == 'no' || t == 'none' || t == 'n/a' || t == 'null';
 }
 
 bool _isPlaceholderDelivery(String v) {
   final t = v.trim().toLowerCase();
-  return t.isEmpty || t == 'not provided' || t == 'none' || t == 'n/a';
+  return t.isEmpty ||
+      t == 'not provided' ||
+      t == 'none' ||
+      t == 'n/a' ||
+      t == 'null';
+}
+
+bool _isValidHttpUrl(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return false;
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || uri.host.trim().isEmpty) return false;
+  return uri.scheme == 'http' || uri.scheme == 'https';
 }
 
 /// `Item: Perfume - …` (value after the dash, no second colon).
@@ -141,13 +153,9 @@ String _normalizePastedText(String raw) {
   var voice = voiceMessageLink;
   var delivery = deliveryLocationLink;
 
-  if (voice.isEmpty && looksStorage) {
+  if (voice.isEmpty && looksStorage && _isValidHttpUrl(linkLine)) {
     voice = linkLine;
-  } else if (delivery.isEmpty && looksMaps) {
-    delivery = linkLine;
-  } else if (voice.isEmpty) {
-    voice = linkLine;
-  } else if (delivery.isEmpty) {
+  } else if (delivery.isEmpty && looksMaps && _isValidHttpUrl(linkLine)) {
     delivery = linkLine;
   }
   return (voice, delivery);

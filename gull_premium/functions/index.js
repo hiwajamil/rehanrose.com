@@ -9,14 +9,25 @@ initializeApp();
 
 const FUNCTIONS_REGION = 'europe-west1';
 
+function normalizeEmail(value) {
+  return (value || '').toString().trim().toLowerCase();
+}
+
+/** Same key as Flutter `AppEnv.superAdminEmail`; set on deployed functions if you use the super-admin email bypass server-side. */
+const SUPER_ADMIN_EMAIL = normalizeEmail(process.env.SUPER_ADMIN_EMAIL || '');
+
 /**
- * Whether the user is a super admin (matches Firestore rules isAdmin()).
+ * Whether the caller is an admin: `users.role`, `admins/{uid}`, or optional
+ * SUPER_ADMIN_EMAIL match (mirrors client when env is set). Firestore rules
+ * do not evaluate email; they use role / admins only.
  */
-async function isCallerAdmin(db, uid) {
+async function isCallerAdmin(db, uid, idTokenEmail) {
   const userDoc = await db.collection('users').doc(uid).get();
   if (userDoc.exists && userDoc.data()?.role === 'admin') return true;
   const adminDoc = await db.collection('admins').doc(uid).get();
-  return adminDoc.exists;
+  if (adminDoc.exists) return true;
+  if (SUPER_ADMIN_EMAIL && normalizeEmail(idTokenEmail) === SUPER_ADMIN_EMAIL) return true;
+  return false;
 }
 
 /**
@@ -37,7 +48,7 @@ exports.deleteCustomerUser = onCall({ region: FUNCTIONS_REGION }, async (request
   }
 
   const db = getFirestore();
-  if (!(await isCallerAdmin(db, callerUid))) {
+  if (!(await isCallerAdmin(db, callerUid, request.auth.token?.email))) {
     throw new HttpsError('permission-denied', 'Only admins can delete members.');
   }
 
@@ -60,6 +71,42 @@ exports.deleteCustomerUser = onCall({ region: FUNCTIONS_REGION }, async (request
     await batch.commit();
   }
   await userRef.delete();
+
+  return { ok: true };
+});
+
+/**
+ * After the client signs in with a phone OTP credential, updates the password
+ * on the Firestore `users` document that matches the token's `phone_number`.
+ * Needed when the driver Auth user is email/password-only and phone was never
+ * linked (OTP sign-in would otherwise be a different Firebase UID).
+ */
+exports.resetDriverPasswordWithPhoneOtp = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'Sign in required.');
+  }
+  const tokenPhone = request.auth.token.phone_number;
+  if (!tokenPhone || typeof tokenPhone !== 'string') {
+    throw new HttpsError('failed-precondition', 'Phone verification required.');
+  }
+  const newPassword = request.data?.newPassword;
+  if (typeof newPassword !== 'string' || newPassword.length < 6) {
+    throw new HttpsError('invalid-argument', 'Password must be at least 6 characters.');
+  }
+
+  const db = getFirestore();
+  const snap = await db.collection('users').where('phoneNumber', '==', tokenPhone).limit(2).get();
+
+  if (snap.empty) {
+    throw new HttpsError('not-found', 'No account found for this phone number.');
+  }
+  if (snap.size > 1) {
+    throw new HttpsError('failed-precondition', 'Multiple accounts use this phone. Contact support.');
+  }
+
+  const targetUid = snap.docs[0].id;
+  const auth = getAuth();
+  await auth.updateUser(targetUid, { password: newPassword });
 
   return { ok: true };
 });
@@ -292,6 +339,207 @@ function isSameMonthDay(date, month, day) {
 }
 
 /**
+ * Split a list into fixed-size chunks (FCM multicast max is 500 tokens/request).
+ */
+function chunkArray(items, chunkSize) {
+  const chunks = [];
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
+/**
+ * Persists a notification copy for in-app history.
+ */
+async function saveUserNotificationCopy(db, userId, { title, body, type }) {
+  if (!userId || !title || !body || !type) return;
+  await db.collection('users').doc(userId).collection('notifications').add({
+    title,
+    body,
+    type,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    isRead: false,
+  });
+}
+
+/**
+ * Broadcasts a marketing push notification to all users with an FCM token.
+ * Triggered when admin UI creates a document in `marketing_notifications`.
+ */
+exports.sendMarketingBroadcastOnCreate = functions.firestore
+  .document('marketing_notifications/{notificationId}')
+  .onCreate(async (snap, context) => {
+    const data = snap.data() || {};
+    const titleEn = (data.title_en || data.title || '').toString().trim();
+    const titleKu = (data.title_ku || titleEn).toString().trim();
+    const titleAr = (data.title_ar || titleEn).toString().trim();
+    const bodyEn = (data.body_en || data.body || '').toString().trim();
+    const bodyKu = (data.body_ku || bodyEn).toString().trim();
+    const bodyAr = (data.body_ar || bodyEn).toString().trim();
+    const notificationId = context.params.notificationId;
+
+    if (!titleEn || !bodyEn) {
+      console.log(
+        '[sendMarketingBroadcastOnCreate] skipped notificationId=%s reason=missing_title_or_body',
+        notificationId
+      );
+      return null;
+    }
+
+    const db = getFirestore();
+    const usersSnap = await db
+      .collection('users')
+      .where('fcmToken', '!=', null)
+      .get();
+
+    const tokenGroups = {
+      en: [],
+      ku: [],
+      ar: [],
+    };
+
+    const normalizeLanguage = (value) => {
+      const lang = (value || '').toString().trim().toLowerCase();
+      return ['en', 'ku', 'ar'].includes(lang) ? lang : 'en';
+    };
+
+    for (const doc of usersSnap.docs) {
+      const userData = doc.data() || {};
+      const token = (userData.fcmToken || '').toString().trim();
+      if (!token) continue;
+      const language = normalizeLanguage(userData.language);
+      tokenGroups[language].push({ uid: doc.id, token });
+    }
+
+    const tokensEn = tokenGroups.en;
+    const tokensKu = tokenGroups.ku;
+    const tokensAr = tokenGroups.ar;
+    const tokens = [...tokensEn, ...tokensKu, ...tokensAr];
+    if (tokens.length === 0) {
+      console.log(
+        '[sendMarketingBroadcastOnCreate] no_tokens notificationId=%s',
+        notificationId
+      );
+      return null;
+    }
+
+    let successCount = 0;
+    let failureCount = 0;
+    const deadTokens = new Set();
+
+    const sendForLanguage = async (language, languageEntries, title, body) => {
+      if (languageEntries.length === 0) return;
+      const languageChunks = chunkArray(languageEntries, 500);
+
+      for (const chunk of languageChunks) {
+        const chunkTokens = chunk.map((entry) => entry.token);
+        const response = await admin.messaging().sendEachForMulticast({
+          tokens: chunkTokens,
+          notification: { title, body },
+          data: {
+            type: 'marketing_broadcast',
+            notificationId,
+            language,
+          },
+        });
+
+        successCount += response.successCount;
+        failureCount += response.failureCount;
+
+        const saveCopyPromises = [];
+        response.responses.forEach((r, index) => {
+          const entry = chunk[index];
+          if (r.success) return;
+          const code = r.error?.code || '';
+          const isDeadToken =
+            code === 'messaging/registration-token-not-registered' ||
+            code === 'messaging/invalid-registration-token';
+          if (isDeadToken) {
+            deadTokens.add(entry?.token);
+          } else {
+            console.error(
+              '[sendMarketingBroadcastOnCreate] send failed notificationId=%s language=%s code=%s tokenTail=%s',
+              notificationId,
+              language,
+              code || 'unknown',
+              (entry?.token || '').slice(-8)
+            );
+          }
+          return null;
+        });
+
+        response.responses.forEach((r, index) => {
+          if (!r.success) return;
+          const entry = chunk[index];
+          if (!entry?.uid) return;
+          saveCopyPromises.push(
+            saveUserNotificationCopy(db, entry.uid, {
+              title,
+              body,
+              type: 'marketing_broadcast',
+            })
+          );
+        });
+        if (saveCopyPromises.length > 0) {
+          await Promise.all(saveCopyPromises);
+        }
+      }
+    };
+
+    await sendForLanguage('en', tokensEn, titleEn, bodyEn);
+    await sendForLanguage('ku', tokensKu, titleKu || titleEn, bodyKu || bodyEn);
+    await sendForLanguage('ar', tokensAr, titleAr || titleEn, bodyAr || bodyEn);
+
+    if (deadTokens.size > 0) {
+      const deadTokenList = Array.from(deadTokens);
+      await Promise.all(
+        deadTokenList.map(async (token) => {
+          const deadUsersSnap = await db
+            .collection('users')
+            .where('fcmToken', '==', token)
+            .get();
+          if (deadUsersSnap.empty) return;
+          const batch = db.batch();
+          deadUsersSnap.docs.forEach((doc) => {
+            batch.set(
+              doc.ref,
+              { fcmToken: admin.firestore.FieldValue.delete() },
+              { merge: true }
+            );
+          });
+          await batch.commit();
+        })
+      );
+    }
+
+    await snap.ref.set(
+      {
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        attemptedTokens: tokens.length,
+        successCount,
+        failureCount,
+        languageBreakdown: {
+          en: tokensEn.length,
+          ku: tokensKu.length,
+          ar: tokensAr.length,
+        },
+      },
+      { merge: true }
+    );
+
+    console.log(
+      '[sendMarketingBroadcastOnCreate] done notificationId=%s attempted=%d success=%d failure=%d deadTokens=%d',
+      notificationId,
+      tokens.length,
+      successCount,
+      failureCount,
+      deadTokens.size
+    );
+    return null;
+  });
+
+/**
  * Daily retention robot:
  * - Finds users with fcmToken
  * - Looks for occasions exactly 7 days from "today" (month/day only)
@@ -349,6 +597,11 @@ exports.sendOccasionReminders = functions.pubsub
               occasionName,
               occasionId: occasionDoc.id,
             },
+          });
+          await saveUserNotificationCopy(db, userDoc.id, {
+            title: '✨ A Special Day is Approaching!',
+            body,
+            type: 'occasion_reminder',
           });
           sentCount += 1;
         } catch (error) {
@@ -478,6 +731,11 @@ exports.notifyUserOnOrderPreparing = functions.firestore
           type: 'order_status',
           status: 'preparing',
         },
+      });
+      await saveUserNotificationCopy(db, userId, {
+        title: 'Order Accepted! 🎉',
+        body: 'The vendor has started preparing your order. It will be ready soon!',
+        type: 'order_status',
       });
     } catch (error) {
       const code = error?.code || '';

@@ -93,15 +93,13 @@ match /counters/{counterId} {
 
 ---
 
-#### 1.4 Super admin email hardcoded in source
+#### 1.4 Super admin email
 
-**Locations:**
-- `gull_premium/lib/data/repositories/auth_repository.dart` (line 7): `kSuperAdminEmail = 'hiwa.constructions@gmail.com'`
-- Referenced in `admin_dashboard_page.dart`, `bouquet_approval_page.dart`, `dashboard_resolver_page.dart`
+**Current behavior:** Super admin is configured via compile-time `SUPER_ADMIN_EMAIL` in `gull_premium/lib/core/env/app_env.dart` and used from `auth_repository.dart` (`isAdmin`, etc.). Admin UI pages reference `AppEnv.superAdminEmail` (e.g. `admin_dashboard_page.dart`, `bouquet_approval_page.dart`, `dashboard_resolver_page.dart`). Production value must be passed at build time (`env.json` / `--dart-define`); example: `admin@rehanrose.com`.
 
-**Risk:** Email is exposed in source control. Although Firebase API keys in client apps are expected, this pattern encourages hardcoding other credentials.
+**Risk:** If a real address is ever committed in source or docs, it is exposed. Keep the live value only in `env.json` (gitignored) and CI secrets.
 
-**Recommendation:** Move to environment variables or Dart `--dart-define` (e.g. `kSuperAdminEmail = const String.fromEnvironment('SUPER_ADMIN_EMAIL', defaultValue: '')`). Add the real value in CI/CD and local dev config only.
+**Recommendation:** Continue using `--dart-define` only; avoid defaulting a real email in the repo. Set the same `SUPER_ADMIN_EMAIL` on Cloud Functions env where server-side admin checks apply.
 
 ---
 

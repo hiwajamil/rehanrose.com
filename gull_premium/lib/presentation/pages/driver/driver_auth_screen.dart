@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import 'driver_application_screen.dart';
+import 'driver_reset_password_sheet.dart';
 
 enum _DriverAuthMethod {
   phone,
@@ -469,7 +470,21 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
-        const SizedBox(height: 22),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => showDriverResetPasswordSheet(context),
+            child: Text(
+              'Forgot Password?',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w800,
+                color: AppColors.rosePrimary,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
         SizedBox(
           height: 52,
           child: FilledButton(

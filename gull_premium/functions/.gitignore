@@ -1,2 +1,5 @@
 node_modules/
 npm-debug.log
+# Local overrides for deployed function env (see .env.example)
+.env
+.env.local

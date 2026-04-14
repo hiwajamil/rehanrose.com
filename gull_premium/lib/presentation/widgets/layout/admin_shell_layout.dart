@@ -110,17 +110,16 @@ class _ResponsiveAdminShellState extends State<_ResponsiveAdminShell> {
         ),
         body: Container(
           color: const Color(0xFFF4F5F7),
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              const SliverToBoxAdapter(child: _AdminMetricsRow()),
-              SliverPadding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: paddingH,
-                  vertical: paddingV,
-                ),
-                sliver: SliverFillRemaining(
-                  hasScrollBody: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _AdminMetricsRow(),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: paddingH,
+                    vertical: paddingV,
+                  ),
                   child: widget.child,
                 ),
               ),
@@ -143,17 +142,16 @@ class _ResponsiveAdminShellState extends State<_ResponsiveAdminShell> {
           Expanded(
             child: Container(
               color: const Color(0xFFF4F5F7),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  const SliverToBoxAdapter(child: _AdminMetricsRow()),
-                  SliverPadding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: paddingH,
-                      vertical: paddingV,
-                    ),
-                    sliver: SliverFillRemaining(
-                      hasScrollBody: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _AdminMetricsRow(),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: paddingH,
+                        vertical: paddingV,
+                      ),
                       child: widget.child,
                     ),
                   ),

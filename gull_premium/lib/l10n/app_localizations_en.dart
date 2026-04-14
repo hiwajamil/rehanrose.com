@@ -249,16 +249,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseAllBouquets => 'Browse all bouquets';
 
   @override
-  String get carefullyCurated => 'Carefully curated. Thoughtfully delivered.';
+  String get carefullyCurated => 'Signature Scents. Elegantly Delivered.';
 
   @override
   String get sameDayDelivery => 'Same-day delivery';
 
   @override
-  String get trustedLocalFlorists => 'Trusted local florists';
+  String get trustedLocalFlorists => '100% Authentic Brands';
 
   @override
-  String get handcraftedBouquets => 'Handcrafted bouquets';
+  String get handcraftedBouquets => 'Premium Packaging';
 
   @override
   String get splashMission =>

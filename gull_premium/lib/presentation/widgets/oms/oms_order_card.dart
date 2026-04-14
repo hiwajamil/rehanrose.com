@@ -203,8 +203,8 @@ class OmsOrderCard extends StatelessWidget {
     final orderDateStr = (order.orderDate != null && order.orderDate!.isNotEmpty)
         ? order.orderDate!
         : createdAtStr;
-    final hasVoiceLink = order.voiceMessageLink != null &&
-        order.voiceMessageLink!.trim().isNotEmpty;
+    final voiceLink = order.sanitizedVoiceMessageLink;
+    final hasVoiceLink = voiceLink != null;
     final hasImage = order.bouquetImageUrl != null && order.bouquetImageUrl!.isNotEmpty;
     final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
           color: AppColors.inkMuted,
@@ -297,7 +297,7 @@ class OmsOrderCard extends StatelessWidget {
                           border: Border.all(color: AppColors.border),
                         ),
                         child: QrImageView(
-                          data: order.voiceMessageLink!,
+                          data: voiceLink,
                           version: QrVersions.auto,
                           size: 120,
                           backgroundColor: Colors.white,

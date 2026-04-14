@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../auth/account_page.dart';
-import '../cart/cart_screen.dart';
 import '../landing/landing_page.dart';
+import '../../../screens/notifications_screen.dart';
 import 'activity_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -26,7 +26,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _currentIndex = widget.initialIndex.clamp(0, 3);
     _tabs = const [
       HomeScreen(),
-      CartScreen(),
+      NotificationsScreen(),
       ActivityScreen(),
       ProfileScreen(),
     ];
@@ -70,9 +70,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     label: 'Home',
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.shopping_cart),
-                    activeIcon: Icon(Icons.shopping_cart),
-                    label: 'Cart',
+                    icon: Icon(Icons.notifications_outlined),
+                    activeIcon: Icon(Icons.notifications),
+                    label: 'Notifications',
                   ),
                   BottomNavigationBarItem(
                     icon: Icon(Icons.receipt_long_rounded),
@@ -142,9 +142,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       label: Text('Home'),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.shopping_cart),
-                      selectedIcon: Icon(Icons.shopping_cart),
-                      label: Text('Cart'),
+                      icon: Icon(Icons.notifications_outlined),
+                      selectedIcon: Icon(Icons.notifications),
+                      label: Text('Notifications'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.receipt_long_rounded),

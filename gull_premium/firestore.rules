@@ -206,6 +206,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Marketing notification drafts/requests (created by authenticated admins UI)
+    match /marketing_notifications/{document} {
+      allow read, write: if isAuthenticated();
+    }
+
     // Default: deny all other paths
     match /{document=**} {
       allow read, write: if false;

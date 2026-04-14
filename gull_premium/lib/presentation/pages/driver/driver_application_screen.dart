@@ -40,6 +40,8 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
   bool _guestMode = false;
   bool _submitting = false;
   bool _justSubmitted = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   String? _loadError;
 
   @override
@@ -61,6 +63,12 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
     if (digitsOnly.startsWith('964')) return '+$digitsOnly';
     if (digitsOnly.startsWith('0')) return '+964${digitsOnly.substring(1)}';
     return '+964$digitsOnly';
+  }
+
+  String _buildDriverPlaceholderEmail(String rawPhone) {
+    final normalizedPhone = _normalizePhoneForIraq(rawPhone);
+    final phoneToken = normalizedPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    return '$phoneToken@driver.rehanrose.com';
   }
 
   Future<void> _loadUserAndPrefill() async {
@@ -168,8 +176,12 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
     try {
       fa.User? effectiveUser = user;
       if (_guestMode) {
+        final enteredEmail = _accountEmailController.text.trim();
+        final emailForSignup = enteredEmail.isNotEmpty
+            ? enteredEmail
+            : _buildDriverPlaceholderEmail(_phoneController.text);
         final cred = await fa.FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _accountEmailController.text.trim(),
+          email: emailForSignup,
           password: _accountPasswordController.text,
         );
         effectiveUser = cred.user;
@@ -180,8 +192,10 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
       }
 
       final normalizedPhone = _normalizePhoneForIraq(_phoneController.text);
-      final emailForDoc =
-          _guestMode ? _accountEmailController.text.trim() : (effectiveUser.email ?? '');
+      final enteredEmail = _accountEmailController.text.trim();
+      final emailForDoc = _guestMode
+          ? (enteredEmail.isNotEmpty ? enteredEmail : (effectiveUser.email ?? ''))
+          : (effectiveUser.email ?? '');
 
       await FirebaseFirestore.instance.collection('users').doc(effectiveUser.uid).set(
         {
@@ -232,7 +246,12 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
     }
   }
 
-  InputDecoration _decoration(String label, {String? hint, IconData? icon}) {
+  InputDecoration _decoration(
+    String label, {
+    String? hint,
+    IconData? icon,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
@@ -248,6 +267,7 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
       prefixIcon: icon != null
           ? Icon(icon, color: AppColors.rosePrimary, size: 22)
           : null,
+      suffixIcon: suffixIcon,
       filled: true,
       fillColor: AppColors.surface,
       border: OutlineInputBorder(
@@ -416,10 +436,9 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
                         icon: Icons.email_outlined,
                       ),
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Enter your email';
-                        }
-                        if (!v.contains('@')) {
+                        final value = v?.trim() ?? '';
+                        if (value.isEmpty) return null;
+                        if (!value.contains('@')) {
                           return 'Enter a valid email';
                         }
                         return null;
@@ -428,7 +447,7 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
                     const SizedBox(height: 18),
                     TextFormField(
                       controller: _accountPasswordController,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       style: GoogleFonts.montserrat(
                         fontSize: 15,
                         color: AppColors.ink,
@@ -437,6 +456,17 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
                         'Password',
                         hint: 'At least 6 characters',
                         icon: Icons.lock_outline_rounded,
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() => _obscurePassword = !_obscurePassword);
+                          },
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                          color: AppColors.inkMuted,
+                        ),
                       ),
                       validator: (v) {
                         if (v == null || v.length < 6) {
@@ -448,7 +478,7 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
                     const SizedBox(height: 18),
                     TextFormField(
                       controller: _accountPasswordConfirmController,
-                      obscureText: true,
+                      obscureText: _obscureConfirmPassword,
                       style: GoogleFonts.montserrat(
                         fontSize: 15,
                         color: AppColors.ink,
@@ -457,6 +487,19 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
                         'Confirm password',
                         hint: 'Repeat password',
                         icon: Icons.lock_outline_rounded,
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                            });
+                          },
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                          color: AppColors.inkMuted,
+                        ),
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty) {
@@ -510,7 +553,11 @@ class _DriverApplicationScreenState extends ConsumerState<DriverApplicationScree
                       icon: Icons.phone_outlined,
                     ),
                     validator: (v) {
-                      if (v == null || v.trim().length < 8) {
+                      final value = v?.trim() ?? '';
+                      if (value.isEmpty) {
+                        return 'Phone number is required';
+                      }
+                      if (value.length < 8) {
                         return 'Please enter a valid phone number';
                       }
                       return null;

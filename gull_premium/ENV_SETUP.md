@@ -35,7 +35,7 @@ Edit **`env.json`** and paste your real values (no quotes inside the value excep
 |-----|-----------------|--------------|
 | **PLACES_API_KEY** | [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → Create API key (enable Places API) | Map/address autocomplete (mobile). On web the app uses a proxy. |
 | **GOOGLE_WEB_CLIENT_ID** | [Firebase Console](https://console.firebase.google.com/) → Your project → Authentication → Sign-in method → Google → **Web client ID** (e.g. `123456789-xxxx.apps.googleusercontent.com`) | “Continue with Google” sign-in |
-| **SUPER_ADMIN_EMAIL** | Your own admin email (e.g. `your-admin@gmail.com`) | Bypass for admin access without adding the user to the `admins` collection |
+| **SUPER_ADMIN_EMAIL** | Super admin sign-in email (e.g. `admin@rehanrose.com`) | Bypass for admin access without adding the user to the `admins` collection |
 
 **Example (with placeholder values):**
 
@@ -43,7 +43,7 @@ Edit **`env.json`** and paste your real values (no quotes inside the value excep
 {
   "PLACES_API_KEY": "AIzaSy...your-google-places-api-key",
   "GOOGLE_WEB_CLIENT_ID": "123456789-xxxxxxxxxx.apps.googleusercontent.com",
-  "SUPER_ADMIN_EMAIL": "your-admin@gmail.com"
+  "SUPER_ADMIN_EMAIL": "admin@rehanrose.com"
 }
 ```
 
@@ -91,7 +91,7 @@ For Android Studio / IntelliJ: Run → Edit Configurations → add `--dart-defin
 
 ## 5. Production build (rehanrose.com)
 
-**`env.json` is only used when you run the app locally.** The site at **rehanrose.com** is built with `flutter build web` and deployed to Firebase Hosting. For the super admin (**hiwa.constructions@gmail.com**) to work on rehanrose.com, you must pass `SUPER_ADMIN_EMAIL` at **build time**.
+**`env.json` is only used when you run the app locally.** The site at **rehanrose.com** is built with `flutter build web` and deployed to Firebase Hosting. For the super admin (**admin@rehanrose.com**) to work on rehanrose.com, you must pass `SUPER_ADMIN_EMAIL` at **build time**.
 
 From the **`gull_premium`** folder, build for production using your env file:
 
@@ -101,15 +101,17 @@ flutter build web --dart-define-from-file=env.json
 
 Then deploy (e.g. `firebase deploy --only hosting`). The built app will have the super admin email baked in, so sign-in at https://rehanrose.com/admin will work for that email.
 
-**If you build without `--dart-define-from-file=env.json`** (or without `--dart-define=SUPER_ADMIN_EMAIL=hiwa.constructions@gmail.com`), the deployed app will have no super admin bypass — only users listed in the Firestore **`admins`** collection will be able to sign in at /admin.
+**If you build without `--dart-define-from-file=env.json`** (or without `--dart-define=SUPER_ADMIN_EMAIL=admin@rehanrose.com`), the deployed app will have no super admin bypass — only users listed in the Firestore **`admins`** collection will be able to sign in at /admin.
 
 **CI/CD:** Store `SUPER_ADMIN_EMAIL` as a secret in your pipeline and pass it when running `flutter build web`, for example:
 
 ```bash
-flutter build web --dart-define=SUPER_ADMIN_EMAIL=hiwa.constructions@gmail.com
+flutter build web --dart-define=SUPER_ADMIN_EMAIL=admin@rehanrose.com
 ```
 
 (Use your pipeline’s secret reference instead of the literal email.)
+
+**Cloud Functions:** Callable functions that check admin status (e.g. member deletion) also honor `SUPER_ADMIN_EMAIL` when you set the same value as an environment variable on your deployed functions (Firebase Console → Functions → your function → Environment variables, or your CI deploy config). If unset, only `users.role == 'admin'` or a document in **`admins/{uid}`** counts—same as Firestore security rules.
 
 ---
 

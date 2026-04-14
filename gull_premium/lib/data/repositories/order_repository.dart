@@ -176,6 +176,8 @@ class OmsOrderRepository {
   }) async {
     final ref = _firestore.collection(_omsCollection).doc(orderId);
     final trimmedUserId = data.userId.trim();
+    final trimmedVoiceLink = data.voiceMessageLink.trim();
+    final trimmedDeliveryLink = data.deliveryLocationLink.trim();
     await ref.set({
       'orderId': orderId,
       'userId': trimmedUserId.isEmpty ? null : trimmedUserId,
@@ -190,9 +192,10 @@ class OmsOrderRepository {
       'bouquetName': data.bouquetName,
       'vendorName': data.vendorName,
       'bouquetImageUrl': data.bouquetImageUrl,
+      'voiceMessageLink': trimmedVoiceLink.isEmpty ? null : trimmedVoiceLink,
+      'deliveryLocationLink':
+          trimmedDeliveryLink.isEmpty ? null : trimmedDeliveryLink,
       if (data.bouquetDetails.isNotEmpty) 'bouquetDetails': data.bouquetDetails,
-      if (data.voiceMessageLink.isNotEmpty) 'voiceMessageLink': data.voiceMessageLink,
-      if (data.deliveryLocationLink.isNotEmpty) 'deliveryLocationLink': data.deliveryLocationLink,
       if (data.orderDate.isNotEmpty) 'orderDate': data.orderDate,
     }).timeout(_timeout);
     return orderId;

@@ -86,6 +86,44 @@ String _composeAddonsNotes({
   return parts.join('\n');
 }
 
+String _sanitizeOptionalHttpLink(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty || trimmed.toLowerCase() == 'null') return '';
+  final uri = Uri.tryParse(trimmed);
+  final valid = uri != null &&
+      (uri.scheme == 'http' || uri.scheme == 'https') &&
+      uri.host.trim().isNotEmpty;
+  return valid ? trimmed : '';
+}
+
+String _normalizePhoneForLookup(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return '';
+  final digitsOnly = trimmed.replaceAll(RegExp(r'[^\d+]'), '');
+  if (digitsOnly.startsWith('+')) return digitsOnly;
+  return '+$digitsOnly';
+}
+
+Future<String> _resolveMemberUserIdForOrder({
+  required String explicitUserId,
+  required String customerPhone,
+}) async {
+  final trimmedUserId = explicitUserId.trim();
+  if (trimmedUserId.isNotEmpty) return trimmedUserId;
+
+  final normalizedPhone = _normalizePhoneForLookup(customerPhone);
+  if (normalizedPhone.isEmpty) return '';
+
+  final snap = await FirebaseFirestore.instance
+      .collection('users')
+      .where('phoneNumber', isEqualTo: normalizedPhone)
+      .limit(1)
+      .get()
+      .timeout(const Duration(seconds: 15));
+  if (snap.docs.isEmpty) return '';
+  return snap.docs.first.id;
+}
+
 enum OmsEntryMethod {
   viaWhatsAppMessage,
   viaManualProductCode,
@@ -110,9 +148,6 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
   final TextEditingController _deliveryLocationLinkController = TextEditingController();
   final TextEditingController _orderDateController = TextEditingController();
   final TextEditingController _userIdController = TextEditingController();
-
-  /// Set when Auto-Extract finds `[Ref: uid]`; also mirrored in [_userIdController].
-  String? _extractedUserId;
 
   FlowerModel? _foundBouquet;
   String? _vendorName;
@@ -194,7 +229,6 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
       promoCodeApplied: extract.appliedPromoCode,
     );
     final uid = extract.userId.trim();
-    _extractedUserId = uid.isEmpty ? null : uid;
     _userIdController.text = uid;
     setState(() {});
     _fetchBouquetByCode();
@@ -285,6 +319,15 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
       final orderId = repo.generateOrderId();
       final extractedPrice = parseTotalPriceFromRaw(_totalPriceController.text.trim());
       final bouquet = _foundBouquet;
+      final resolvedUserId = await _resolveMemberUserIdForOrder(
+        explicitUserId: _userIdController.text,
+        customerPhone: phone,
+      );
+      if (resolvedUserId.isEmpty) {
+        throw StateError(
+          'Could not resolve member userId. Paste [Ref: uid] or use a registered phone number.',
+        );
+      }
       final price = extractedPrice > 0
           ? extractedPrice
           : (bouquet != null
@@ -295,7 +338,7 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
       await repo.createOmsOrder(
         orderId: orderId,
         data: CreateOmsOrderData(
-          userId: _userIdController.text.trim(),
+          userId: resolvedUserId,
           bouquetId: bouquet?.id ?? '',
           bouquetCode: bouquet?.bouquetCode ?? bouquetCode,
           vendorId: vendor.id,
@@ -306,8 +349,12 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
           vendorName: vendor.shopName,
           bouquetImageUrl: bouquet?.listingImageUrl ?? '',
           bouquetDetails: _bouquetDetailsController.text.trim(),
-          voiceMessageLink: _voiceMessageLinkController.text.trim(),
-          deliveryLocationLink: _deliveryLocationLinkController.text.trim(),
+          voiceMessageLink: _sanitizeOptionalHttpLink(
+            _voiceMessageLinkController.text,
+          ),
+          deliveryLocationLink: _sanitizeOptionalHttpLink(
+            _deliveryLocationLinkController.text,
+          ),
           orderDate: _orderDateController.text.trim(),
         ),
       );
@@ -326,7 +373,6 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
         _searchController.clear();
         setState(() {
           _isSubmitting = false;
-          _extractedUserId = null;
           _foundBouquet = null;
           _vendorName = null;
           _selectedVendor = null;
@@ -644,6 +690,15 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
 
       final extractedPrice = parseTotalPriceFromRaw(_totalPriceController.text.trim());
       final perfume = _foundPerfume;
+      final resolvedUserId = await _resolveMemberUserIdForOrder(
+        explicitUserId: _userIdController.text,
+        customerPhone: phone,
+      );
+      if (resolvedUserId.isEmpty) {
+        throw StateError(
+          'Could not resolve member userId. Paste [Ref: uid] or use a registered phone number.',
+        );
+      }
       final price = extractedPrice > 0
           ? extractedPrice
           : (perfume != null
@@ -655,7 +710,7 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
       await repo.createOmsOrder(
         orderId: orderId,
         data: CreateOmsOrderData(
-          userId: _userIdController.text.trim(),
+          userId: resolvedUserId,
           bouquetId: perfume?.id ?? '',
           bouquetCode: perfume?.bouquetCode ?? perfumeCode,
           vendorId: vendor.id,
@@ -666,8 +721,12 @@ class _PerfumeOmsScreenState extends ConsumerState<PerfumeOmsScreen> {
           vendorName: vendor.shopName,
           bouquetImageUrl: perfume?.listingImageUrl ?? '',
           bouquetDetails: _perfumeDetailsController.text.trim(),
-          voiceMessageLink: _voiceMessageLinkController.text.trim(),
-          deliveryLocationLink: _deliveryLocationLinkController.text.trim(),
+          voiceMessageLink: _sanitizeOptionalHttpLink(
+            _voiceMessageLinkController.text,
+          ),
+          deliveryLocationLink: _sanitizeOptionalHttpLink(
+            _deliveryLocationLinkController.text,
+          ),
           orderDate: _orderDateController.text.trim(),
         ),
       );

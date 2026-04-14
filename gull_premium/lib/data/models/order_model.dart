@@ -297,6 +297,28 @@ class OmsOrderModel {
   /// Order date/time from WhatsApp message (e.g. "2026-03-09 14:30").
   final String? orderDate;
 
+  static const Set<String> _voiceMessagePlaceholders = {
+    '',
+    'no',
+    'none',
+    'n/a',
+    'na',
+    'null',
+    'nil',
+    'not provided',
+    '-',
+  };
+
+  static bool _isValidVoiceUrl(String value) {
+    final uri = Uri.tryParse(value);
+    if (uri == null) return false;
+    if ((uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.host.trim().isEmpty) {
+      return false;
+    }
+    return true;
+  }
+
   const OmsOrderModel({
     required this.orderId,
     required this.userId,
@@ -316,6 +338,19 @@ class OmsOrderModel {
     this.deliveryLocationLink,
     this.orderDate,
   });
+
+  /// Returns a sanitized voice URL or null when value is absent/placeholder.
+  String? get sanitizedVoiceMessageLink {
+    final raw = voiceMessageLink?.trim();
+    if (raw == null) return null;
+    final lowered = raw.toLowerCase();
+    if (_voiceMessagePlaceholders.contains(lowered)) return null;
+    if (!_isValidVoiceUrl(raw)) return null;
+    return raw;
+  }
+
+  /// True only when a usable voice message URL exists.
+  bool get hasVoiceMessageLink => sanitizedVoiceMessageLink != null;
 
   /// For local use only. Repository sets createdAt with serverTimestamp on create.
   Map<String, dynamic> toMap() => {

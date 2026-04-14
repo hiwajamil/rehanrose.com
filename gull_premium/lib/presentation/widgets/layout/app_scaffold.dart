@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +17,7 @@ import '../../../core/utils/locale_provider.dart';
 import '../../../core/utils/rtl_utils.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../pages/auth/login_screen.dart';
+import '../../pages/cart/cart_screen.dart';
 import '../../pages/track_order_screen.dart';
 import '../common/floating_whatsapp_button.dart';
 import 'app_footer.dart';
@@ -242,7 +245,14 @@ class _PublicHeader extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const _AuthHeaderAction(),
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _CartHeaderAction(),
+                    SizedBox(width: 6),
+                    _AuthHeaderAction(),
+                  ],
+                ),
               ],
             ),
           ),
@@ -291,7 +301,14 @@ class _MinimalTransparentHeader extends ConsumerWidget {
                   ),
                 ),
               ),
-              const _AuthHeaderAction(minimalStyle: true),
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CartHeaderAction(minimalStyle: true),
+                  SizedBox(width: 4),
+                  _AuthHeaderAction(minimalStyle: true),
+                ],
+              ),
             ],
           ),
         ),
@@ -379,6 +396,59 @@ class _AuthHeaderAction extends ConsumerWidget {
       );
     }
     return _SignInRegisterButton(label: l10n.signInRegister);
+  }
+}
+
+class _CartHeaderAction extends StatelessWidget {
+  const _CartHeaderAction({this.minimalStyle = false});
+
+  final bool minimalStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final iconColor = minimalStyle ? Colors.white : AppColors.inkCharcoal;
+
+    if (userId == null) {
+      return IconButton(
+        tooltip: 'Cart',
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+        },
+        style: IconButton.styleFrom(foregroundColor: iconColor),
+        icon: const Icon(Icons.shopping_bag_outlined),
+      );
+    }
+
+    final cartStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .snapshots();
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: cartStream,
+      builder: (context, snapshot) {
+        final count = snapshot.data?.docs.length ?? 0;
+        final icon = IconButton(
+          tooltip: 'Cart',
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+          },
+          style: IconButton.styleFrom(foregroundColor: iconColor),
+          icon: const Icon(Icons.shopping_bag_outlined),
+        );
+        if (count <= 0) return icon;
+        return Badge(
+          label: Text('$count'),
+          child: icon,
+        );
+      },
+    );
   }
 }
 
