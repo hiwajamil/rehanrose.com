@@ -5,11 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
+import '../../../data/models/order_model.dart';
+import '../../../data/repositories/order_repository.dart';
 
 /// Driver dashboard with live location updates while online.
 ///
@@ -32,20 +33,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   bool _updatingStatus = false;
   String? _updatingOrderId;
   StreamSubscription<Position>? _positionStream;
+  Timer? _deliveryLocationTimer;
+  String? _activeTrackingOrderId;
 
-  static const _activeStatuses = [
-    'ready_for_pickup',
-    'picked_up',
-    'on_the_way',
-  ];
+  final OmsOrderRepository _omsOrderRepository = OmsOrderRepository();
 
-  static const _deliveredStatus = 'delivered';
-
-  static const _mainAction = {
-    'ready_for_pickup': 'Confirm Pickup',
-    'picked_up': 'Start Delivery / On The Way',
-    'on_the_way': 'Complete Delivery',
-  };
+  static const _omsOutForDelivery = 'out_for_delivery';
+  static const _omsDelivered = 'delivered';
 
   Future<void> _setOnline(bool online) async {
     final user = fa.FirebaseAuth.instance.currentUser;
@@ -58,6 +52,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       if (!online) {
         _positionStream?.cancel();
         _positionStream = null;
+        _stopDeliveryLocationBroadcast();
 
         await userDoc.set(
           {'isOnline': false},
@@ -146,194 +141,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     await fa.FirebaseAuth.instance.signOut();
   }
 
-  String _resolveVendorName(Map<String, dynamic> data) {
-    final candidates = <dynamic>[
-      data['vendorName'],
-      data['pickupVendorName'],
-      data['restaurantName'],
-      data['storeName'],
-      data['vendor'] is Map<String, dynamic>
-          ? (data['vendor'] as Map<String, dynamic>)['name']
-          : null,
-      data['pickup'] is Map<String, dynamic>
-          ? (data['pickup'] as Map<String, dynamic>)['name']
-          : null,
-    ];
-    for (final c in candidates) {
-      if (c is String && c.trim().isNotEmpty) return c.trim();
-    }
-    return 'Vendor';
-  }
-
-  String _resolveCustomerAddress(Map<String, dynamic> data) {
-    final candidates = <dynamic>[
-      data['customerAddress'],
-      data['deliveryAddress'],
-      data['dropOffAddress'],
-      data['address'],
-      data['customer'] is Map<String, dynamic>
-          ? (data['customer'] as Map<String, dynamic>)['address']
-          : null,
-      data['dropOff'] is Map<String, dynamic>
-          ? (data['dropOff'] as Map<String, dynamic>)['address']
-          : null,
-    ];
-    for (final c in candidates) {
-      if (c is String && c.trim().isNotEmpty) return c.trim();
-    }
-    return 'Customer address not available';
-  }
-
-  String _normalizeStatus(String? status) {
-    return (status ?? '').trim().toLowerCase().replaceAll(' ', '_');
-  }
-
-  bool _isActiveStatus(String status) => _activeStatuses.contains(status);
-
   num _numFromDynamic(dynamic v) {
     if (v == null) return 0;
     if (v is num) return v;
     return num.tryParse(v.toString().trim().replaceAll(',', '')) ?? 0;
-  }
-
-  String _resolveVendorAddress(Map<String, dynamic> data) {
-    final candidates = <dynamic>[
-      data['pickupAddress'],
-      data['vendorAddress'],
-      data['pickupVendorAddress'],
-      data['restaurantAddress'],
-      data['storeAddress'],
-      data['vendorAddressLine'],
-      data['pickupAddressLine'],
-      data['vendor'] is Map<String, dynamic>
-          ? (data['vendor'] as Map<String, dynamic>)['address']
-          : null,
-      data['pickup'] is Map<String, dynamic>
-          ? (data['pickup'] as Map<String, dynamic>)['address']
-          : null,
-      data['pickupVendor'] is Map<String, dynamic>
-          ? (data['pickupVendor'] as Map<String, dynamic>)['address']
-          : null,
-    ];
-    for (final c in candidates) {
-      if (c is String && c.trim().isNotEmpty) return c.trim();
-    }
-    return 'Vendor address not available';
-  }
-
-  String _resolveVendorPhone(Map<String, dynamic> data) {
-    final candidates = <dynamic>[
-      data['vendorPhone'],
-      data['pickupVendorPhone'],
-      data['restaurantPhone'],
-      data['storePhone'],
-      data['phoneNumber'],
-      data['pickupPhone'],
-      data['vendorPhoneNumber'],
-      data['pickupVendorPhoneNumber'],
-      data['vendor'] is Map<String, dynamic>
-          ? (data['vendor'] as Map<String, dynamic>)['phoneNumber'] ??
-              (data['vendor'] as Map<String, dynamic>)['phone']
-          : null,
-      data['pickup'] is Map<String, dynamic>
-          ? (data['pickup'] as Map<String, dynamic>)['phoneNumber'] ??
-              (data['pickup'] as Map<String, dynamic>)['phone']
-          : null,
-      data['pickupVendor'] is Map<String, dynamic>
-          ? (data['pickupVendor'] as Map<String, dynamic>)['phoneNumber'] ??
-              (data['pickupVendor'] as Map<String, dynamic>)['phone']
-          : null,
-    ];
-    for (final c in candidates) {
-      final s = c?.toString().trim() ?? '';
-      if (s.isNotEmpty) return s;
-    }
-    return '';
-  }
-
-  String _resolveCustomerPhone(Map<String, dynamic> data) {
-    final candidates = <dynamic>[
-      data['userPhone'],
-      data['customerPhone'],
-      data['phoneNumber'],
-      data['deliveryPhone'],
-      data['dropOffPhone'],
-      data['user'] is Map<String, dynamic>
-          ? (data['user'] as Map<String, dynamic>)['phoneNumber'] ??
-              (data['user'] as Map<String, dynamic>)['phone']
-          : null,
-      data['customer'] is Map<String, dynamic>
-          ? (data['customer'] as Map<String, dynamic>)['phoneNumber'] ??
-              (data['customer'] as Map<String, dynamic>)['phone']
-          : null,
-      data['dropOff'] is Map<String, dynamic>
-          ? (data['dropOff'] as Map<String, dynamic>)['phoneNumber'] ??
-              (data['dropOff'] as Map<String, dynamic>)['phone']
-          : null,
-    ];
-    for (final c in candidates) {
-      final s = c?.toString().trim() ?? '';
-      if (s.isNotEmpty) return s;
-    }
-    return '';
-  }
-
-  (double lat, double lng)? _parseLatLng(dynamic v) {
-    if (v is Map) {
-      final latRaw = v['latitude'] ?? v['lat'];
-      final lngRaw = v['longitude'] ?? v['lng'] ?? v['lon'];
-      final lat = _numFromDynamic(latRaw).toDouble();
-      final lng = _numFromDynamic(lngRaw).toDouble();
-      if (lat != 0 && lng != 0) return (lat, lng);
-    }
-    return null;
-  }
-
-  (double lat, double lng)? _extractVendorLatLng(Map<String, dynamic> data) {
-    final candidates = <dynamic>[
-      data['pickupLatLng'],
-      data['pickupLocation'],
-      data['vendorLatLng'],
-      data['vendorLocation'],
-      data['vendor'] is Map<String, dynamic> ? data['vendor'] : null,
-      data['pickup'] is Map<String, dynamic> ? data['pickup'] : null,
-      data['pickupVendor'] is Map<String, dynamic> ? data['pickupVendor'] : null,
-      data['pickupLocationLink'],
-      data['latitude'],
-      data['longitude'],
-    ];
-    for (final c in candidates) {
-      final res = _parseLatLng(c);
-      if (res != null) return res;
-    }
-    // Some payloads store lat/lng directly at root.
-    final lat = _numFromDynamic(data['pickupLatitude']).toDouble();
-    final lng = _numFromDynamic(data['pickupLongitude']).toDouble();
-    if (lat != 0 && lng != 0) return (lat, lng);
-    return null;
-  }
-
-  (double lat, double lng)? _extractCustomerLatLng(Map<String, dynamic> data) {
-    final candidates = <dynamic>[
-      data['dropOffLatLng'],
-      data['dropOffLocation'],
-      data['deliveryLatLng'],
-      data['deliveryLocation'],
-      data['dropOff'] is Map<String, dynamic> ? data['dropOff'] : null,
-      data['delivery'] is Map<String, dynamic> ? data['delivery'] : null,
-      data['customer'] is Map<String, dynamic> ? data['customer'] : null,
-      data['latitude'],
-      data['longitude'],
-    ];
-    for (final c in candidates) {
-      final res = _parseLatLng(c);
-      if (res != null) return res;
-    }
-    // Some payloads store lat/lng directly at root.
-    final lat = _numFromDynamic(data['deliveryLatitude']).toDouble();
-    final lng = _numFromDynamic(data['deliveryLongitude']).toDouble();
-    if (lat != 0 && lng != 0) return (lat, lng);
-    return null;
   }
 
   Future<void> _callPhone(BuildContext context, String phone) async {
@@ -353,52 +164,68 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  String _googleMapsSearchUrl({double? lat, double? lng, String? address}) {
-    if (lat != null && lng != null) {
-      return 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
-    }
-    final a = (address ?? '').trim();
-    if (a.isEmpty) return '';
-    return 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(a)}';
+  void _stopDeliveryLocationBroadcast() {
+    _deliveryLocationTimer?.cancel();
+    _deliveryLocationTimer = null;
+    _activeTrackingOrderId = null;
   }
 
-  Future<void> _navigateTo(
-    BuildContext context, {
-    double? lat,
-    double? lng,
-    required String addressFallback,
-  }) async {
-    final url = _googleMapsSearchUrl(lat: lat, lng: lng, address: addressFallback);
-    if (url.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Destination not available.'),
-          backgroundColor: AppColors.rosePrimary,
-        ),
-      );
+  Future<void> _startDeliveryLocationBroadcast(String orderId) async {
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Location permission is required to share live tracking.',
+              style: GoogleFonts.montserrat(),
+            ),
+            backgroundColor: AppColors.rosePrimary,
+          ),
+        );
+      }
       return;
     }
 
-    final uri = Uri.parse(url);
-    if (!await canLaunchUrl(uri)) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
+    _stopDeliveryLocationBroadcast();
+    _activeTrackingOrderId = orderId;
 
-  Future<void> _updateOrderStatus({
-    required String orderId,
-    required String newStatus,
-    bool includeDeliveryDate = false,
-  }) async {
-    final update = <String, dynamic>{'status': newStatus};
-    if (includeDeliveryDate) {
-      // Used by the "Today's Stats" card for delivery completion attribution.
-      update['deliveryDate'] = FieldValue.serverTimestamp();
+    Future<void> pushOnce() async {
+      if (_activeTrackingOrderId != orderId) return;
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
+        );
+        await _omsOrderRepository.updateOmsDriverLiveLocation(
+          orderId: orderId,
+          location: GeoPoint(pos.latitude, pos.longitude),
+        );
+      } catch (_) {
+        // Ignore intermittent GPS / network failures.
+      }
     }
 
-    await FirebaseFirestore.instance
-        .collection('orders')
-        .doc(orderId)
-        .update(update);
+    await pushOnce();
+    _deliveryLocationTimer = Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => pushOnce(),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _markOmsOrderDelivered(String orderId) async {
+    _stopDeliveryLocationBroadcast();
+    await _omsOrderRepository.updateOmsOrderStatus(
+      orderId: orderId,
+      status: OmsOrderStatus.delivered,
+      applyCompletionFinancials: true,
+    );
   }
 
   @override
@@ -450,9 +277,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           final endOfTomorrow = startOfToday.add(const Duration(days: 1));
 
           final deliveredTodayStream = FirebaseFirestore.instance
-              .collection('orders')
+              .collection('oms_orders')
               .where('driverId', isEqualTo: user.uid)
-              .where('status', isEqualTo: _deliveredStatus)
+              .where('status', isEqualTo: _omsDelivered)
               .where('deliveryDate',
                   isGreaterThanOrEqualTo:
                       Timestamp.fromDate(startOfToday))
@@ -646,9 +473,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               const SizedBox(height: 10),
               StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                 stream: FirebaseFirestore.instance
-                    .collection('orders')
+                    .collection('oms_orders')
                     .where('driverId', isEqualTo: user.uid)
-                    .where('status', whereIn: _activeStatuses)
+                    .where('status', isEqualTo: _omsOutForDelivery)
                     .snapshots(),
                 builder: (context, ordersSnapshot) {
                   if (ordersSnapshot.connectionState ==
@@ -694,7 +521,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'No active deliveries.\nGo online to receive orders.',
+                            'No active OMS deliveries.\nWhen an admin assigns you a ready order, it appears here.',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.montserrat(
                               fontSize: 14,
@@ -710,23 +537,21 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   return Column(
                     children: docs.map((doc) {
                       final data = doc.data();
-                      final status = _normalizeStatus(data['status']?.toString());
-                      if (!_isActiveStatus(status)) return const SizedBox.shrink();
-
-                      final vendorName = _resolveVendorName(data);
-                      final vendorAddress = _resolveVendorAddress(data);
-                      final vendorPhone = _resolveVendorPhone(data);
-
-                      final customerAddress = _resolveCustomerAddress(data);
-                      final customerPhone = _resolveCustomerPhone(data);
-
-                      final vendorCoords = _extractVendorLatLng(data);
-                      final customerCoords = _extractCustomerLatLng(data);
-
-                      final isUpdatingThisCard = _updatingOrderId == doc.id;
-                      final mainLabel = _mainAction[status] ?? 'Update Delivery';
-
-                      final isCompletion = status == 'on_the_way';
+                      final orderId = doc.id;
+                      final bouquetName =
+                          data['bouquetName']?.toString().trim().isNotEmpty == true
+                              ? data['bouquetName'].toString().trim()
+                              : 'Order';
+                      final vendorName =
+                          data['vendorName']?.toString().trim().isNotEmpty == true
+                              ? data['vendorName'].toString().trim()
+                              : 'Vendor';
+                      final customerPhone =
+                          data['customerPhone']?.toString().trim() ?? '';
+                      final deliveryLink =
+                          data['deliveryLocationLink']?.toString().trim() ?? '';
+                      final isUpdatingThisCard = _updatingOrderId == orderId;
+                      final isLive = _activeTrackingOrderId == orderId;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -751,18 +576,19 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                 Icon(
                                   Icons.local_shipping_outlined,
                                   size: 18,
-                                  color: isCompletion ? AppColors.forestGreen : AppColors.rosePrimary,
+                                  color: AppColors.rosePrimary,
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  'Status: $status',
-                                  style: GoogleFonts.montserrat(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.inkMuted,
+                                Expanded(
+                                  child: Text(
+                                    bouquetName,
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.inkCharcoal,
+                                    ),
                                   ),
                                 ),
-                                const Spacer(),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
@@ -770,19 +596,21 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(999),
-                                    color: isCompletion
-                                        ? AppColors.forestGreen.withValues(alpha: 0.12)
-                                        : AppColors.accentGold.withValues(alpha: 0.12),
+                                    color: isLive
+                                        ? AppColors.forestGreen
+                                            .withValues(alpha: 0.12)
+                                        : AppColors.accentGold
+                                            .withValues(alpha: 0.12),
                                     border: Border.all(
                                       color: AppColors.border.withValues(alpha: 0.9),
                                     ),
                                   ),
                                   child: Text(
-                                    isCompletion ? 'Ready to deliver' : 'In progress',
+                                    isLive ? 'Live tracking on' : 'Out for delivery',
                                     style: GoogleFonts.montserrat(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w800,
-                                      color: isCompletion
+                                      color: isLive
                                           ? AppColors.forestGreen
                                           : AppColors.accentGold,
                                       letterSpacing: 0.1,
@@ -791,288 +619,182 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'Pickup (Vendor)',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.rosePrimary,
-                                      letterSpacing: 0.1,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            _SectionRow(
-                              titleIcon: Icons.storefront_outlined,
-                              titleColor: AppColors.forestGreen,
-                              titleText: vendorName,
-                              subtitleText: vendorAddress,
-                              trailing: Wrap(
-                                spacing: 8,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Call vendor',
-                                    onPressed: vendorPhone.isEmpty
-                                        ? null
-                                        : () => _callPhone(context, vendorPhone),
-                                    icon: const Icon(
-                                      Icons.call_rounded,
-                                      size: 18,
-                                    ),
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: AppColors.forestGreen
-                                          .withValues(alpha: 0.12),
-                                      foregroundColor: AppColors.forestGreen,
-                                      shape: const CircleBorder(),
-                                      padding: const EdgeInsets.all(12),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Navigate to pickup',
-                                    onPressed: () => _navigateTo(
-                                      context,
-                                      lat: vendorCoords?.$1,
-                                      lng: vendorCoords?.$2,
-                                      addressFallback: vendorAddress,
-                                    ),
-                                    icon: const Icon(
-                                      Icons.navigation_rounded,
-                                      size: 18,
-                                    ),
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: AppColors.accentGold
-                                          .withValues(alpha: 0.12),
-                                      foregroundColor: AppColors.accentGold,
-                                      shape: const CircleBorder(),
-                                      padding: const EdgeInsets.all(12),
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(height: 6),
+                            Text(
+                              'Order $orderId · $vendorName',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 12,
+                                color: AppColors.inkMuted,
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Divider(
-                              color: AppColors.border.withValues(alpha: 0.8),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'Drop-off (Customer)',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.rosePrimary,
-                                      letterSpacing: 0.1,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
                             _SectionRow(
-                              titleIcon: Icons.location_on_outlined,
+                              titleIcon: Icons.phone_outlined,
                               titleColor: AppColors.rosePrimary,
                               titleText: 'Customer',
-                              subtitleText: customerAddress,
-                              trailing: Wrap(
-                                spacing: 8,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Call customer',
-                                    onPressed: customerPhone.isEmpty
-                                        ? null
-                                        : () =>
-                                            _callPhone(context, customerPhone),
-                                    icon: const Icon(
-                                      Icons.call_rounded,
-                                      size: 18,
-                                    ),
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: AppColors.rosePrimary
-                                          .withValues(alpha: 0.12),
-                                      foregroundColor: AppColors.rosePrimary,
-                                      shape: const CircleBorder(),
-                                      padding: const EdgeInsets.all(12),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Navigate to destination',
-                                    onPressed: () => _navigateTo(
-                                      context,
-                                      lat: customerCoords?.$1,
-                                      lng: customerCoords?.$2,
-                                      addressFallback: customerAddress,
-                                    ),
-                                    icon: const Icon(
-                                      Icons.navigation_rounded,
-                                      size: 18,
-                                    ),
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: AppColors.forestGreen
-                                          .withValues(alpha: 0.12),
-                                      foregroundColor: AppColors.forestGreen,
-                                      shape: const CircleBorder(),
-                                      padding: const EdgeInsets.all(12),
-                                    ),
-                                  ),
-                                ],
+                              subtitleText: customerPhone.isEmpty
+                                  ? 'Phone not on order'
+                                  : customerPhone,
+                              trailing: IconButton(
+                                tooltip: 'Call customer',
+                                onPressed: customerPhone.isEmpty
+                                    ? null
+                                    : () => _callPhone(context, customerPhone),
+                                icon: const Icon(Icons.call_rounded, size: 18),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: AppColors.rosePrimary
+                                      .withValues(alpha: 0.12),
+                                  foregroundColor: AppColors.rosePrimary,
+                                  shape: const CircleBorder(),
+                                  padding: const EdgeInsets.all(12),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 18),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 62,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: isCompletion
-                                      ? LinearGradient(
-                                          colors: [
-                                            AppColors.accentGold,
-                                            AppColors.forestGreen,
-                                          ],
-                                          begin: Alignment.centerLeft,
-                                          end: Alignment.centerRight,
-                                        )
-                                      : LinearGradient(
-                                          colors: [
-                                            AppColors.rosePrimary
-                                                .withValues(alpha: 0.95),
-                                            AppColors.accentGold
-                                                .withValues(alpha: 0.85),
-                                          ],
-                                          begin: Alignment.centerLeft,
-                                          end: Alignment.centerRight,
-                                        ),
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.06),
-                                      blurRadius: 18,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
+                            if (deliveryLink.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final uri = Uri.tryParse(deliveryLink);
+                                    if (uri == null || !await canLaunchUrl(uri)) {
+                                      return;
+                                    }
+                                    await launchUrl(
+                                      uri,
+                                      mode: LaunchMode.externalApplication,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.map_outlined, size: 18),
+                                  label: const Text('Open delivery location link'),
                                 ),
-                                child: ElevatedButton(
-                                  onPressed: isUpdatingThisCard
-                                      ? null
-                                      : () async {
-                                          setState(
-                                            () => _updatingOrderId = doc.id,
-                                          );
-                                          try {
-                                            if (status == 'ready_for_pickup') {
-                                              await _updateOrderStatus(
-                                                orderId: doc.id,
-                                                newStatus: 'picked_up',
+                              ),
+                            ],
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: isUpdatingThisCard
+                                        ? null
+                                        : () async {
+                                            if (isLive) {
+                                              _stopDeliveryLocationBroadcast();
+                                              setState(() {});
+                                              return;
+                                            }
+                                            setState(
+                                              () => _updatingOrderId = orderId,
+                                            );
+                                            try {
+                                              await _startDeliveryLocationBroadcast(
+                                                orderId,
                                               );
-                                            } else if (status ==
-                                                'picked_up') {
-                                              await _updateOrderStatus(
-                                                orderId: doc.id,
-                                                newStatus: 'on_the_way',
+                                            } finally {
+                                              if (mounted) {
+                                                setState(
+                                                  () => _updatingOrderId = null,
+                                                );
+                                              }
+                                            }
+                                          },
+                                    child: Text(
+                                      isLive ? 'Pause live tracking' : 'Start live tracking',
+                                      style: GoogleFonts.montserrat(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.accentGold,
+                                          AppColors.forestGreen,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: isUpdatingThisCard
+                                          ? null
+                                          : () async {
+                                              setState(
+                                                () => _updatingOrderId = orderId,
                                               );
-                                            } else if (status == 'on_the_way') {
-                                              final picker = ImagePicker();
-                                              final xfile =
-                                                  await picker.pickImage(
-                                                source: ImageSource.camera,
-                                              );
-
-                                              if (xfile == null) {
+                                              try {
+                                                await _markOmsOrderDelivered(
+                                                  orderId,
+                                                );
+                                                if (!context.mounted) return;
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Marked as delivered.',
+                                                      style: GoogleFonts.montserrat(
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                    ),
+                                                    backgroundColor:
+                                                        AppColors.forestGreen,
+                                                  ),
+                                                );
+                                              } catch (_) {
                                                 if (!context.mounted) return;
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                   const SnackBar(
                                                     content: Text(
-                                                      'Proof of Delivery capture cancelled.',
+                                                      'Could not complete delivery. Try again.',
                                                     ),
+                                                    backgroundColor:
+                                                        AppColors.rosePrimary,
                                                   ),
                                                 );
-                                                return;
+                                              } finally {
+                                                if (mounted) {
+                                                  setState(
+                                                    () => _updatingOrderId = null,
+                                                  );
+                                                }
                                               }
-
-                                              // Upload PoD image (xfile) to Firebase Storage
-                                              // and persist the download URL under this order.
-                                              await _updateOrderStatus(
-                                                orderId: doc.id,
-                                                newStatus: _deliveredStatus,
-                                                includeDeliveryDate: true,
-                                              );
-
-                                              if (!context.mounted) return;
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Delivery Completed Successfully!',
-                                                    style: GoogleFonts.montserrat(
-                                                      fontWeight:
-                                                          FontWeight.w800,
-                                                    ),
-                                                  ),
-                                                  backgroundColor:
-                                                      AppColors.forestGreen,
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        elevation: 0,
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: isUpdatingThisCard
+                                          ? const SizedBox(
+                                              width: 22,
+                                              height: 22,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
                                                 ),
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (!context.mounted) return;
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Could not update delivery status. Try again.',
-                                                ),
-                                                backgroundColor:
-                                                    AppColors.rosePrimary,
                                               ),
-                                            );
-                                          } finally {
-                                            if (mounted) {
-                                              setState(
-                                                () => _updatingOrderId = null,
-                                              );
-                                            }
-                                          }
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                    elevation: 0,
-                                    backgroundColor: Colors.transparent,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
+                                            )
+                                          : Text(
+                                              'Mark as delivered',
+                                              style: GoogleFonts.montserrat(
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
                                     ),
                                   ),
-                                  child: isUpdatingThisCard
-                                      ? const SizedBox(
-                                          width: 22,
-                                          height: 22,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
-                                          ),
-                                        )
-                                      : Text(
-                                          mainLabel,
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 0.2,
-                                          ),
-                                        ),
                                 ),
-                              ),
+                              ],
                             ),
                           ],
                         ),
@@ -1090,6 +812,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   @override
   void dispose() {
+    _stopDeliveryLocationBroadcast();
     final sub = _positionStream;
     _positionStream = null;
     if (sub != null) {

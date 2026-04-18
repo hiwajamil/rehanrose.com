@@ -80,7 +80,8 @@ class BouquetRepository {
   /// One-time fetch of bouquets for the public landing page. Prefer this over
   /// [watchBouquets] on web to avoid stream never emitting (e.g. custom domain).
   /// [occasion] null or 'All' = all bouquets; if valid emotion category ID, filter by emotionCategoryId.
-  /// Only products with status == 'approved' are returned (customer-facing).
+  /// Only approved, in-stock products (customer-facing). Stock is applied in Dart so missing
+  /// `inStock` in Firestore is treated as in stock (see [FlowerModel.fromJson]).
   Future<List<FlowerModel>> getBouquets({String? occasion}) async {
     Query<Map<String, dynamic>> query = _bouquets
         .where('approvalStatus', isEqualTo: 'approved')
@@ -104,7 +105,7 @@ class BouquetRepository {
     }
 
     final snap = await query.get().timeout(_queryTimeout);
-    final list = _parseBouquetDocs(snap.docs).toList();
+    final list = _parseBouquetDocs(snap.docs).where((b) => b.inStock).toList();
     list.sort((a, b) {
       final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
       final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
@@ -150,7 +151,7 @@ class BouquetRepository {
     }
 
     final snap = await query.get().timeout(_queryTimeout);
-    final list = _parseBouquetDocs(snap.docs).toList();
+    final list = _parseBouquetDocs(snap.docs).where((b) => b.inStock).toList();
     final lastDoc = snap.docs.isEmpty ? null : snap.docs.last;
     return (items: list, lastDoc: lastDoc);
   }
@@ -180,7 +181,7 @@ class BouquetRepository {
     }
 
     return query.snapshots().timeout(_queryTimeout).map((snap) {
-      final list = _parseBouquetDocs(snap.docs).toList();
+      final list = _parseBouquetDocs(snap.docs).where((b) => b.inStock).toList();
       list.sort((a, b) {
         final aMs = a.createdAt?.millisecondsSinceEpoch ?? 0;
         final bMs = b.createdAt?.millisecondsSinceEpoch ?? 0;
@@ -262,6 +263,7 @@ class BouquetRepository {
     final data = <String, dynamic>{
       'approvalStatus': status,
       if (status == 'approved') 'approvedAt': FieldValue.serverTimestamp(),
+      if (status == 'approved') 'inStock': true,
       if (status == 'rejected') 'rejectedAt': FieldValue.serverTimestamp(),
     };
     if (status == 'rejected') {
@@ -402,6 +404,7 @@ class BouquetRepository {
       if (isPerfumeCollection && brand != null && brand.trim().isNotEmpty)
         'brand': brand.trim(),
       'approvalStatus': status,
+      'inStock': true,
       'createdAt': FieldValue.serverTimestamp(),
     };
     if (thumbnailUrls != null && thumbnailUrls.isNotEmpty) {
@@ -436,6 +439,17 @@ class BouquetRepository {
   /// Updates bouquet price.
   Future<void> updatePrice(String bouquetId, int priceIqd) async {
     await _bouquets.doc(bouquetId).update({'priceIqd': priceIqd});
+  }
+
+  /// Sets storefront stock visibility for a bouquet or perfume document.
+  Future<void> updateInStock(
+    String productId,
+    bool inStock, {
+    String collectionName = _collection,
+  }) async {
+    await _firestore.collection(collectionName).doc(productId).update({
+      'inStock': inStock,
+    });
   }
 
   /// Updates bouquet image URLs and optional thumbnail URLs.

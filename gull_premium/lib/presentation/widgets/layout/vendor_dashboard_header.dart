@@ -436,6 +436,9 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
       onSelected: (String? value) {
         if (value == null) return;
         switch (value) {
+          case 'unread_in_app':
+            context.go('/vendor/notifications');
+            break;
           case 'new':
             context.go('/vendor/orders?tab=new');
             break;
@@ -450,21 +453,22 @@ class _VendorDashboardHeaderState extends State<VendorDashboardHeader> {
       itemBuilder: (BuildContext context) {
         final items = <PopupMenuEntry<String?>>[];
         if (hasNewOrders) {
-          final message = 'You have ${count == 1 ? '1' : count} new bouquet${count == 1 ? '' : 's'} to be prepared!';
+          final message =
+              'You have ${count == 1 ? '1' : count} unread in-app notification${count == 1 ? '' : 's'}.';
           items.add(
             PopupMenuItem<String?>(
-              value: 'new',
+              value: 'unread_in_app',
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.local_florist, size: 22, color: AppColors.rosePrimary),
+                  Icon(Icons.notifications_active_outlined, size: 22, color: AppColors.rosePrimary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('New orders', style: textStyle.copyWith(fontWeight: FontWeight.w600)),
+                        Text('Alerts', style: textStyle.copyWith(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 2),
                         Text(message, style: mutedStyle),
                       ],

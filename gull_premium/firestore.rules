@@ -25,6 +25,12 @@ service cloud.firestore {
           ];
     }
 
+    function isDriver() {
+      return isAuthenticated()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver';
+    }
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
@@ -84,7 +90,8 @@ service cloud.firestore {
           || (resource.data.vendorId == request.auth.uid
               && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['priceIqd'])
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls'])
-                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])))
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock'])))
           || (resource.data.vendorId == request.auth.uid
               && resource.data.approvalStatus == 'rejected'
               && request.resource.data.approvalStatus == 'pending'
@@ -111,7 +118,8 @@ service cloud.firestore {
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls'])
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'thumbnailUrls'])
                   || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['brand'])
-                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'brand'])))
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrls', 'brand'])
+                  || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock'])))
           || (resource.data.vendorId == request.auth.uid
               && resource.data.approvalStatus == 'rejected'
               && request.resource.data.approvalStatus == 'pending'
@@ -121,7 +129,10 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow create: if isAuthenticated()
-          && request.resource.data.userId == request.auth.uid;
+          && (
+            request.resource.data.userId == request.auth.uid
+            || isAdmin()
+          );
       allow read: if isAuthenticated()
           && (
               resource.data.userId == request.auth.uid
@@ -132,6 +143,12 @@ service cloud.firestore {
                   resource.data.status == 'ready'
                   || resource.data.status == 'delivered'
                 )
+              )
+              || (
+                isVendor()
+                && resource.data.vendorId == request.auth.uid
+                && 'orderSource' in resource.data
+                && resource.data.orderSource == 'custom_tender'
               )
             );
       allow update: if isAdmin();
@@ -169,13 +186,35 @@ service cloud.firestore {
             || (resource.data.status == 'preparing' && request.resource.data.status == 'ready')
           );
     }
+
+    function driverOmsReadAllowed() {
+      return isDriver()
+          && resource.data.driverId == request.auth.uid;
+    }
+
+    function driverOmsUpdateAllowed() {
+      return isDriver()
+          && resource.data.driverId == request.auth.uid
+          && (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['driverLocation'])
+            || (
+              resource.data.status == 'out_for_delivery'
+              && request.resource.data.status == 'delivered'
+              && (
+                request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'deliveryDate'])
+              )
+            )
+          );
+    }
     
     match /oms_orders/{orderId} {
       allow create: if isAdmin();
       allow read: if isAdmin()
           || (isVendor() && resource.data.vendorId == request.auth.uid)
-          || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow update: if isAdmin() || vendorOmsUpdateAllowed();
+          || (isAuthenticated() && resource.data.userId == request.auth.uid)
+          || driverOmsReadAllowed();
+      allow update: if isAdmin() || vendorOmsUpdateAllowed() || driverOmsUpdateAllowed();
       allow delete: if isAdmin();
     }
 
@@ -209,6 +248,92 @@ service cloud.firestore {
     // Marketing notification drafts/requests (created by authenticated admins UI)
     match /marketing_notifications/{document} {
       allow read, write: if isAuthenticated();
+    }
+
+    function isCustomRequestCustomerOwner() {
+      return isAuthenticated()
+          && (
+            resource.data.customerId == request.auth.uid
+            || resource.data.userId == request.auth.uid
+          );
+    }
+
+    function inAppNotificationTargetIsAdminUserId(uid) {
+      return uid is string
+          && (
+            exists(/databases/$(database)/documents/admins/$(uid))
+            || (
+              exists(/databases/$(database)/documents/users/$(uid))
+              && get(/databases/$(database)/documents/users/$(uid)).data.role == 'admin'
+            )
+          );
+    }
+
+    // In-app inbox: `{ userId, title, body, isRead, createdAt }`
+    match /notifications/{notifId} {
+      allow read: if isAdmin()
+          || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if (isAdmin()
+          && request.resource.data.userId is string
+          && request.resource.data.title is string
+          && request.resource.data.body is string
+          && request.resource.data.isRead == false)
+        || (
+          isVendor()
+          && request.resource.data.userId is string
+          && request.resource.data.title is string
+          && request.resource.data.body is string
+          && request.resource.data.isRead == false
+          && inAppNotificationTargetIsAdminUserId(request.resource.data.userId)
+        );
+      allow update: if isAuthenticated()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead'])
+          && request.resource.data.isRead == true;
+      allow delete: if isAdmin();
+    }
+
+    // Custom bouquet tenders (customer → admin → vendor bids). Collection id: CustomRequests
+    match /CustomRequests/{requestId} {
+      allow create: if isAuthenticated()
+          && request.resource.data.customerId == request.auth.uid
+          && request.resource.data.status == 'pending_admin'
+          && request.resource.data.description is string
+          && request.resource.data.imagePath is string
+          && (request.resource.data.budget is int || request.resource.data.budget is float)
+          && request.resource.data.bids is list
+          && request.resource.data.bids.size() == 0;
+      allow read: if isAdmin()
+          || (
+            isAuthenticated()
+            && (
+              resource.data.customerId == request.auth.uid
+              || resource.data.userId == request.auth.uid
+            )
+          )
+          || (isVendor() && resource.data.status == 'broadcasting');
+      allow delete: if isAdmin();
+      allow update: if isAdmin()
+          || (
+            isCustomRequestCustomerOwner()
+            && resource.data.status == 'pending_customer'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && request.resource.data.status in ['customer_accepted', 'customer_declined']
+          );
+    }
+
+    match /custom_request_bids/{bidId} {
+      allow create: if isVendor()
+          && request.resource.data.vendorId == request.auth.uid
+          && request.resource.data.requestId is string
+          && request.resource.data.offeredPrice is number
+          && request.resource.data.vendorNote is string
+          && exists(/databases/$(database)/documents/CustomRequests/$(request.resource.data.requestId))
+          && get(/databases/$(database)/documents/CustomRequests/$(request.resource.data.requestId)).data.status
+            == 'broadcasting';
+      allow read: if isAdmin()
+          || (isVendor() && resource.data.vendorId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
     // Default: deny all other paths

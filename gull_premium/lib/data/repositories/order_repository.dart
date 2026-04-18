@@ -17,6 +17,11 @@ class OrderRepository {
   static const String _collection = 'orders';
   static const Duration _timeout = Duration(seconds: 15);
 
+  /// Public storefront / CRM order id (e.g. ORD-1730000000123).
+  String generateCustomerOrderId() {
+    return 'ORD-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
   /// Normalizes user input: trim and remove leading #.
   static String normalizeOrderId(String input) {
     return input.trim().replaceFirst(RegExp(r'^#\s*'), '');
@@ -161,6 +166,9 @@ class OmsOrderRepository {
 
   final FirebaseFirestore _firestore;
 
+  /// Firestore collection id for OMS vendor orders.
+  static const String omsCollectionId = 'oms_orders';
+
   static const Duration _timeout = Duration(seconds: 15);
   static const double _defaultCommissionRate = 0.15;
 
@@ -173,6 +181,7 @@ class OmsOrderRepository {
   Future<String> createOmsOrder({
     required String orderId,
     required CreateOmsOrderData data,
+    Map<String, dynamic>? extraFields,
   }) async {
     final ref = _firestore.collection(_omsCollection).doc(orderId);
     final trimmedUserId = data.userId.trim();
@@ -197,6 +206,7 @@ class OmsOrderRepository {
           trimmedDeliveryLink.isEmpty ? null : trimmedDeliveryLink,
       if (data.bouquetDetails.isNotEmpty) 'bouquetDetails': data.bouquetDetails,
       if (data.orderDate.isNotEmpty) 'orderDate': data.orderDate,
+      ...?extraFields,
     }).timeout(_timeout);
     return orderId;
   }
@@ -282,6 +292,43 @@ class OmsOrderRepository {
     });
   }
 
+  /// Admin assigns a ready OMS order to a driver for live delivery tracking.
+  Future<void> assignOmsOrderToDriver({
+    required String orderId,
+    required String driverId,
+    required String driverPhone,
+  }) async {
+    final orderRef = _firestore.collection(_omsCollection).doc(orderId);
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(orderRef);
+      final data = snap.data();
+      if (!snap.exists || data == null) {
+        throw StateError('OMS order not found: $orderId');
+      }
+      final current = (data['status'] ?? '').toString();
+      if (current != OmsOrderStatus.ready.value) {
+        throw StateError(
+          'Order must be in "ready" status to assign a driver (current: $current).',
+        );
+      }
+      tx.update(orderRef, {
+        'driverId': driverId,
+        'driverPhone': driverPhone.trim(),
+        'status': OmsOrderStatus.outForDelivery.value,
+      });
+    }).timeout(_timeout);
+  }
+
+  /// Driver: push live coordinates for an assigned order.
+  Future<void> updateOmsDriverLiveLocation({
+    required String orderId,
+    required GeoPoint location,
+  }) async {
+    await _firestore.collection(_omsCollection).doc(orderId).update({
+      'driverLocation': location,
+    }).timeout(_timeout);
+  }
+
   /// Fetches delivered order count and total revenue for a vendor. Used by admin.
   Future<({int count, num totalRevenue})> getVendorDeliveredStats(
     String vendorId,
@@ -317,6 +364,14 @@ class OmsOrderRepository {
   }) async {
     final orderRef = _firestore.collection(_omsCollection).doc(orderId);
 
+    Map<String, dynamic> statusOnlyPatch(OmsOrderStatus s) {
+      final m = <String, dynamic>{'status': s.value};
+      if (s == OmsOrderStatus.delivered) {
+        m['deliveryDate'] = FieldValue.serverTimestamp();
+      }
+      return m;
+    }
+
     if (!applyCompletionFinancials) {
       await _firestore.runTransaction((tx) async {
         final orderSnap = await tx.get(orderRef);
@@ -326,7 +381,7 @@ class OmsOrderRepository {
         }
         final previousStatus = (orderData['status'] ?? '').toString();
         if (previousStatus == status.value) return;
-        tx.update(orderRef, {'status': status.value});
+        tx.update(orderRef, statusOnlyPatch(status));
       }).timeout(_timeout);
       return;
     }
@@ -354,7 +409,7 @@ class OmsOrderRepository {
           newStatusIsCompletion && !previousStatusWasCompletion && !wasFinancialsApplied;
 
       if (!shouldApplyFinancials) {
-        tx.update(orderRef, {'status': status.value});
+        tx.update(orderRef, statusOnlyPatch(status));
         return;
       }
 
@@ -362,7 +417,7 @@ class OmsOrderRepository {
       final totalPriceRaw = orderData['totalPrice'];
       final num totalPrice = totalPriceRaw is num ? totalPriceRaw : 0;
       if (vendorId.isEmpty || totalPrice <= 0) {
-        tx.update(orderRef, {'status': status.value});
+        tx.update(orderRef, statusOnlyPatch(status));
         return;
       }
 
@@ -399,6 +454,8 @@ class OmsOrderRepository {
         'commissionRateApplied': commissionRate,
         'rehanRoseCut': rehanRoseCut,
         'vendorEarning': vendorEarning,
+        if (status == OmsOrderStatus.delivered)
+          'deliveryDate': FieldValue.serverTimestamp(),
       });
     }).timeout(_timeout);
   }

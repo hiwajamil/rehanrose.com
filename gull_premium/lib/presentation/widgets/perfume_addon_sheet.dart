@@ -100,8 +100,10 @@ class _PerfumeAddonBottomSheetState extends ConsumerState<PerfumeAddonBottomShee
           .limit(10)
           .get();
       if (!mounted) return;
-      final list =
-          snap.docs.map((d) => FlowerModel.fromJson(d.id, d.data())).toList();
+      final list = snap.docs
+          .map((d) => FlowerModel.fromJson(d.id, d.data()))
+          .where((b) => b.inStock)
+          .toList();
       list.shuffle(Random());
       setState(() {
         _bouquetChoices.clear();

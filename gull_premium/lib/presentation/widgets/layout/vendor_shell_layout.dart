@@ -134,11 +134,6 @@ class VendorShellLayout extends ConsumerWidget {
           if (context.mounted) context.go('/');
         }
       },
-      onNotificationsViewed: () {
-        ref.read(vendorLastSeenPendingCountProvider.notifier).setLastSeen(
-              ref.read(vendorPendingOmsCountProvider),
-            );
-      },
     );
   }
 }
@@ -185,11 +180,6 @@ class _HeaderInAppBar extends StatelessWidget {
             if (context.mounted) context.go('/');
           }
         },
-        onNotificationsViewed: () {
-          ref.read(vendorLastSeenPendingCountProvider.notifier).setLastSeen(
-                ref.read(vendorPendingOmsCountProvider),
-              );
-        },
       ),
     );
   }
@@ -229,6 +219,13 @@ class _VendorSidebar extends StatelessWidget {
               icon: Icons.receipt_long_outlined,
               activeIcon: Icons.receipt_long,
               path: '/vendor/orders',
+              currentPath: path,
+            ),
+            _NavTile(
+              label: 'Tender / Open Requests',
+              icon: Icons.gavel_outlined,
+              activeIcon: Icons.gavel,
+              path: '/vendor/custom-tenders',
               currentPath: path,
             ),
             _NavTile(
@@ -385,6 +382,13 @@ class _VendorDrawer extends StatelessWidget {
                         icon: Icons.receipt_long_outlined,
                         activeIcon: Icons.receipt_long,
                         path: '/vendor/orders',
+                        currentPath: path,
+                      ),
+                      _NavTile(
+                        label: 'Tender / Open Requests',
+                        icon: Icons.gavel_outlined,
+                        activeIcon: Icons.gavel,
+                        path: '/vendor/custom-tenders',
                         currentPath: path,
                       ),
                       _NavTile(

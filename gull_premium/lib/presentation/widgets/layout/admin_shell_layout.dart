@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,8 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../controllers/controllers.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../controllers/controllers.dart';
 
 /// Dedicated admin shell: no customer nav. Sidebar + main content with metrics.
 /// When user is not admin, shows only [child] (e.g. sign-in or not-authorized).
@@ -33,8 +32,15 @@ class AdminShellLayout extends ConsumerWidget {
           error: (_, __) => Scaffold(body: child),
           data: (isAdmin) {
             if (!isAdmin) return Scaffold(body: child);
+            final unread = ref
+                .watch(inAppUnreadNotificationsCountProvider(user.uid))
+                .maybeWhen(
+                  data: (n) => n,
+                  orElse: () => 0,
+                );
             return _ResponsiveAdminShell(
               currentPath: GoRouterState.of(context).uri.path,
+              notificationUnreadCount: unread,
               onSignOut: () async {
                 try {
                   await ref.read(authRepositoryProvider).signOut();
@@ -57,11 +63,13 @@ class AdminShellLayout extends ConsumerWidget {
 class _ResponsiveAdminShell extends StatefulWidget {
   const _ResponsiveAdminShell({
     required this.currentPath,
+    required this.notificationUnreadCount,
     required this.onSignOut,
     required this.child,
   });
 
   final String currentPath;
+  final int notificationUnreadCount;
   final Future<void> Function() onSignOut;
   final Widget child;
 
@@ -100,30 +108,31 @@ class _ResponsiveAdminShellState extends State<_ResponsiveAdminShell> {
           foregroundColor: AppColors.inkCharcoal,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
+          actions: [
+            _AdminNotificationBell(
+              unreadCount: widget.notificationUnreadCount,
+              onPressed: () {
+                context.push('/admin/notifications');
+              },
+            ),
+          ],
         ),
         drawer: Drawer(
           child: _AdminSidebarContent(
             currentPath: widget.currentPath,
+            notificationUnreadCount: widget.notificationUnreadCount,
             onSignOut: widget.onSignOut,
             onNavigate: () => Navigator.of(context).pop(),
           ),
         ),
         body: Container(
           color: const Color(0xFFF4F5F7),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _AdminMetricsRow(),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: paddingH,
-                    vertical: paddingV,
-                  ),
-                  child: widget.child,
-                ),
-              ),
-            ],
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: paddingH,
+              vertical: paddingV,
+            ),
+            child: widget.child,
           ),
         ),
       );
@@ -135,6 +144,7 @@ class _ResponsiveAdminShellState extends State<_ResponsiveAdminShell> {
         children: [
           _AdminSidebarContent(
             currentPath: widget.currentPath,
+            notificationUnreadCount: widget.notificationUnreadCount,
             onSignOut: widget.onSignOut,
             onNavigate: null,
             width: _AdminSidebarContent.sidebarWidth,
@@ -142,20 +152,12 @@ class _ResponsiveAdminShellState extends State<_ResponsiveAdminShell> {
           Expanded(
             child: Container(
               color: const Color(0xFFF4F5F7),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _AdminMetricsRow(),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: paddingH,
-                        vertical: paddingV,
-                      ),
-                      child: widget.child,
-                    ),
-                  ),
-                ],
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: paddingH,
+                  vertical: paddingV,
+                ),
+                child: widget.child,
               ),
             ),
           ),
@@ -165,15 +167,41 @@ class _ResponsiveAdminShellState extends State<_ResponsiveAdminShell> {
   }
 }
 
+class _AdminNotificationBell extends StatelessWidget {
+  const _AdminNotificationBell({
+    required this.unreadCount,
+    required this.onPressed,
+  });
+
+  final int unreadCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = IconButton(
+      tooltip: 'Notifications',
+      onPressed: onPressed,
+      icon: const Icon(Icons.notifications_none_rounded),
+    );
+    if (unreadCount <= 0) return icon;
+    return Badge(
+      label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+      child: icon,
+    );
+  }
+}
+
 class _AdminSidebarContent extends StatelessWidget {
   const _AdminSidebarContent({
     required this.currentPath,
+    required this.notificationUnreadCount,
     required this.onSignOut,
     this.onNavigate,
     this.width,
   });
 
   final String currentPath;
+  final int notificationUnreadCount;
   final Future<void> Function() onSignOut;
 
   /// Called after navigation (e.g. to close drawer). Null when used as permanent sidebar.
@@ -199,38 +227,52 @@ class _AdminSidebarContent extends StatelessWidget {
         const SizedBox(height: 28),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.appTitle,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.inkCharcoal,
-                  letterSpacing: 0.2,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.appTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.inkCharcoal,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.rosePrimary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.rosePrimary.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        l10n.adminSuperAdminDashboard,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.rosePrimary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.rosePrimary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.rosePrimary.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  l10n.adminSuperAdminDashboard,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.rosePrimary,
-                  ),
-                ),
+              _AdminNotificationBell(
+                unreadCount: notificationUnreadCount,
+                onPressed: () {
+                  context.push('/admin/notifications');
+                  onNavigate?.call();
+                },
               ),
             ],
           ),
@@ -240,6 +282,7 @@ class _AdminSidebarContent extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
             children: [
+              const _SidebarSectionHeader(label: 'OVERVIEW'),
               _NavTile(
                 icon: Icons.dashboard_outlined,
                 selectedIcon: Icons.dashboard_rounded,
@@ -260,6 +303,7 @@ class _AdminSidebarContent extends StatelessWidget {
                   onNavigate?.call();
                 },
               ),
+              const _SidebarSectionHeader(label: 'APPROVALS'),
               _NavTile(
                 icon: Icons.pending_actions_outlined,
                 selectedIcon: Icons.pending_actions_rounded,
@@ -290,13 +334,14 @@ class _AdminSidebarContent extends StatelessWidget {
                   onNavigate?.call();
                 },
               ),
+              const _SidebarSectionHeader(label: 'ORDERS'),
               _NavTile(
-                icon: Icons.add_circle_outline,
-                selectedIcon: Icons.add_circle_rounded,
-                label: l10n.adminManageAddOns,
-                selected: _isSelected('/admin/add-ons'),
+                icon: Icons.request_quote_outlined,
+                selectedIcon: Icons.request_quote_rounded,
+                label: 'Custom Requests',
+                selected: _isSelected('/admin/custom-requests'),
                 onTap: () {
-                  context.push('/admin/add-ons');
+                  context.go('/admin/custom-requests');
                   onNavigate?.call();
                 },
               ),
@@ -320,6 +365,7 @@ class _AdminSidebarContent extends StatelessWidget {
                   onNavigate?.call();
                 },
               ),
+              const _SidebarSectionHeader(label: 'MANAGEMENT'),
               _NavTile(
                 icon: Icons.people_outline,
                 selectedIcon: Icons.people_rounded,
@@ -350,6 +396,17 @@ class _AdminSidebarContent extends StatelessWidget {
                   onNavigate?.call();
                 },
               ),
+              const _SidebarSectionHeader(label: 'MARKETING & EXTRAS'),
+              _NavTile(
+                icon: Icons.add_circle_outline,
+                selectedIcon: Icons.add_circle_rounded,
+                label: l10n.adminManageAddOns,
+                selected: _isSelected('/admin/add-ons'),
+                onTap: () {
+                  context.push('/admin/add-ons');
+                  onNavigate?.call();
+                },
+              ),
               _NavTile(
                 icon: Icons.campaign_outlined,
                 selectedIcon: Icons.campaign,
@@ -372,6 +429,10 @@ class _AdminSidebarContent extends StatelessWidget {
               ),
             ],
           ),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Divider(height: 1),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
@@ -417,6 +478,27 @@ class _AdminSidebarContent extends StatelessWidget {
   }
 }
 
+class _SidebarSectionHeader extends StatelessWidget {
+  const _SidebarSectionHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 18, 12, 8),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppColors.inkMuted.withValues(alpha: 0.75),
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+}
+
 class _NavTile extends StatelessWidget {
   const _NavTile({
     required this.icon,
@@ -453,186 +535,6 @@ class _NavTile extends StatelessWidget {
         selected: selected,
         selectedTileColor: AppColors.rosePrimary.withValues(alpha: 0.12),
         onTap: onTap,
-      ),
-    );
-  }
-}
-
-class _AdminMetricsRow extends StatefulWidget {
-  const _AdminMetricsRow();
-
-  @override
-  State<_AdminMetricsRow> createState() => _AdminMetricsRowState();
-}
-
-class _AdminMetricsRowState extends State<_AdminMetricsRow> {
-  late final Stream<int> _membersStream;
-  late final Stream<QuerySnapshot<Map<String, dynamic>>> _vendorsStream;
-
-  @override
-  void initState() {
-    super.initState();
-    _membersStream = ProviderScope.containerOf(
-      context,
-    ).read(membersRepositoryProvider).watchCustomerCount();
-    _vendorsStream = ProviderScope.containerOf(
-      context,
-    ).read(authRepositoryProvider).watchVendorApplications();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final width = MediaQuery.sizeOf(context).width;
-    final isNarrow = width < kAdminShellDrawerBreakpoint;
-    final paddingH = isNarrow ? 16.0 : 24.0;
-
-    final membersCard = StreamBuilder<int>(
-      stream: _membersStream,
-      builder: (context, snapshot) {
-        final isLoading = snapshot.connectionState == ConnectionState.waiting;
-        final value = snapshot.hasData ? '${snapshot.data}' : '—';
-        return _MetricCard(
-          icon: Icons.people_outline,
-          title: l10n.adminTotalMembers,
-          value: value,
-          isLoading: isLoading,
-          onTap: () => context.push('/admin/members'),
-        );
-      },
-    );
-
-    final vendorsCard = StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: _vendorsStream,
-      builder: (context, snapshot) {
-        final isLoading = snapshot.connectionState == ConnectionState.waiting;
-        final value = snapshot.hasData ? '${snapshot.data!.docs.length}' : '—';
-        return _MetricCard(
-          icon: Icons.pending_actions_outlined,
-          title: l10n.adminPendingApplications,
-          value: value,
-          isLoading: isLoading,
-          onTap: () => context.go('/admin'),
-        );
-      },
-    );
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(paddingH, isNarrow ? 16 : 24, paddingH, 0),
-      child: isNarrow
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [membersCard, const SizedBox(height: 12), vendorsCard],
-            )
-          : Row(
-              children: [
-                Expanded(child: membersCard),
-                const SizedBox(width: 16),
-                Expanded(child: vendorsCard),
-              ],
-            ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.isLoading,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String value;
-  final bool isLoading;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isNarrow =
-        MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
-    final padding = isNarrow ? 16.0 : 20.0;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.rosePrimary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 24, color: AppColors.rosePrimary),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.inkMuted,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Fixed-height placeholder to prevent card height jump during loading
-                    SizedBox(
-                      height: 28,
-                      child: isLoading
-                          ? Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.rose,
-                                ),
-                              ),
-                            )
-                          : Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                value,
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.rosePrimary,
-                                    ),
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 12,
-                color: AppColors.inkMuted,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -1,18 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import '../../../controllers/account_controller.dart';
+import '../../../controllers/controllers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/custom_request_model.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/user_occasion_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../account/customer_oms_order_detail_screen.dart';
 import '../cart/cart_screen.dart';
 import '../../widgets/account/add_occasion_sheet.dart';
+import '../../widgets/common/app_cached_image.dart';
 import '../../widgets/oms/oms_order_card.dart';
 
 /// Bottom-nav hub: customer orders (`oms_orders` collection) and saved occasions.
@@ -153,7 +155,7 @@ class _CartAppBarAction extends StatelessWidget {
   }
 }
 
-class OrdersListView extends StatefulWidget {
+class OrdersListView extends ConsumerStatefulWidget {
   const OrdersListView({super.key, required this.uid});
 
   final String uid;
@@ -204,6 +206,13 @@ class OrdersListView extends StatefulWidget {
         label: _prettyStatusLabel(raw, fallback: 'Delivered'),
       );
     }
+    if (s == 'out_for_delivery') {
+      return (
+        bg: Colors.deepPurple.shade50,
+        fg: Colors.deepPurple.shade900,
+        label: 'Out for delivery',
+      );
+    }
     if (s == 'preparing' ||
         s == 'accepted' ||
         s == 'ready' ||
@@ -230,10 +239,10 @@ class OrdersListView extends StatefulWidget {
   }
 
   @override
-  State<OrdersListView> createState() => _OrdersListViewState();
+  ConsumerState<OrdersListView> createState() => _OrdersListViewState();
 }
 
-class _OrdersListViewState extends State<OrdersListView>
+class _OrdersListViewState extends ConsumerState<OrdersListView>
     with AutomaticKeepAliveClientMixin<OrdersListView> {
   late final Stream<QuerySnapshot<Map<String, dynamic>>> _ordersStream;
   QuerySnapshot<Map<String, dynamic>>? _lastSnapshot;
@@ -252,12 +261,209 @@ class _OrdersListViewState extends State<OrdersListView>
         });
   }
 
+  Widget _pendingCustomOffersStrip(List<CustomRequestModel> offers) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Custom bouquet — offer pending your approval',
+            style: GoogleFonts.montserrat(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.inkCharcoal,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...offers.map((r) {
+            final price = r.effectiveAcceptedPrice;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              elevation: 0,
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AppColors.border.withValues(alpha: 0.9)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: r.imagePath.isNotEmpty
+                              ? AppCachedImage(
+                                  imageUrl: r.imagePath,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: 144,
+                                  memCacheHeight: 144,
+                                  borderRadius: BorderRadius.circular(10),
+                                )
+                              : Container(
+                                  width: 72,
+                                  height: 72,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.background,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.photo_outlined, color: AppColors.inkMuted),
+                                ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Accepted price: ${price != null ? '${AppLocalizations.of(context)!.currencyIqd} $price' : '—'}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.rosePrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (r.description.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        r.description,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final ok = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Decline this offer?'),
+                                  content: const Text(
+                                    'You can submit a new custom request later if you change your mind.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('Decline'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (ok != true || !mounted) return;
+                              try {
+                                await ref
+                                    .read(customRequestRepositoryProvider)
+                                    .setCustomerOfferResponse(
+                                      requestId: r.requestId,
+                                      accept: false,
+                                    );
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Could not update: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            child: const Text('Decline'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () async {
+                              final ok = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Accept this offer?'),
+                                  content: Text(
+                                    price != null
+                                        ? 'You agree to proceed at ${AppLocalizations.of(context)!.currencyIqd} $price.'
+                                        : 'You agree to proceed with this custom bouquet offer.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('Accept offer'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (ok != true || !mounted) return;
+                              try {
+                                await ref
+                                    .read(customRequestRepositoryProvider)
+                                    .setCustomerOfferResponse(
+                                      requestId: r.requestId,
+                                      accept: true,
+                                    );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Thank you! Our team will send your order for preparation shortly.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Could not update: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            child: const Text('Accept offer'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final l10n = AppLocalizations.of(context)!;
+    final pendingOffersAsync =
+        ref.watch(customerPendingCustomOffersStreamProvider(widget.uid));
 
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        pendingOffersAsync.when(
+          data: (offers) =>
+              offers.isEmpty ? const SizedBox.shrink() : _pendingCustomOffersStrip(offers),
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: _ordersStream,
       initialData: _lastSnapshot,
       builder: (context, snapshot) {
@@ -322,7 +528,7 @@ class _OrdersListViewState extends State<OrdersListView>
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           itemCount: docs.length,
           separatorBuilder: (_, __) => const SizedBox(height: 14),
           itemBuilder: (context, index) {
@@ -347,11 +553,22 @@ class _OrdersListViewState extends State<OrdersListView>
                 borderRadius: BorderRadius.circular(18),
                 side: BorderSide(color: AppColors.border.withValues(alpha: 0.9)),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => CustomerOmsOrderDetailScreen(
+                        orderDocId: doc.id,
+                      ),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -425,11 +642,15 @@ class _OrdersListViewState extends State<OrdersListView>
                     ),
                   ],
                 ),
+                ),
               ),
             );
           },
         );
       },
+          ),
+        ),
+      ],
     );
   }
 

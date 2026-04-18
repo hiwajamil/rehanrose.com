@@ -207,6 +207,8 @@ class _VendorOrderListState extends ConsumerState<_VendorOrderList>
         return widget.usePerfumeLabels
             ? 'No ready perfumes.'
             : 'No ready bouquets.';
+      case OmsOrderStatus.outForDelivery:
+        return 'No orders with driver.';
       case OmsOrderStatus.delivered:
         return 'No delivered orders.';
       case OmsOrderStatus.deleted:
@@ -324,6 +326,8 @@ class _OrdersEmptyState extends StatelessWidget {
         return Icons.schedule_outlined;
       case OmsOrderStatus.ready:
         return Icons.check_circle_outline;
+      case OmsOrderStatus.outForDelivery:
+        return Icons.local_shipping_outlined;
       case OmsOrderStatus.delivered:
         return Icons.local_shipping_outlined;
       case OmsOrderStatus.deleted:

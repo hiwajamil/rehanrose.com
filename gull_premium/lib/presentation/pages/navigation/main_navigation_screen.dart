@@ -1,21 +1,24 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../controllers/controllers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../auth/account_page.dart';
 import '../landing/landing_page.dart';
 import '../../../screens/notifications_screen.dart';
 import 'activity_screen.dart';
 
-class MainNavigationScreen extends StatefulWidget {
+class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key, this.initialIndex = 0});
 
   final int initialIndex;
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  ConsumerState<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   static const double _desktopBreakpoint = 800;
   late int _currentIndex;
   late final List<Widget> _tabs;
@@ -32,8 +35,34 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
   }
 
+  Widget _badgedIcon(IconData icon, int unread) {
+    final iconWidget = Icon(icon);
+    if (unread <= 0) return iconWidget;
+    return Badge(
+      label: Text(unread > 99 ? '99+' : '$unread'),
+      child: iconWidget,
+    );
+  }
+
+  Widget _badgedSelectedIcon(IconData activeIcon, int unread) {
+    final activeWidget = Icon(activeIcon);
+    if (unread <= 0) return activeWidget;
+    return Badge(
+      label: Text(unread > 99 ? '99+' : '$unread'),
+      child: activeWidget,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final unread = uid.isEmpty
+        ? 0
+        : ref.watch(inAppUnreadNotificationsCountProvider(uid)).maybeWhen(
+              data: (n) => n,
+              orElse: () => 0,
+            );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= _desktopBreakpoint;
@@ -63,23 +92,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 elevation: 0,
                 showUnselectedLabels: true,
                 selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                items: const [
-                  BottomNavigationBarItem(
+                items: [
+                  const BottomNavigationBarItem(
                     icon: Icon(Icons.home_filled),
                     activeIcon: Icon(Icons.home_filled),
                     label: 'Home',
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.notifications_outlined),
-                    activeIcon: Icon(Icons.notifications),
+                    icon: _badgedIcon(Icons.notifications_outlined, unread),
+                    activeIcon: _badgedSelectedIcon(Icons.notifications, unread),
                     label: 'Notifications',
                   ),
-                  BottomNavigationBarItem(
+                  const BottomNavigationBarItem(
                     icon: Icon(Icons.receipt_long_rounded),
                     activeIcon: Icon(Icons.receipt_long_rounded),
                     label: 'Activity',
                   ),
-                  BottomNavigationBarItem(
+                  const BottomNavigationBarItem(
                     icon: Icon(Icons.person),
                     activeIcon: Icon(Icons.person),
                     label: 'Profile',
@@ -99,8 +128,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 color: AppColors.footerBackground,
                 child: NavigationRail(
                   selectedIndex: _currentIndex,
-                  onDestinationSelected: (index) =>
-                      setState(() => _currentIndex = index),
+                  onDestinationSelected: (index) => setState(() => _currentIndex = index),
                   labelType: NavigationRailLabelType.all,
                   groupAlignment: 0.0,
                   backgroundColor: AppColors.footerBackground,
@@ -135,23 +163,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       size: 32,
                     ),
                   ),
-                  destinations: const [
-                    NavigationRailDestination(
+                  destinations: [
+                    const NavigationRailDestination(
                       icon: Icon(Icons.home_filled),
                       selectedIcon: Icon(Icons.home_filled),
                       label: Text('Home'),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.notifications_outlined),
-                      selectedIcon: Icon(Icons.notifications),
-                      label: Text('Notifications'),
+                      icon: _badgedIcon(Icons.notifications_outlined, unread),
+                      selectedIcon: _badgedSelectedIcon(Icons.notifications, unread),
+                      label: const Text('Notifications'),
                     ),
-                    NavigationRailDestination(
+                    const NavigationRailDestination(
                       icon: Icon(Icons.receipt_long_rounded),
                       selectedIcon: Icon(Icons.receipt_long_rounded),
                       label: Text('Activity'),
                     ),
-                    NavigationRailDestination(
+                    const NavigationRailDestination(
                       icon: Icon(Icons.person),
                       selectedIcon: Icon(Icons.person),
                       label: Text('Profile'),

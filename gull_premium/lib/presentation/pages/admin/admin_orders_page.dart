@@ -7,6 +7,7 @@ import '../../../core/constants/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/whatsapp_order_parser.dart';
 import '../../../controllers/controllers.dart';
+import '../../../data/models/custom_request_model.dart';
 import '../../../data/models/flower_model.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/vendor_list_model.dart';
@@ -396,7 +397,7 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
     final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
     final spacing = isMobile ? 16.0 : 24.0;
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -422,6 +423,7 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
               tabs: const [
                 Tab(text: 'Create Order'),
                 Tab(text: 'Order Tracking'),
+                Tab(text: 'Custom Orders'),
               ],
             ),
             SizedBox(height: spacing),
@@ -461,11 +463,184 @@ class _BouquetOmsScreenState extends ConsumerState<BouquetOmsScreen> {
                     l10n: l10n,
                   ),
                   const _OrderTrackingTab(),
+                  const _BouquetCustomOrdersDispatchTab(),
                 ],
               ),
             ),
           ],
         ),
+    );
+  }
+}
+
+/// Customer-approved custom tenders: dispatch to the winning vendor as a normal OMS order.
+class _BouquetCustomOrdersDispatchTab extends ConsumerStatefulWidget {
+  const _BouquetCustomOrdersDispatchTab();
+
+  @override
+  ConsumerState<_BouquetCustomOrdersDispatchTab> createState() =>
+      _BouquetCustomOrdersDispatchTabState();
+}
+
+class _BouquetCustomOrdersDispatchTabState extends ConsumerState<_BouquetCustomOrdersDispatchTab> {
+  final Set<String> _dispatching = {};
+
+  Future<void> _dispatch(CustomRequestModel r) async {
+    if (_dispatching.contains(r.requestId)) return;
+    setState(() => _dispatching.add(r.requestId));
+    try {
+      final orderId = ref.read(omsOrderRepositoryProvider).generateOrderId();
+      await ref.read(customRequestRepositoryProvider).dispatchCustomerAcceptedToOms(
+            requestId: r.requestId,
+            orderId: orderId,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order $orderId sent for preparation.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Dispatch failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _dispatching.remove(r.requestId));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(adminCustomerAcceptedCustomRequestsStreamProvider);
+    return async.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: AppColors.rose)),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (list) {
+        if (list.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                'No custom orders awaiting dispatch. Customer-approved requests appear here.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.inkMuted),
+              ),
+            ),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          itemCount: list.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, i) {
+            final r = list[i];
+            final busy = _dispatching.contains(r.requestId);
+            final price = r.effectiveAcceptedPrice;
+            return Card(
+              elevation: 0,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AppColors.border.withValues(alpha: 0.85)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: r.imagePath.isNotEmpty
+                              ? AppCachedImage(
+                                  imageUrl: r.imagePath,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: 144,
+                                  memCacheHeight: 144,
+                                  borderRadius: BorderRadius.circular(10),
+                                )
+                              : Container(
+                                  width: 72,
+                                  height: 72,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.background,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(Icons.photo_outlined, color: AppColors.inkMuted),
+                                ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Custom request ${r.requestId}',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Customer: ${r.customerId}',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (r.winningVendorId != null && r.winningVendorId!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Vendor: ${r.winningVendorId}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      'Total (IQD): ${price ?? '—'}',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.rosePrimary,
+                          ),
+                    ),
+                    if (r.description.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        r.description,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: busy ? null : () => _dispatch(r),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.rosePrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Text(busy ? 'Creating…' : 'Send Order For Preparation'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -1541,7 +1716,7 @@ class _OrderTrackingTabState extends ConsumerState<_OrderTrackingTab>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -1571,6 +1746,10 @@ class _OrderTrackingTabState extends ConsumerState<_OrderTrackingTab>
               ),
               _AdminOrderListByStatus(
                 status: OmsOrderStatus.ready,
+                usePerfumeLabels: widget.usePerfumeLabels,
+              ),
+              _AdminOrderListByStatus(
+                status: OmsOrderStatus.outForDelivery,
                 usePerfumeLabels: widget.usePerfumeLabels,
               ),
               _AdminOrderListByStatus(
@@ -1638,6 +1817,7 @@ class _AdminPillTabBar extends StatelessWidget {
           Tab(text: 'Pending'),
           Tab(text: 'Preparing'),
           Tab(text: 'Ready'),
+          Tab(text: 'Out for delivery'),
           Tab(text: 'Delivered'),
           Tab(text: 'Deleted'),
         ],
@@ -1668,9 +1848,116 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
 
   double _mainAxisExtentForWidth(double width) {
     // Keep cards visually consistent in a grid and avoid overflow on narrower widths.
-    if (width > 1100) return 252;
-    if (width > 700) return 268;
-    return 288;
+    if (width > 1100) return 268;
+    if (width > 700) return 288;
+    return 308;
+  }
+
+  String _readDriverDisplayName(Map<String, dynamic> data) {
+    final raw = data['fullName'] ??
+        data['name'] ??
+        data['displayName'] ??
+        data['userName'] ??
+        data['username'];
+    final s = raw?.toString().trim() ?? '';
+    return s.isNotEmpty ? s : 'Driver';
+  }
+
+  String _readDriverPhone(Map<String, dynamic> data) {
+    final raw = data['phoneNumber'] ?? data['phone'] ?? data['mobile'];
+    return raw?.toString().trim() ?? '';
+  }
+
+  Future<void> _showAssignDriverDialog(OmsOrderModel order) async {
+    final scaffold = ScaffoldMessenger.of(context);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Assign to driver'),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 400,
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .where('role', isEqualTo: 'driver')
+                  .snapshots(),
+              builder: (listContext, snap) {
+                if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snap.hasError) {
+                  return Center(
+                    child: Text(
+                      'Could not load drivers.',
+                      style: Theme.of(listContext).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.inkMuted,
+                          ),
+                    ),
+                  );
+                }
+                final docs = snap.data?.docs ?? const [];
+                if (docs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No drivers in Delivery Fleet yet.',
+                      style: Theme.of(listContext).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.inkMuted,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (listContext, index) {
+                    final doc = docs[index];
+                    final data = doc.data();
+                    final name = _readDriverDisplayName(data);
+                    final phone = _readDriverPhone(data);
+                    return ListTile(
+                      leading: const Icon(Icons.person_outline_rounded),
+                      title: Text(name),
+                      subtitle: phone.isNotEmpty ? Text(phone) : const Text('No phone on file'),
+                      onTap: () async {
+                        Navigator.of(dialogContext).pop();
+                        try {
+                          await ref.read(omsOrderRepositoryProvider).assignOmsOrderToDriver(
+                                orderId: order.orderId,
+                                driverId: doc.id,
+                                driverPhone: phone,
+                              );
+                          if (!mounted) return;
+                          scaffold.showSnackBar(
+                            SnackBar(
+                              content: Text('Order ${order.orderId} assigned to $name.'),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          scaffold.showSnackBar(
+                            SnackBar(content: Text('Could not assign: $e')),
+                          );
+                        }
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _confirmAndSoftDeleteOrder(OmsOrderModel order) async {
@@ -1835,6 +2122,9 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
                   showVendorLine: true,
                   showOrderIdInSubtitle: true,
                   usePerfumeLabels: widget.usePerfumeLabels,
+                  onAssignDriver: widget.status == OmsOrderStatus.ready
+                      ? () => _showAssignDriverDialog(order)
+                      : null,
                   onDelete: widget.status == OmsOrderStatus.deleted
                       ? null
                       : () => _confirmAndSoftDeleteOrder(order),
@@ -1857,6 +2147,8 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
         return usePerfumeLabels
             ? 'No ready perfumes.'
             : 'No ready bouquets.';
+      case OmsOrderStatus.outForDelivery:
+        return 'No orders out for delivery.';
       case OmsOrderStatus.delivered:
         return 'No delivered orders.';
       case OmsOrderStatus.deleted:

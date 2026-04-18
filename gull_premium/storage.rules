@@ -31,6 +31,11 @@ service firebase.storage {
       allow write: if isSignedIn();
     }
 
+    match /custom_requests/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
     // ئەمە دەرگا گشتییەکەیە بۆ پاراستن لە هەر ئێرۆرێک
     match /{allPaths=**} {
       allow read: if true;

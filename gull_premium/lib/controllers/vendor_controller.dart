@@ -205,6 +205,19 @@ class VendorController extends AsyncNotifier<void> {
     }
   }
 
+  /// Sets whether the product appears in the customer storefront. Does not toggle [state] loading.
+  Future<void> setBouquetInStock(
+    String productId,
+    bool inStock, {
+    String collectionName = 'bouquets',
+  }) async {
+    await _bouquetRepo.updateInStock(
+      productId,
+      inStock,
+      collectionName: collectionName,
+    );
+  }
+
   Future<void> replaceBouquetPhotos({
     required fa.User user,
     required String bouquetId,

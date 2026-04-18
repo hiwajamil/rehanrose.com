@@ -223,12 +223,13 @@ class CustomerOrderItem {
 
 // --- OMS (Order Management System) for WhatsApp checkout flow ---
 
-/// OMS order status: pending → preparing → ready → delivered.
+/// OMS order status: pending → preparing → ready → out_for_delivery → delivered.
 /// [deleted] is a soft-delete bucket (admin only); document stays in Firestore.
 enum OmsOrderStatus {
   pending,
   preparing,
   ready,
+  outForDelivery,
   delivered,
   deleted,
 }
@@ -242,6 +243,8 @@ extension OmsOrderStatusExtension on OmsOrderStatus {
         return 'preparing';
       case OmsOrderStatus.ready:
         return 'ready';
+      case OmsOrderStatus.outForDelivery:
+        return 'out_for_delivery';
       case OmsOrderStatus.delivered:
         return 'delivered';
       case OmsOrderStatus.deleted:
@@ -252,7 +255,7 @@ extension OmsOrderStatusExtension on OmsOrderStatus {
 
 OmsOrderStatus? omsOrderStatusFromString(String? value) {
   if (value == null || value.isEmpty) return null;
-  final normalized = value.trim().toLowerCase();
+  final normalized = value.trim().toLowerCase().replaceAll(' ', '_');
   switch (normalized) {
     case 'pending':
       return OmsOrderStatus.pending;
@@ -260,6 +263,8 @@ OmsOrderStatus? omsOrderStatusFromString(String? value) {
       return OmsOrderStatus.preparing;
     case 'ready':
       return OmsOrderStatus.ready;
+    case 'out_for_delivery':
+      return OmsOrderStatus.outForDelivery;
     case 'delivered':
       return OmsOrderStatus.delivered;
     case 'deleted':
@@ -296,6 +301,12 @@ class OmsOrderModel {
   final String? deliveryLocationLink;
   /// Order date/time from WhatsApp message (e.g. "2026-03-09 14:30").
   final String? orderDate;
+  /// Assigned delivery driver (Firestore `users` document id).
+  final String? driverId;
+  /// Driver phone denormalized for customer "Call driver" UI.
+  final String? driverPhone;
+  /// Live driver position for customer map (updated by driver app).
+  final GeoPoint? driverLocation;
 
   static const Set<String> _voiceMessagePlaceholders = {
     '',
@@ -337,6 +348,9 @@ class OmsOrderModel {
     this.voiceMessageLink,
     this.deliveryLocationLink,
     this.orderDate,
+    this.driverId,
+    this.driverPhone,
+    this.driverLocation,
   });
 
   /// Returns a sanitized voice URL or null when value is absent/placeholder.
@@ -371,6 +385,9 @@ class OmsOrderModel {
         if (voiceMessageLink != null && voiceMessageLink!.isNotEmpty) 'voiceMessageLink': voiceMessageLink!,
         if (deliveryLocationLink != null && deliveryLocationLink!.isNotEmpty) 'deliveryLocationLink': deliveryLocationLink!,
         if (orderDate != null && orderDate!.isNotEmpty) 'orderDate': orderDate!,
+        if (driverId != null && driverId!.isNotEmpty) 'driverId': driverId!,
+        if (driverPhone != null && driverPhone!.isNotEmpty) 'driverPhone': driverPhone!,
+        if (driverLocation != null) 'driverLocation': driverLocation!,
       };
 
   static OmsOrderModel? fromFirestore(
@@ -393,6 +410,11 @@ class OmsOrderModel {
     num price = 0;
     if (totalPrice is num) price = totalPrice;
     if (totalPrice is int) price = totalPrice;
+    final dynamic locRaw = data['driverLocation'];
+    GeoPoint? driverLocation;
+    if (locRaw is GeoPoint) {
+      driverLocation = locRaw;
+    }
     return OmsOrderModel(
       orderId: docId,
       userId: data['userId']?.toString() ?? '',
@@ -411,6 +433,9 @@ class OmsOrderModel {
       voiceMessageLink: data['voiceMessageLink']?.toString(),
       deliveryLocationLink: data['deliveryLocationLink']?.toString(),
       orderDate: data['orderDate']?.toString(),
+      driverId: data['driverId']?.toString(),
+      driverPhone: data['driverPhone']?.toString(),
+      driverLocation: driverLocation,
     );
   }
 }

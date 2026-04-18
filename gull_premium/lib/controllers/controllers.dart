@@ -8,6 +8,8 @@ export 'analytics_controller.dart';
 export 'auth_controller.dart';
 export 'bouquets_controller.dart';
 export 'connectivity_controller.dart';
+export 'custom_request_controller.dart';
+export 'in_app_notification_controller.dart';
 export 'members_controller.dart';
 export 'oms_order_controller.dart';
 export 'order_controller.dart';

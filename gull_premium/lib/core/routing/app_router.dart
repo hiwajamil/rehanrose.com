@@ -28,6 +28,7 @@ import '../../presentation/pages/admin/admin_vendors_management_page.dart';
 import '../../presentation/pages/admin/drivers_management_screen.dart';
 import '../../presentation/pages/admin/manage_ads_screen.dart';
 import '../../presentation/pages/admin/manage_coupons_screen.dart';
+import '../../presentation/pages/admin/admin_custom_requests_screen.dart';
 import '../../presentation/pages/driver/driver_application_screen.dart';
 import '../../presentation/pages/driver/driver_auth_screen.dart';
 import '../../presentation/pages/driver/driver_dashboard_screen.dart';
@@ -44,6 +45,7 @@ import '../../presentation/pages/vendor/vendor_earnings_page.dart';
 import '../../presentation/pages/vendor/vendor_notifications_page.dart';
 import '../../presentation/pages/vendor/vendor_shop_settings_page.dart';
 import '../../presentation/pages/vendor/vendor_support_page.dart';
+import '../../presentation/pages/vendor/vendor_custom_tenders_page.dart';
 import '../../presentation/pages/vendor/vendor_auth_screen.dart';
 import '../../presentation/widgets/layout/admin_shell_layout.dart';
 import '../../presentation/widgets/layout/vendor_shell_layout.dart';
@@ -58,6 +60,7 @@ import '../../presentation/pages/account/customer_orders_page.dart';
 import '../../presentation/pages/account/customer_addresses_page.dart';
 import '../../presentation/pages/account/wishlist_screen.dart';
 import '../../presentation/pages/navigation/main_navigation_screen.dart';
+import '../../screens/notifications_screen.dart';
 
 class AppRouter {
   /// Creates the app router with [authNotifier] so redirect waits for auth to
@@ -324,6 +327,10 @@ class AppRouter {
                   builder: (_, __) => const VendorOrdersPage(),
                 ),
                 GoRoute(
+                  path: 'custom-tenders',
+                  builder: (_, __) => const VendorCustomTendersPage(),
+                ),
+                GoRoute(
                   path: 'bouquets',
                   builder: (_, __) => const VendorBouquetsPage(),
                 ),
@@ -395,6 +402,10 @@ class AppRouter {
                   ],
                 ),
                 GoRoute(
+                  path: 'notifications',
+                  builder: (_, __) => const NotificationsScreen(),
+                ),
+                GoRoute(
                   path: 'analytics',
                   builder: (_, __) => const AnalyticsOverviewPage(),
                 ),
@@ -409,6 +420,10 @@ class AppRouter {
                 GoRoute(
                   path: 'perfume-approvals',
                   builder: (_, __) => const PerfumeApprovalScreen(),
+                ),
+                GoRoute(
+                  path: 'custom-requests',
+                  builder: (_, __) => const AdminCustomRequestsScreen(),
                 ),
                 GoRoute(
                   path: 'bouquet-orders',

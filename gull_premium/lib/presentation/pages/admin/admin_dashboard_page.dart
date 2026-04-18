@@ -268,346 +268,243 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   Widget _buildAdminDashboard(BuildContext context, String adminId) {
     final l10n = AppLocalizations.of(context)!;
     final applicationsAsync = ref.watch(pendingVendorApplicationsStreamProvider);
-    final onlineVendorsAsync = ref.watch(onlineVendorsStreamProvider);
     final isMobile = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
     final verticalSpacing = isMobile ? 16.0 : 20.0;
-    final sectionSpacing = isMobile ? 24.0 : 40.0;
 
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-        Text(
-          l10n.adminPendingApplications,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.ink,
-              ),
-        ),
-        SizedBox(height: verticalSpacing),
-        applicationsAsync.when(
-          loading: () => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.inkMuted,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  l10n.adminLoadingApplications,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.inkMuted),
-                ),
-              ],
-            ),
-          ),
-          error: (_, __) => Text(
-            l10n.adminUnableToLoadApplications,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.inkMuted),
-          ),
-          data: (snapshot) {
-            final docs = snapshot.docs;
-            if (docs.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  l10n.adminNoPendingApplications,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.inkMuted),
-                ),
-              );
-            }
-            return Column(
-              children: docs.map((doc) {
-                final data = doc.data();
-                final isProcessing = _processingApplications.contains(doc.id);
-                final isMobileCard = MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: EdgeInsets.all(isMobileCard ? 16 : 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data['studioName']?.toString() ?? l10n.adminStudio,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      _DetailRow(
-                        label: l10n.adminOwner,
-                        value: data['ownerName']?.toString() ?? '--',
-                      ),
-                      _DetailRow(
-                        label: l10n.adminEmail,
-                        value: data['email']?.toString() ?? '--',
-                      ),
-                      _DetailRow(
-                        label: l10n.adminPhone,
-                        value: data['phone']?.toString() ?? '--',
-                      ),
-                      _DetailRow(
-                        label: l10n.adminLocation,
-                        value: data['location']?.toString() ?? '--',
-                      ),
-                      const SizedBox(height: 16),
-                        LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isNarrow = constraints.maxWidth < kAdminShellDrawerBreakpoint;
-                          final approveBtn = PrimaryButton(
-                            label: isProcessing ? l10n.adminWorking : l10n.adminApprove,
-                            onPressed: isProcessing
-                                ? () {}
-                                : () async {
-                                      setState(() =>
-                                          _processingApplications.add(doc.id));
-                                      try {
-                                        await ref
-                                            .read(authRepositoryProvider)
-                                            .approveVendorApplication(
-                                              doc.id,
-                                              data,
-                                              adminId,
-                                            );
-                                        if (mounted) {
-                                          _showMessage(l10n.adminApplicationApproved);
-                                        }
-                                      } catch (_) {
-                                        if (mounted) {
-                                          _showMessage(l10n.adminUnableToApprove);
-                                        }
-                                      } finally {
-                                        if (mounted) {
-                                          setState(() =>
-                                              _processingApplications.remove(doc.id));
-                                        }
-                                      }
-                                    },
-                          );
-                          final rejectBtn = PrimaryButton(
-                            label: isProcessing ? l10n.adminWorking : l10n.adminReject,
-                            onPressed: isProcessing
-                                ? () {}
-                                : () async {
-                                      setState(() =>
-                                          _processingApplications.add(doc.id));
-                                      try {
-                                        await ref
-                                            .read(authRepositoryProvider)
-                                            .rejectVendorApplication(doc.id, adminId);
-                                        if (mounted) {
-                                          _showMessage(l10n.adminApplicationRejected);
-                                        }
-                                      } catch (_) {
-                                        if (mounted) {
-                                          _showMessage(l10n.adminUnableToReject);
-                                        }
-                                      } finally {
-                                        if (mounted) {
-                                          setState(() =>
-                                              _processingApplications.remove(doc.id));
-                                        }
-                                      }
-                                    },
-                            variant: PrimaryButtonVariant.outline,
-                          );
-                          if (isNarrow) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                approveBtn,
-                                const SizedBox(height: 12),
-                                rejectBtn,
-                              ],
-                            );
-                          }
-                          return Row(
-                            children: [
-                              Expanded(child: approveBtn),
-                              const SizedBox(width: 12),
-                              Expanded(child: rejectBtn),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            );
-          },
-        ),
-        SizedBox(height: sectionSpacing),
-        _buildOnlineVendorsCard(context, l10n, onlineVendorsAsync),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOnlineVendorsCard(
-    BuildContext context,
-    AppLocalizations l10n,
-    AsyncValue<QuerySnapshot<Map<String, dynamic>>> onlineVendorsAsync,
-  ) {
-    final isMobile = MediaQuery.sizeOf(context).width <= kMobileBreakpoint;
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const _AdminMetricsRow(),
+              SizedBox(height: verticalSpacing),
               Text(
-                l10n.adminOnlineVendors,
+                l10n.adminPendingApplications,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.ink,
                     ),
               ),
-              onlineVendorsAsync.when(
-                loading: () => Text(
-                  l10n.adminLoadingOnlineVendors,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.inkMuted,
-                        fontStyle: FontStyle.italic,
-                      ),
-                ),
-                error: (_, __) => const SizedBox.shrink(),
-                data: (snapshot) {
-                  final count = snapshot.docs.length;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.35),
-                      ),
-                    ),
-                    child: Text(
-                      l10n.adminOnlineVendorsCount(count),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF059669),
-                          ),
-                    ),
-                  );
-                },
+              SizedBox(height: verticalSpacing),
+              _buildPendingApplicationsSection(
+                context: context,
+                adminId: adminId,
+                applicationsAsync: applicationsAsync,
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          onlineVendorsAsync.when(
-            loading: () => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.inkMuted,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    l10n.adminLoadingOnlineVendors,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.inkMuted),
-                  ),
-                ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingApplicationsSection({
+    required BuildContext context,
+    required String adminId,
+    required AsyncValue<QuerySnapshot<Map<String, dynamic>>> applicationsAsync,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: applicationsAsync.when(
+        loading: () => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.inkMuted,
+                ),
               ),
-            ),
-            error: (_, __) => Text(
-              l10n.adminNoOnlineVendors,
+              const SizedBox(width: 12),
+              Text(
+                l10n.adminLoadingApplications,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppColors.inkMuted),
+              ),
+            ],
+          ),
+        ),
+        error: (_, __) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Center(
+            child: Text(
+              l10n.adminUnableToLoadApplications,
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
                   ?.copyWith(color: AppColors.inkMuted),
             ),
-            data: (snapshot) {
-              final docs = snapshot.docs;
-              if (docs.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    l10n.adminNoOnlineVendors,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.inkMuted),
-                  ),
+          ),
+        ),
+        data: (snapshot) {
+          final docs = snapshot.docs;
+          if (docs.isEmpty) {
+            return SizedBox(
+              height: 220,
+              child: Center(
+                child: Text(
+                  l10n.adminNoPendingApplications,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(color: AppColors.inkMuted),
+                ),
+              ),
+            );
+          }
+          return Column(
+            children: docs
+                .map((doc) => _buildApplicationCard(
+                      context: context,
+                      doc: doc,
+                      adminId: adminId,
+                    ))
+                .toList(),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildApplicationCard({
+    required BuildContext context,
+    required QueryDocumentSnapshot<Map<String, dynamic>> doc,
+    required String adminId,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final data = doc.data();
+    final isProcessing = _processingApplications.contains(doc.id);
+    final isMobileCard =
+        MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(isMobileCard ? 16 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            data['studioName']?.toString() ?? l10n.adminStudio,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: l10n.adminOwner,
+            value: data['ownerName']?.toString() ?? '--',
+          ),
+          _DetailRow(
+            label: l10n.adminEmail,
+            value: data['email']?.toString() ?? '--',
+          ),
+          _DetailRow(
+            label: l10n.adminPhone,
+            value: data['phone']?.toString() ?? '--',
+          ),
+          _DetailRow(
+            label: l10n.adminLocation,
+            value: data['location']?.toString() ?? '--',
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < kAdminShellDrawerBreakpoint;
+              final approveBtn = PrimaryButton(
+                label: isProcessing ? l10n.adminWorking : l10n.adminApprove,
+                onPressed: isProcessing
+                    ? () {}
+                    : () async {
+                        setState(() => _processingApplications.add(doc.id));
+                        try {
+                          await ref
+                              .read(authRepositoryProvider)
+                              .approveVendorApplication(
+                                doc.id,
+                                data,
+                                adminId,
+                              );
+                          if (mounted) {
+                            _showMessage(l10n.adminApplicationApproved);
+                          }
+                        } catch (_) {
+                          if (mounted) {
+                            _showMessage(l10n.adminUnableToApprove);
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _processingApplications.remove(doc.id));
+                          }
+                        }
+                      },
+              );
+              final rejectBtn = PrimaryButton(
+                label: isProcessing ? l10n.adminWorking : l10n.adminReject,
+                onPressed: isProcessing
+                    ? () {}
+                    : () async {
+                        setState(() => _processingApplications.add(doc.id));
+                        try {
+                          await ref
+                              .read(authRepositoryProvider)
+                              .rejectVendorApplication(doc.id, adminId);
+                          if (mounted) {
+                            _showMessage(l10n.adminApplicationRejected);
+                          }
+                        } catch (_) {
+                          if (mounted) {
+                            _showMessage(l10n.adminUnableToReject);
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _processingApplications.remove(doc.id));
+                          }
+                        }
+                      },
+                variant: PrimaryButtonVariant.outline,
+              );
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    approveBtn,
+                    const SizedBox(height: 12),
+                    rejectBtn,
+                  ],
                 );
               }
-              return ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 280),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  itemCount: docs.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final doc = docs[index];
-                    final data = doc.data();
-                    final shopName = data['shopName']?.toString().trim();
-                    final displayName = data['displayName']?.toString().trim();
-                    final email = data['email']?.toString().trim() ?? '';
-                    final label = (shopName != null && shopName.isNotEmpty)
-                        ? shopName
-                        : (displayName != null && displayName.isNotEmpty)
-                            ? displayName
-                            : email.isNotEmpty
-                                ? email
-                                : 'Vendor';
-                    return _OnlineVendorTile(label: label);
-                  },
-                ),
+              return Row(
+                children: [
+                  Expanded(child: approveBtn),
+                  const SizedBox(width: 12),
+                  Expanded(child: rejectBtn),
+                ],
               );
             },
           ),
@@ -617,49 +514,206 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 }
 
-class _OnlineVendorTile extends StatelessWidget {
-  const _OnlineVendorTile({required this.label});
+class _AdminMetricsRow extends StatefulWidget {
+  const _AdminMetricsRow();
 
-  final String label;
+  @override
+  State<_AdminMetricsRow> createState() => _AdminMetricsRowState();
+}
+
+class _AdminMetricsRowState extends State<_AdminMetricsRow> {
+  late final Stream<int> _membersStream;
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _vendorsStream;
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _onlineVendorsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _membersStream = ProviderScope.containerOf(
+      context,
+    ).read(membersRepositoryProvider).watchCustomerCount();
+    _vendorsStream = ProviderScope.containerOf(
+      context,
+    ).read(authRepositoryProvider).watchVendorApplications();
+    _onlineVendorsStream = ProviderScope.containerOf(
+      context,
+    ).read(authRepositoryProvider).watchOnlineVendors();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF22C55E),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF22C55E).withValues(alpha: 0.6),
-                  blurRadius: 6,
-                  spreadRadius: 1,
-                ),
-                BoxShadow(
-                  color: const Color(0xFF22C55E).withValues(alpha: 0.35),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
+    final l10n = AppLocalizations.of(context)!;
+    final isNarrow =
+        MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+
+    final membersCard = StreamBuilder<int>(
+      stream: _membersStream,
+      builder: (context, snapshot) {
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        final value = snapshot.hasData ? '${snapshot.data}' : '—';
+        return _MetricCard(
+          icon: Icons.people_outline,
+          title: l10n.adminTotalMembers,
+          value: value,
+          isLoading: isLoading,
+          onTap: () => context.push('/admin/members'),
+        );
+      },
+    );
+
+    final vendorsCard = StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _vendorsStream,
+      builder: (context, snapshot) {
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        final value = snapshot.hasData ? '${snapshot.data!.docs.length}' : '—';
+        return _MetricCard(
+          icon: Icons.pending_actions_outlined,
+          title: l10n.adminPendingApplications,
+          value: value,
+          isLoading: isLoading,
+          onTap: () => context.go('/admin'),
+        );
+      },
+    );
+
+    final onlineVendorsCard =
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _onlineVendorsStream,
+      builder: (context, snapshot) {
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        final value = snapshot.hasData ? '${snapshot.data!.docs.length}' : '—';
+        return _MetricCard(
+          icon: Icons.storefront_outlined,
+          title: l10n.adminOnlineVendors,
+          value: value,
+          isLoading: isLoading,
+          onTap: () => context.go('/admin'),
+        );
+      },
+    );
+
+    return isNarrow
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              membersCard,
+              const SizedBox(height: 12),
+              vendorsCard,
+              const SizedBox(height: 12),
+              onlineVendorsCard,
+            ],
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: membersCard),
+              const SizedBox(width: 16),
+              Expanded(child: vendorsCard),
+              const SizedBox(width: 16),
+              Expanded(child: onlineVendorsCard),
+            ],
+          );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isNarrow =
+        MediaQuery.sizeOf(context).width < kAdminShellDrawerBreakpoint;
+    final padding = isNarrow ? 16.0 : 20.0;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.ink,
-                    fontWeight: FontWeight.w500,
-                  ),
-              overflow: TextOverflow.ellipsis,
-            ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.rosePrimary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 24, color: AppColors.rosePrimary),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.inkMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Fixed-height placeholder to prevent card height jump during loading.
+                    SizedBox(
+                      height: 28,
+                      child: isLoading
+                          ? Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.rose,
+                                ),
+                              ),
+                            )
+                          : Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                value,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.rosePrimary,
+                                    ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 12,
+                color: AppColors.inkMuted,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -175,7 +175,11 @@ final vendorProfileBouquetsProvider =
   return ref
       .watch(bouquetRepositoryProvider)
       .watchBouquetsByVendor(vendorId)
-      .map((list) => list.where((b) => b.isApproved).toList());
+      .map(
+        (list) => list
+            .where((b) => b.isApproved && b.inStock)
+            .toList(),
+      );
 });
 
 /// One-time fetch of all bouquets for admin analytics (totals, top by viewCount/orderCount).

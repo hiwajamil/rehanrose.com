@@ -224,3 +224,36 @@ Future<bool> launchWhatsAppOrder({
   }
   return false;
 }
+
+/// Pre-filled WhatsApp message for a bespoke bouquet inquiry (home grid “Design your own”).
+Future<bool> launchCustomBouquetRequestWhatsApp({
+  required String notes,
+  required String budget,
+  String? referenceImageUrl,
+}) async {
+  final dateTimeStr = _orderDateTimeString();
+  final customerPhone =
+      FirebaseAuth.instance.currentUser?.phoneNumber ?? 'Not provided';
+  final imageLine = (referenceImageUrl != null && referenceImageUrl.trim().isNotEmpty)
+      ? referenceImageUrl.trim()
+      : 'None attached';
+  final lines = <String>[
+    'Hello, I would like a custom / bespoke bouquet:',
+    'Date & Time: $dateTimeStr',
+    'Customer Phone: $customerPhone',
+    '',
+    'Desired budget: $budget',
+    '',
+    'Details & preferences:',
+    notes,
+    '',
+    'Reference image: $imageLine',
+    '',
+    _userRefLine(),
+  ];
+  final uri = _whatsAppOrderUri(lines.join('\n'));
+  if (await canLaunchUrl(uri)) {
+    return launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+  return false;
+}

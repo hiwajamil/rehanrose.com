@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/app_scaffold.dart';
+import 'customer_oms_order_detail_screen.dart';
 
 /// Placeholder for customer "My Orders" — full orders list can be built later.
 class CustomerOrdersPage extends ConsumerWidget {
@@ -91,6 +92,15 @@ class CustomerOrdersPage extends ConsumerWidget {
                   leading: const Icon(Icons.local_shipping_outlined),
                   title: Text('$bouquetName (#$orderId)'),
                   subtitle: Text('Status: $status'),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => CustomerOmsOrderDetailScreen(
+                          orderDocId: docs[index].id,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               );
             },

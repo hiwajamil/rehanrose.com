@@ -39,6 +39,35 @@ class NotificationService {
     );
   }
 
+  /// Vendor / foreground FCM: new custom tender broadcast (plays default sound).
+  Future<void> showCustomTenderBroadcastNotification(String title, String body) async {
+    if (kIsWeb) return;
+    HapticFeedback.mediumImpact();
+    if (!_initialized) {
+      await initialize();
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      'custom_tender_broadcasts',
+      'Custom tender alerts',
+      channelDescription: 'New open custom bouquet requests for vendors',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      icon: '@mipmap/ic_launcher',
+    );
+    const iosDetails = DarwinNotificationDetails(
+      presentSound: true,
+    );
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    final notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000 + 100000;
+    await _plugin.show(notificationId, title, body, details);
+  }
+
   Future<void> showOrderStatusNotification(String title, String body) async {
     if (kIsWeb) return;
     HapticFeedback.mediumImpact();

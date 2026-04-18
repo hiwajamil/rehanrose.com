@@ -55,6 +55,10 @@ class FlowerModel {
   /// Number of times "Order via WhatsApp" was clicked for this product.
   final int orderCount;
 
+  /// When false, the bouquet is hidden from the customer storefront (out of stock).
+  /// Missing field in Firestore is treated as in stock (see [fromJson]).
+  final bool inStock;
+
   const FlowerModel({
     required this.id,
     required this.name,
@@ -77,6 +81,7 @@ class FlowerModel {
     this.discountPrice,
     this.viewCount = 0,
     this.orderCount = 0,
+    this.inStock = true,
   });
 
   /// True if this product should be shown in Offers: [isOnSale] is true or [discountPrice] is set and > 0.
@@ -141,6 +146,7 @@ class FlowerModel {
         : null;
     final viewCount = (json['viewCount'] as num?)?.toInt() ?? 0;
     final orderCount = (json['orderCount'] as num?)?.toInt() ?? 0;
+    final inStock = json['inStock'] != false;
     final vendorId = json['vendorId']?.toString();
     final approvalStatus = json['approvalStatus']?.toString();
     final rejectionReasonVal = json['rejectionReason']?.toString();
@@ -170,6 +176,7 @@ class FlowerModel {
       discountPrice: discountPrice,
       viewCount: viewCount,
       orderCount: orderCount,
+      inStock: inStock,
     );
   }
 
@@ -193,6 +200,7 @@ class FlowerModel {
       if (discountPrice != null) 'discountPrice': discountPrice!,
       'viewCount': viewCount,
       'orderCount': orderCount,
+      'inStock': inStock,
     };
   }
 }

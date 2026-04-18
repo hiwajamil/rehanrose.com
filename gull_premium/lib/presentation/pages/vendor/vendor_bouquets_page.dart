@@ -211,6 +211,8 @@ class _VendorBouquetsPageState extends ConsumerState<VendorBouquetsPage> {
                         : 'No bouquets yet. Add one from the sidebar.',
                   );
                 }
+                final productCollection =
+                    isPerfume ? 'perfumes' : 'bouquets';
                 return Column(
                   children: toShow
                       .map((b) => _BouquetCard(
@@ -218,6 +220,7 @@ class _VendorBouquetsPageState extends ConsumerState<VendorBouquetsPage> {
                             bouquet: b,
                             user: user!,
                             ref: ref,
+                            productCollection: productCollection,
                             isSelected: _selectedIds.contains(b.id),
                             onToggleSelect: () => _toggleSelection(b.id),
                             onEdit: () => _showEditSheet(context, ref, user, b),
@@ -408,6 +411,8 @@ class _BouquetCard extends StatelessWidget {
   final FlowerModel bouquet;
   final fa.User user;
   final WidgetRef ref;
+  /// Firestore collection for this vendor's products (`bouquets` or `perfumes`).
+  final String productCollection;
   final bool isSelected;
   final VoidCallback onToggleSelect;
   final VoidCallback onEdit;
@@ -417,6 +422,7 @@ class _BouquetCard extends StatelessWidget {
     required this.bouquet,
     required this.user,
     required this.ref,
+    required this.productCollection,
     required this.isSelected,
     required this.onToggleSelect,
     required this.onEdit,
@@ -543,9 +549,18 @@ class _BouquetCard extends StatelessWidget {
                               color: AppColors.inkMuted,
                             ),
                       ),
-                    _StatusBadge(status: bouquet.status),
+                    if (bouquet.status != 'approved')
+                      _StatusBadge(status: bouquet.status),
                   ],
                 ),
+                if (bouquet.status == 'approved') ...[
+                  const SizedBox(height: 10),
+                  _VendorStockSwitch(
+                    bouquet: bouquet,
+                    ref: ref,
+                    collectionName: productCollection,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 PrimaryButton(
                   label: isRejected ? 'Edit & Resubmit' : 'Edit',
@@ -607,7 +622,14 @@ class _BouquetCard extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(width: 8),
-                _StatusBadge(status: bouquet.status),
+                if (bouquet.status != 'approved')
+                  _StatusBadge(status: bouquet.status)
+                else
+                  _VendorStockSwitch(
+                    bouquet: bouquet,
+                    ref: ref,
+                    collectionName: productCollection,
+                  ),
                 const SizedBox(width: 12),
                 PrimaryButton(
                   label: isRejected ? 'Edit & Resubmit' : 'Edit',
@@ -618,6 +640,62 @@ class _BouquetCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// In-stock toggle for approved bouquets (replaces the static "Live" badge).
+class _VendorStockSwitch extends StatelessWidget {
+  const _VendorStockSwitch({
+    required this.bouquet,
+    required this.ref,
+    required this.collectionName,
+  });
+
+  final FlowerModel bouquet;
+  final WidgetRef ref;
+  final String collectionName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Switch(
+          value: bouquet.inStock,
+          activeTrackColor: AppColors.sage,
+          inactiveTrackColor: Colors.grey.shade300,
+          onChanged: (next) async {
+            try {
+              await ref
+                  .read(vendorControllerProvider.notifier)
+                  .setBouquetInStock(
+                    bouquet.id,
+                    next,
+                    collectionName: collectionName,
+                  );
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Could not update stock. ${e.toString()}',
+                    ),
+                  ),
+                );
+              }
+            }
+          },
+        ),
+        const SizedBox(width: 4),
+        Text(
+          bouquet.inStock ? 'In Stock' : 'Out of Stock',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: bouquet.inStock ? AppColors.sage : AppColors.inkMuted,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
     );
   }
 }
@@ -686,7 +764,7 @@ class _RejectionBanner extends StatelessWidget {
   }
 }
 
-/// Badge for product approval status: Yellow = Pending Review, Green = Live, Red = Rejected.
+/// Badge for non-approved products: Yellow = Pending Review, Red = Rejected. (Approved items use [_VendorStockSwitch].)
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,6 +18,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/constants/breakpoints.dart';
 import 'core/routing/app_router.dart';
 import 'core/routing/auth_redirect_notifier.dart';
+import 'core/services/fcm_background_handler.dart';
 import 'core/services/firebase_init.dart' as fb;
 import 'core/services/notification_service.dart';
 import 'core/services/push_notification_service.dart';
@@ -132,6 +134,10 @@ Future<void> main() async {
         } else {
           fb.setFirebaseInitialized(false);
         }
+      }
+
+      if (!kIsWeb && fb.isFirebaseInitialized) {
+        FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       }
 
       // Resolve initial locale: SharedPreferences then Firestore (if logged in).
@@ -284,6 +290,12 @@ class _MainAppWithSplashState extends ConsumerState<MainAppWithSplash> {
         await NotificationService.instance.showOrderStatusNotification(
           'Order Ready! ✨',
           'Your beautiful order is fully prepared and ready.',
+        );
+        return;
+      case 'out_for_delivery':
+        await NotificationService.instance.showOrderStatusNotification(
+          'On the way 🚚',
+          'A driver is heading to you. Open your order to track live on the map.',
         );
         return;
       default:

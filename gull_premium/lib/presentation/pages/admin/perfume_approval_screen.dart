@@ -65,6 +65,7 @@ class _PerfumeApprovalScreenState extends ConsumerState<PerfumeApprovalScreen>
       await FirebaseFirestore.instance.collection('perfumes').doc(bouquetId).update({
         'approvalStatus': 'approved',
         'approvedAt': FieldValue.serverTimestamp(),
+        'inStock': true,
         'rejectedAt': FieldValue.delete(),
         'deletedAt': FieldValue.delete(),
         'rejectionReason': FieldValue.delete(),

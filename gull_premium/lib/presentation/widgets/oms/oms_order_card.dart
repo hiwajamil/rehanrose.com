@@ -159,6 +159,8 @@ class OmsOrderCard extends StatelessWidget {
   final bool usePerfumeLabels;
   final VoidCallback? onAccept;
   final VoidCallback? onReady;
+  /// Admin: open driver assignment for a ready order.
+  final VoidCallback? onAssignDriver;
   final Future<void> Function()? onDelete;
 
   const OmsOrderCard({
@@ -170,6 +172,7 @@ class OmsOrderCard extends StatelessWidget {
     this.usePerfumeLabels = false,
     this.onAccept,
     this.onReady,
+    this.onAssignDriver,
     this.onDelete,
   });
 
@@ -559,6 +562,25 @@ class OmsOrderCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (onAssignDriver != null) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: onAssignDriver,
+                        icon: const Icon(Icons.local_shipping_outlined, size: 20),
+                        label: const Text('Assign to Driver'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.rosePrimary,
+                          side: BorderSide(color: AppColors.rosePrimary.withValues(alpha: 0.55)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   if (onAccept != null || onReady != null) ...[
                     const SizedBox(height: 12),
                     if (onAccept != null)

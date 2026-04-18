@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'auth_controller.dart';
+import 'in_app_notification_controller.dart';
 import '../data/models/order_model.dart';
 import '../data/repositories/order_repository.dart';
 import '../data/repositories/repositories.dart';
@@ -168,12 +169,14 @@ final vendorLastSeenPendingCountProvider =
   VendorLastSeenPendingCountNotifier.new,
 );
 
-/// Unread badge count: max(0, pendingCount - lastSeen). Pass this to the header for the bell badge.
+/// Bell badge: unread rows in top-level [notifications] where `isRead == false`.
 final vendorUnreadNotificationBadgeCountProvider = Provider<int>((ref) {
-  final pending = ref.watch(vendorPendingOmsCountProvider);
-  final lastSeen = ref.watch(vendorLastSeenPendingCountProvider);
-  final diff = pending - lastSeen;
-  return diff > 0 ? diff : 0;
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return 0;
+  return ref.watch(inAppUnreadNotificationsCountProvider(user.uid)).maybeWhen(
+        data: (n) => n,
+        orElse: () => 0,
+      );
 });
 
 class VendorLastSeenPendingCountNotifier extends Notifier<int> {

@@ -21,6 +21,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../controllers/controllers.dart';
 import '../../../data/models/flower_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/cards/custom_order_card.dart';
 import '../../widgets/cards/flower_card.dart';
 import '../../widgets/common/product_grid_shimmer.dart';
 import '../../widgets/common/mystery_discount_dialog.dart';
@@ -685,6 +686,7 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                           orderButtonEnabled:
                               ref.watch(connectivityStatusProvider).value ??
                               true,
+                          leadWithCustomOrderCard: false,
                         ),
                       ],
                     );
@@ -704,6 +706,7 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                   isMobile: isMobile,
                   orderButtonEnabled:
                       ref.watch(connectivityStatusProvider).value ?? true,
+                  leadWithCustomOrderCard: false,
                 );
               },
             ),
@@ -772,24 +775,38 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
               }
 
               final docs = snapshot.data?.docs ?? const [];
+              // Client-side stock: [FlowerModel.inStock] is true when Firestore omits `inStock` or it is not `false`.
+              // Do not use .where('inStock', isEqualTo: true) on the query — that excludes legacy docs without the field.
               final bouquets = docs
                   .map((doc) => FlowerModel.fromJson(doc.id, doc.data()))
+                  .where((b) => b.inStock)
                   .toList();
               final hasMoreBouquets = docs.length >= _bouquetLimit;
               final isOnline =
                   ref.watch(connectivityStatusProvider).value ?? true;
 
               if (bouquets.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Text(
-                    selectedOccasion == 'All'
-                        ? l10n.noBouquetsYet
-                        : l10n.noBouquetsForFeeling,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
-                  ),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _BouquetGrid(
+                      list: const [],
+                      isMobile: isMobile,
+                      orderButtonEnabled: isOnline,
+                      leadWithCustomOrderCard: true,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 24),
+                      child: Text(
+                        selectedOccasion == 'All'
+                            ? l10n.noBouquetsYet
+                            : l10n.noBouquetsForFeeling,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.inkMuted,
+                            ),
+                      ),
+                    ),
+                  ],
                 );
               }
 
@@ -800,6 +817,7 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                     list: bouquets,
                     isMobile: isMobile,
                     orderButtonEnabled: isOnline,
+                    leadWithCustomOrderCard: true,
                   ),
                   if (hasMoreBouquets)
                     Padding(
@@ -949,7 +967,16 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
               }
 
               final docs = snapshot.data?.docs ?? const [];
-              if (docs.isEmpty) {
+              final perfumeItems = docs
+                  .where((e) => e.data()['inStock'] != false)
+                  .map((e) {
+                    final m = Map<String, dynamic>.from(e.data());
+                    m['id'] = e.id;
+                    return m;
+                  })
+                  .toList();
+
+              if (perfumeItems.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.all(24),
                   child: Center(
@@ -963,12 +990,6 @@ class _ProductsSectionState extends ConsumerState<_ProductsSection> {
                   ),
                 );
               }
-
-              final perfumeItems = docs.map((e) {
-                final m = Map<String, dynamic>.from(e.data());
-                m['id'] = e.id;
-                return m;
-              }).toList();
 
               return _PerfumeGrid(
                 items: perfumeItems,
@@ -1036,11 +1057,13 @@ class _BouquetGrid extends StatelessWidget {
   final List<FlowerModel> list;
   final bool isMobile;
   final bool orderButtonEnabled;
+  final bool leadWithCustomOrderCard;
 
   const _BouquetGrid({
     required this.list,
     required this.isMobile,
     this.orderButtonEnabled = true,
+    this.leadWithCustomOrderCard = false,
   });
 
   @override
@@ -1057,25 +1080,31 @@ class _BouquetGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final childWidth = (constraints.maxWidth - gapTotal) / crossAxisCount;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: list.map((b) {
+        final tiles = <Widget>[
+          if (leadWithCustomOrderCard)
+            SizedBox(
+              width: childWidth,
+              child: CustomOrderCard(
+                isCompact: isMobile,
+                orderButtonEnabled: orderButtonEnabled,
+              ),
+            ),
+          ...list.map((b) {
             final imageUrl = b.listingImageUrl.isNotEmpty
                 ? b.listingImageUrl
                 : 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80';
             final displayPrice =
                 b.isOnSaleEffective &&
-                    b.discountPrice != null &&
-                    b.discountPrice! > 0
-                ? formatPriceWithCurrency(b.discountPrice!, l10n.currencyIqd)
-                : formatPriceWithCurrency(b.priceIqd, l10n.currencyIqd);
+                        b.discountPrice != null &&
+                        b.discountPrice! > 0
+                    ? formatPriceWithCurrency(b.discountPrice!, l10n.currencyIqd)
+                    : formatPriceWithCurrency(b.priceIqd, l10n.currencyIqd);
             final originalPrice =
                 b.isOnSaleEffective &&
-                    b.discountPrice != null &&
-                    b.discountPrice! > 0
-                ? formatPriceWithCurrency(b.priceIqd, l10n.currencyIqd)
-                : null;
+                        b.discountPrice != null &&
+                        b.discountPrice! > 0
+                    ? formatPriceWithCurrency(b.priceIqd, l10n.currencyIqd)
+                    : null;
             return SizedBox(
               width: childWidth,
               child: FlowerCard(
@@ -1090,7 +1119,12 @@ class _BouquetGrid extends StatelessWidget {
                 orderButtonEnabled: orderButtonEnabled,
               ),
             );
-          }).toList(),
+          }),
+        ];
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: tiles,
         );
       },
     );
