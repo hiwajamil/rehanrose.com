@@ -329,6 +329,17 @@ class OmsOrderRepository {
     }).timeout(_timeout);
   }
 
+  /// Driver marks assigned out-for-delivery order as delivered and clears live location.
+  Future<void> markOmsOrderDeliveredByDriver({
+    required String orderId,
+  }) async {
+    await _firestore.collection(_omsCollection).doc(orderId).update({
+      'status': OmsOrderStatus.delivered.value,
+      'deliveryDate': FieldValue.serverTimestamp(),
+      'driverLocation': FieldValue.delete(),
+    }).timeout(_timeout);
+  }
+
   /// Fetches delivered order count and total revenue for a vendor. Used by admin.
   Future<({int count, num totalRevenue})> getVendorDeliveredStats(
     String vendorId,

@@ -35,6 +35,21 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function driverDeliveredUpdateAllowed() {
+      return isAuthenticated()
+          && resource.data.driverId == request.auth.uid
+          && resource.data.status == 'out_for_delivery'
+          && request.resource.data.status == 'delivered'
+          && (
+            !('driverLocation' in request.resource.data)
+            || request.resource.data.driverLocation == null
+          )
+          && (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'driverLocation'])
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'driverLocation', 'deliveryDate'])
+          );
+    }
+
     // ─── users ─────────────────────────────────────────────────────────────
     match /users/{userId} {
       allow read, write: if isAdmin() || isOwner(userId);
@@ -151,7 +166,7 @@ service cloud.firestore {
                 && resource.data.orderSource == 'custom_tender'
               )
             );
-      allow update: if isAdmin();
+      allow update: if isAdmin() || driverDeliveredUpdateAllowed();
       allow delete: if isAdmin();
     }
 
@@ -201,8 +216,12 @@ service cloud.firestore {
               resource.data.status == 'out_for_delivery'
               && request.resource.data.status == 'delivered'
               && (
-                request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-                || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'deliveryDate'])
+                !('driverLocation' in request.resource.data)
+                || request.resource.data.driverLocation == null
+              )
+              && (
+                request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'driverLocation'])
+                || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'driverLocation', 'deliveryDate'])
               )
             )
           );

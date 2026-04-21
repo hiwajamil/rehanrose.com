@@ -396,11 +396,12 @@ class OmsOrderCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: EdgeInsets.all(padding),
+          padding: EdgeInsets.fromLTRB(padding, padding, padding, padding + 8),
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(

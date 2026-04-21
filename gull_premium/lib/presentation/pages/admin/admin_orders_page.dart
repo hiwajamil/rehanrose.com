@@ -1840,19 +1840,6 @@ class _AdminOrderListByStatus extends ConsumerStatefulWidget {
 }
 
 class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus> {
-  int _crossAxisCountForWidth(double width) {
-    if (width > 1100) return 3;
-    if (width > 700) return 2;
-    return 1;
-  }
-
-  double _mainAxisExtentForWidth(double width) {
-    // Keep cards visually consistent in a grid and avoid overflow on narrower widths.
-    if (width > 1100) return 268;
-    if (width > 700) return 288;
-    return 308;
-  }
-
   String _readDriverDisplayName(Map<String, dynamic> data) {
     final raw = data['fullName'] ??
         data['name'] ??
@@ -2100,36 +2087,23 @@ class _AdminOrderListByStatusState extends ConsumerState<_AdminOrderListByStatus
             ),
           );
         }
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final crossAxisCount = _crossAxisCountForWidth(width);
-            final mainAxisExtent = _mainAxisExtentForWidth(width);
-
-            return GridView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              itemCount: orders.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                mainAxisExtent: mainAxisExtent,
-              ),
-              itemBuilder: (context, index) {
-                final order = orders[index];
-                return OmsOrderCard(
-                  order: order,
-                  showVendorLine: true,
-                  showOrderIdInSubtitle: true,
-                  usePerfumeLabels: widget.usePerfumeLabels,
-                  onAssignDriver: widget.status == OmsOrderStatus.ready
-                      ? () => _showAssignDriverDialog(order)
-                      : null,
-                  onDelete: widget.status == OmsOrderStatus.deleted
-                      ? null
-                      : () => _confirmAndSoftDeleteOrder(order),
-                );
-              },
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          itemCount: orders.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 4),
+          itemBuilder: (context, index) {
+            final order = orders[index];
+            return OmsOrderCard(
+              order: order,
+              showVendorLine: true,
+              showOrderIdInSubtitle: true,
+              usePerfumeLabels: widget.usePerfumeLabels,
+              onAssignDriver: widget.status == OmsOrderStatus.ready
+                  ? () => _showAssignDriverDialog(order)
+                  : null,
+              onDelete: widget.status == OmsOrderStatus.deleted
+                  ? null
+                  : () => _confirmAndSoftDeleteOrder(order),
             );
           },
         );

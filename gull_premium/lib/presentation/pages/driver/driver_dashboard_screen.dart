@@ -9,7 +9,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/price_format_utils.dart';
-import '../../../data/models/order_model.dart';
 import '../../../data/repositories/order_repository.dart';
 
 /// Driver dashboard with live location updates while online.
@@ -221,10 +220,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   Future<void> _markOmsOrderDelivered(String orderId) async {
     _stopDeliveryLocationBroadcast();
-    await _omsOrderRepository.updateOmsOrderStatus(
+    await _omsOrderRepository.markOmsOrderDeliveredByDriver(
       orderId: orderId,
-      status: OmsOrderStatus.delivered,
-      applyCompletionFinancials: true,
     );
   }
 
@@ -744,7 +741,27 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                                         AppColors.forestGreen,
                                                   ),
                                                 );
-                                              } catch (_) {
+                                              } on FirebaseException catch (e) {
+                                                debugPrint(
+                                                  'Mark delivered failed: code=${e.code}, message=${e.message}',
+                                                );
+                                                if (!context.mounted) return;
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      e.message?.isNotEmpty == true
+                                                          ? 'Could not complete delivery (${e.code}): ${e.message}'
+                                                          : 'Could not complete delivery (${e.code}).',
+                                                    ),
+                                                    backgroundColor:
+                                                        AppColors.rosePrimary,
+                                                  ),
+                                                );
+                                              } catch (e) {
+                                                debugPrint(
+                                                  'Mark delivered failed: $e',
+                                                );
                                                 if (!context.mounted) return;
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
