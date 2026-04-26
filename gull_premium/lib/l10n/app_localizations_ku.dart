@@ -439,6 +439,33 @@ class AppLocalizationsKu extends AppLocalizations {
   String get addFreeVoiceMessage => 'نامەیەکی دەنگی بەخۆڕایی زیاد بکە';
 
   @override
+  String get addGreetingMessageTile => 'نامەی سڵاوکردن زیاد بکە ✨';
+
+  @override
+  String get greetingMessageHint => 'پەیامەکەت لێرە بنووسە...';
+
+  @override
+  String get aiMagicGreeting => 'AI Magic 🪄';
+
+  @override
+  String get aiGreetingSheetTitle => 'سڵاوکردن دروست بکە';
+
+  @override
+  String get whoIsThisFor => 'بۆ کێیە؟';
+
+  @override
+  String get occasionLabel => 'مۆناسەبت؟';
+
+  @override
+  String get generateGreeting => 'دروست بکە';
+
+  @override
+  String get greetingMessageAdded => 'نامەی سڵاو زیاد کرا';
+
+  @override
+  String get aiGreetingGenerating => 'جادوو دروست دەکرێت...';
+
+  @override
   String get couldNotLoadProduct => 'بارکردنی بەرهەم سەرکەوتوو نەبوو.';
 
   @override

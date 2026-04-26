@@ -55,6 +55,7 @@ class DeliveryLatLng {
 /// [totalPriceIqd] is flower + add-ons when provided.
 /// [productUrl] optional link to product page (e.g. https://rehanrose.com/flower/123).
 /// [voiceMessageUrl] optional URL of the recorded voice message (for vendor to print QR).
+/// [greetingCardMessage] optional printed greeting for the card.
 /// [freeDeliveryUnlocked] when true, adds "Delivery: FREE" to the message.
 /// [deliveryLocation] when set, appends "Delivery Location: &lt;Google Maps URL&gt;" to the message.
 Future<bool> launchOrderWhatsApp({
@@ -67,6 +68,7 @@ Future<bool> launchOrderWhatsApp({
   int? totalPriceIqd,
   String? productUrl,
   String? voiceMessageUrl,
+  String? greetingCardMessage,
   bool freeDeliveryUnlocked = false,
   DeliveryLatLng? deliveryLocation,
   String? promoCode,
@@ -98,6 +100,8 @@ Future<bool> launchOrderWhatsApp({
     if (freeDeliveryUnlocked) 'Delivery: FREE',
     if (voiceMessageUrl != null && voiceMessageUrl.isNotEmpty)
       'Voice Message (QR): $voiceMessageUrl',
+    if (greetingCardMessage != null && greetingCardMessage.trim().isNotEmpty)
+      'Greeting card message:\n${greetingCardMessage.trim()}',
     if (productUrl != null && productUrl.isNotEmpty) 'Link: $productUrl',
     if (deliveryLocation != null)
       'Delivery Location: ${deliveryLocation.googleMapsUrl}',

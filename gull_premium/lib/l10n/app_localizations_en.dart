@@ -438,6 +438,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addFreeVoiceMessage => 'Add a Free Voice Message';
 
   @override
+  String get addGreetingMessageTile => 'Add a Greeting Message ✨';
+
+  @override
+  String get greetingMessageHint => 'Write your message here...';
+
+  @override
+  String get aiMagicGreeting => 'AI Magic 🪄';
+
+  @override
+  String get aiGreetingSheetTitle => 'Create your greeting';
+
+  @override
+  String get whoIsThisFor => 'Who is this for?';
+
+  @override
+  String get occasionLabel => 'Occasion?';
+
+  @override
+  String get generateGreeting => 'Generate';
+
+  @override
+  String get greetingMessageAdded => 'Greeting message added';
+
+  @override
+  String get aiGreetingGenerating => 'Creating magic...';
+
+  @override
   String get couldNotLoadProduct => 'Could not load product.';
 
   @override

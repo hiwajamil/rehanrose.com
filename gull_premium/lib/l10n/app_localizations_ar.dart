@@ -430,6 +430,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addFreeVoiceMessage => 'أضف رسالة صوتية مجانية';
 
   @override
+  String get addGreetingMessageTile => 'أضف رسالة تهنئة ✨';
+
+  @override
+  String get greetingMessageHint => 'اكتب رسالتك هنا...';
+
+  @override
+  String get aiMagicGreeting => 'AI Magic 🪄';
+
+  @override
+  String get aiGreetingSheetTitle => 'أنشئ تحيتك';
+
+  @override
+  String get whoIsThisFor => 'لمن هذه الهدية؟';
+
+  @override
+  String get occasionLabel => 'المناسبة؟';
+
+  @override
+  String get generateGreeting => 'إنشاء';
+
+  @override
+  String get greetingMessageAdded => 'تمت إضافة رسالة التهنئة';
+
+  @override
+  String get aiGreetingGenerating => 'جارٍ الإبداع...';
+
+  @override
   String get couldNotLoadProduct => 'تعذر تحميل المنتج.';
 
   @override

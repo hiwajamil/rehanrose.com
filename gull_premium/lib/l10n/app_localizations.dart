@@ -922,6 +922,60 @@ abstract class AppLocalizations {
   /// **'Add a Free Voice Message'**
   String get addFreeVoiceMessage;
 
+  /// No description provided for @addGreetingMessageTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a Greeting Message ✨'**
+  String get addGreetingMessageTile;
+
+  /// No description provided for @greetingMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write your message here...'**
+  String get greetingMessageHint;
+
+  /// No description provided for @aiMagicGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Magic 🪄'**
+  String get aiMagicGreeting;
+
+  /// No description provided for @aiGreetingSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your greeting'**
+  String get aiGreetingSheetTitle;
+
+  /// No description provided for @whoIsThisFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Who is this for?'**
+  String get whoIsThisFor;
+
+  /// No description provided for @occasionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Occasion?'**
+  String get occasionLabel;
+
+  /// No description provided for @generateGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get generateGreeting;
+
+  /// No description provided for @greetingMessageAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Greeting message added'**
+  String get greetingMessageAdded;
+
+  /// No description provided for @aiGreetingGenerating.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating magic...'**
+  String get aiGreetingGenerating;
+
   /// No description provided for @couldNotLoadProduct.
   ///
   /// In en, this message translates to:

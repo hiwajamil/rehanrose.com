@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../controllers/controllers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/custom_request_model.dart';
+import '../../../core/utils/app_cache_manager.dart';
 import '../../../core/utils/price_format_utils.dart';
 import '../../../data/models/user_occasion_model.dart';
 import '../../../l10n/app_localizations.dart';
@@ -236,6 +238,85 @@ class OrdersListView extends ConsumerStatefulWidget {
     final t = raw?.trim();
     if (t == null || t.isEmpty) return fallback;
     return t[0].toUpperCase() + t.substring(1).replaceAll('_', ' ');
+  }
+
+  /// 1–4 = current progress stage; 0 = cancelled / indeterminate (all grey).
+  static int _orderProgressActiveStep(String? statusRaw) {
+    final s = (statusRaw ?? 'pending')
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s-]'), '_');
+    if (s.contains('cancel')) return 0;
+    if (s == 'delivered' || s == 'completed') return 4;
+    if (s == 'out_for_delivery' || s == 'on_the_way') return 3;
+    if (s == 'preparing' ||
+        s == 'ready' ||
+        s == 'accepted' ||
+        s == 'received' ||
+        s == 'new') {
+      return 2;
+    }
+    if (s == 'pending') return 1;
+    if (s == 'deleted') return 0;
+    return 1;
+  }
+
+  static String _normalizedOrderStatus(String? statusRaw) {
+    return (statusRaw ?? 'pending')
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s-]'), '_');
+  }
+
+  /// Shown above the stepper; uses Firestore `eta` / similar when present.
+  static String _orderEtaLine(Map<String, dynamic> data, String? statusRaw) {
+    for (final key in ['eta', 'estimatedArrival', 'estimatedDelivery', 'etaText']) {
+      final v = data[key]?.toString().trim();
+      if (v != null && v.isNotEmpty) return v;
+    }
+    final s = (statusRaw ?? 'pending')
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s-]'), '_');
+    if (s.contains('cancel')) return 'Order cancelled';
+    if (s == 'delivered' || s == 'completed') {
+      return 'Thank you for your order';
+    }
+    if (s == 'out_for_delivery' || s == 'on_the_way') {
+      return 'Arriving soon...';
+    }
+    if (s == 'preparing' ||
+        s == 'ready' ||
+        s == 'accepted' ||
+        s == 'received' ||
+        s == 'new') {
+      return 'Being prepared for you';
+    }
+    if (s == 'pending') return 'Awaiting confirmation';
+    return 'We\'re on it';
+  }
+
+  /// Thumbnail for order cards: [imagePath], [imageUrl], [bouquetImageUrl], or [imageUrls][0].
+  static String? orderThumbImageUrl(Map<String, dynamic> data) {
+    String? pick(String? v) {
+      if (v == null) return null;
+      final t = v.trim();
+      return t.isEmpty ? null : t;
+    }
+    final a = pick(data['imagePath']?.toString());
+    if (a != null) return a;
+    final b = pick(data['imageUrl']?.toString());
+    if (b != null) return b;
+    final c = pick(data['bouquetImageUrl']?.toString());
+    if (c != null) return c;
+    final raw = data['imageUrls'];
+    if (raw is List<dynamic>) {
+      for (final e in raw) {
+        final u = pick(e?.toString());
+        if (u != null) return u;
+      }
+    }
+    return null;
   }
 
   @override
@@ -541,10 +622,15 @@ class _OrdersListViewState extends ConsumerState<OrdersListView>
             final shortId = OrdersListView._shortDocId(doc.id);
             final total = OrdersListView._parseTotalPriceIqd(data);
             final statusRaw = data['status']?.toString();
+            final normalizedStatus = OrdersListView._normalizedOrderStatus(statusRaw);
+            final isDeleted = normalizedStatus == 'deleted';
             final chip = OrdersListView._statusChipStyle(statusRaw);
             final priceStr = total > 0
                 ? '${l10n.currencyIqd} ${formatPriceIqd(total)}'
                 : '—';
+            final thumbUrl = OrdersListView.orderThumbImageUrl(data);
+            final progressStep = OrdersListView._orderProgressActiveStep(statusRaw);
+            final etaLine = OrdersListView._orderEtaLine(data, statusRaw);
 
             return Card(
               elevation: 0,
@@ -572,48 +658,82 @@ class _OrdersListViewState extends ConsumerState<OrdersListView>
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _OrderListThumbnail(imageUrl: thumbUrl),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                'Order #$shortId',
-                                style: GoogleFonts.montserrat(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.inkCharcoal,
-                                  letterSpacing: 0.2,
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Flexible(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Order #$shortId',
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.inkCharcoal,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          dateStr,
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: 13,
+                                            color: AppColors.inkMuted,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: chip.bg,
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: chip.fg.withValues(alpha: 0.12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      chip.label,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: chip.fg,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                dateStr,
-                                style: GoogleFonts.montserrat(
-                                  fontSize: 13,
-                                  color: AppColors.inkMuted,
-                                  fontWeight: FontWeight.w500,
+                              if (!isDeleted) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  etaLine,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 10,
+                                    fontStyle: FontStyle.italic,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.inkMuted,
+                                    height: 1.25,
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 6),
+                                _OrderProgressTracker(activeStep: progressStep),
+                              ],
                             ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: chip.bg,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: chip.fg.withValues(alpha: 0.12),
-                            ),
-                          ),
-                          child: Text(
-                            chip.label,
-                            style: GoogleFonts.montserrat(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: chip.fg,
-                              letterSpacing: 0.3,
-                            ),
                           ),
                         ),
                       ],
@@ -656,6 +776,214 @@ class _OrdersListViewState extends ConsumerState<OrdersListView>
 
   @override
   bool get wantKeepAlive => true;
+}
+
+const double _kOrderListThumbSize = 50;
+
+const Color _kOrderStepInactive = Color(0xFF827C75);
+const Color _kOrderStepLineInactive = Color(0xFFB1ABA4);
+
+class _OrderProgressTracker extends StatelessWidget {
+  const _OrderProgressTracker({required this.activeStep});
+
+  /// 0 = all inactive; 1–4 = Placed through Delivered.
+  final int activeStep;
+
+  static const _labels = ['Placed', 'Preparing', 'On the Way', 'Delivered'];
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final labelFontSize = constraints.maxWidth < 320 ? 11.0 : 12.0;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List<Widget>.generate(4, (i) {
+            final isCompleted = activeStep > 0 && activeStep >= i + 1;
+            final isLive = activeStep == i + 1 && activeStep > 0 && activeStep < 4;
+            final lineLeftActive = i > 0 && activeStep > i;
+            final lineRightActive = i < 3 && activeStep > i + 1;
+            return Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: i == 0
+                            ? const SizedBox.shrink()
+                            : Container(
+                                height: 2,
+                                margin: const EdgeInsets.only(right: 2),
+                                color: lineLeftActive
+                                    ? AppColors.forestGreen
+                                    : _kOrderStepLineInactive,
+                              ),
+                      ),
+                      _StepDot(isCompleted: isCompleted, isLive: isLive),
+                      Expanded(
+                        child: i == 3
+                            ? const SizedBox.shrink()
+                            : Container(
+                                height: 2,
+                                margin: const EdgeInsets.only(left: 2),
+                                color: lineRightActive
+                                    ? AppColors.forestGreen
+                                    : _kOrderStepLineInactive,
+                              ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    _labels[i],
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.montserrat(
+                      fontSize: labelFontSize,
+                      fontWeight: FontWeight.w500,
+                      color: isCompleted ? AppColors.forestGreen : _kOrderStepInactive,
+                      height: 1.15,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+class _StepDot extends StatefulWidget {
+  const _StepDot({required this.isCompleted, required this.isLive});
+
+  final bool isCompleted;
+  final bool isLive;
+
+  @override
+  State<_StepDot> createState() => _StepDotState();
+}
+
+class _StepDotState extends State<_StepDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _pulse = Tween<double>(begin: 0.9, end: 1.18).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    if (widget.isLive) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _StepDot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isLive == oldWidget.isLive) return;
+    if (widget.isLive) {
+      _pulseController.repeat(reverse: true);
+    } else {
+      _pulseController
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.isLive ? 10.5 : 8.0;
+    final dot = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: widget.isCompleted ? AppColors.forestGreen : _kOrderStepInactive,
+      ),
+    );
+
+    if (!widget.isLive) return dot;
+    return AnimatedBuilder(
+      animation: _pulse,
+      child: dot,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _pulse.value,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.forestGreen.withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  spreadRadius: (_pulse.value - 0.9) * 3,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _OrderListThumbnail extends StatelessWidget {
+  const _OrderListThumbnail({required this.imageUrl});
+
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final box = Container(
+      width: _kOrderListThumbSize,
+      height: _kOrderListThumbSize,
+      color: const Color(0xFFE8EAED),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.image_outlined,
+        size: 20,
+        color: AppColors.inkMuted,
+      ),
+    );
+    final url = imageUrl?.trim();
+    if (url == null || url.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: box,
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: CachedNetworkImage(
+        imageUrl: url,
+        width: _kOrderListThumbSize,
+        height: _kOrderListThumbSize,
+        fit: BoxFit.cover,
+        memCacheWidth: 100,
+        memCacheHeight: 100,
+        cacheManager: appCacheManager,
+        placeholder: (_, __) => box,
+        errorWidget: (_, __, ___) => box,
+      ),
+    );
+  }
 }
 
 class OccasionsListView extends ConsumerWidget {

@@ -63,6 +63,7 @@ flutter:
   generate: true
   assets:
     - assets/main_page_01.mp4
+    - assets/images/delivery_car.png
     - assets/images/payments/
     - assets/fonts/
     - assets/sounds/notification_sound.mp3

@@ -30,7 +30,46 @@ class _CustomerOmsOrderDetailScreenState
   GoogleMapController? _mapController;
   String? _lastAnimatedDriverLocationKey;
 
+  /// Custom delivery marker; null after load if asset failed.
+  BitmapDescriptor? _driverMarkerIcon;
+  bool _driverMarkerIconReady = false;
+
   static const LatLng _fallbackCenter = LatLng(33.3152, 44.3661);
+  static const String _driverMarkerAsset = 'assets/images/delivery_car.png';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadDriverMarkerIcon();
+    });
+  }
+
+  Future<void> _loadDriverMarkerIcon() async {
+    if (!mounted) return;
+    final configuration = createLocalImageConfiguration(context);
+    try {
+      final icon = await BitmapDescriptor.asset(
+        configuration,
+        _driverMarkerAsset,
+        width: 56,
+        height: 56,
+      );
+      if (!mounted) return;
+      setState(() {
+        _driverMarkerIcon = icon;
+        _driverMarkerIconReady = true;
+      });
+    } catch (e) {
+      debugPrint('Driver marker icon load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _driverMarkerIcon = null;
+        _driverMarkerIconReady = true;
+      });
+    }
+  }
 
   Future<void> _callDriver(String phone) async {
     final sanitized = phone.replaceAll(RegExp(r'[^0-9+]'), '');
@@ -121,14 +160,17 @@ class _CustomerOmsOrderDetailScreenState
               ? LatLng(driverLoc.latitude, driverLoc.longitude)
               : _fallbackCenter;
 
+          final driverMarkerDescriptor = _driverMarkerIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueAzure,
+              );
+
           final markers = <Marker>{
             if (driverLoc != null)
               Marker(
                 markerId: const MarkerId('driver'),
                 position: LatLng(driverLoc.latitude, driverLoc.longitude),
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueAzure,
-                ),
+                icon: driverMarkerDescriptor,
                 infoWindow: InfoWindow(
                   title: 'Your delivery',
                   snippet: model.bouquetName ?? 'On the way',
@@ -271,16 +313,23 @@ class _CustomerOmsOrderDetailScreenState
           return Column(
             children: [
               Expanded(
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: initial,
-                    zoom: 14,
-                  ),
-                  markers: markers,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: true,
-                  onMapCreated: (c) => _mapController = c,
-                ),
+                child: !_driverMarkerIconReady
+                    ? ColoredBox(
+                        color: AppColors.background,
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: initial,
+                          zoom: 14,
+                        ),
+                        markers: markers,
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: true,
+                        onMapCreated: (c) => _mapController = c,
+                      ),
               ),
               Expanded(
                 child: SingleChildScrollView(

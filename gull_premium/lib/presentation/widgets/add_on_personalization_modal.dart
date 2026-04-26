@@ -19,6 +19,7 @@ import '../../l10n/app_localizations.dart';
 import '../pages/product/add_on_variant_selection_page.dart';
 import 'common/app_cached_image.dart';
 import 'common/order_via_whatsapp_button.dart';
+import 'ai_magic_greeting_sheet.dart';
 import 'voice_message_dialog.dart';
 
 /// Free delivery threshold in IQD. Orders at or above this total get free delivery.
@@ -63,6 +64,8 @@ class _AddOnPersonalizationSheetState
   static const Color _luxuryGold = AppColors.accentGold;
   final List<AddOnModel> _selectedAddOns = [];
   String? _voiceMessageUrl;
+  bool _greetingSectionExpanded = false;
+  final TextEditingController _greetingController = TextEditingController();
   LatLng? _deliveryLatLng;
   final TextEditingController _promoCodeController = TextEditingController();
   final FocusNode _promoFocusNode = FocusNode();
@@ -75,11 +78,13 @@ class _AddOnPersonalizationSheetState
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _greetingController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _greetingController.dispose();
     _promoCodeController.dispose();
     _promoFocusNode.dispose();
     super.dispose();
@@ -233,6 +238,19 @@ class _AddOnPersonalizationSheetState
     if (url != null && mounted) setState(() => _voiceMessageUrl = url);
   }
 
+  Future<void> _openAiMagicGreeting() async {
+    HapticFeedback.selectionClick();
+    final text = await showAiMagicGreetingSheet(context);
+    if (text != null && text.isNotEmpty && mounted) {
+      setState(() {
+        _greetingController.value = TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: text.length),
+        );
+      });
+    }
+  }
+
   Future<void> _openDeliveryMapPicker() async {
     final result = await showDeliveryMapPicker(context);
     if (result != null && mounted) {
@@ -262,6 +280,9 @@ class _AddOnPersonalizationSheetState
           checkoutTotal != total ? checkoutTotal : null,
       productUrl: productUrl,
       voiceMessageUrl: _voiceMessageUrl,
+      greetingCardMessage: _greetingController.text.trim().isNotEmpty
+          ? _greetingController.text.trim()
+          : null,
       freeDeliveryUnlocked: total >= freeDeliveryThreshold,
       deliveryLocation: _deliveryLatLng != null
           ? DeliveryLatLng(_deliveryLatLng!.latitude, _deliveryLatLng!.longitude)
@@ -479,6 +500,185 @@ class _AddOnPersonalizationSheetState
                               ),
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          Material(
+                            color: _greetingController.text.trim().isNotEmpty
+                                ? AppColors.blush.withValues(alpha: 0.2)
+                                : AppColors.blush.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            elevation: 0,
+                            child: InkWell(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                setState(() => _greetingSectionExpanded =
+                                    !_greetingSectionExpanded);
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 18,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.edit_note_rounded,
+                                      size: 28,
+                                      color: _greetingController.text
+                                              .trim()
+                                              .isNotEmpty
+                                          ? AppColors.rosePrimary
+                                          : AppColors.inkMuted,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            l10n.addGreetingMessageTile,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.ink,
+                                                ),
+                                          ),
+                                          if (_greetingController.text
+                                              .trim()
+                                              .isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              l10n.greetingMessageAdded,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color: AppColors.inkMuted,
+                                                  ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    AnimatedRotation(
+                                      turns: _greetingSectionExpanded
+                                          ? 0.25
+                                          : 0,
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      child: Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: AppColors.inkMuted,
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (_greetingSectionExpanded) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppColors.border,
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.shadow
+                                        .withValues(alpha: 0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  TextField(
+                                    controller: _greetingController,
+                                    maxLines: 3,
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.ink,
+                                      height: 1.45,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: l10n.greetingMessageHint,
+                                      isDense: true,
+                                      filled: false,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      hintStyle: GoogleFonts.montserrat(
+                                        fontSize: 14,
+                                        color: AppColors.inkMuted
+                                            .withValues(alpha: 0.75),
+                                      ),
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Material(
+                                    color: AppColors.accentGold
+                                        .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: InkWell(
+                                      onTap: _openAiMagicGreeting,
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 14,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          border: Border.all(
+                                            color: AppColors.accentGold
+                                                .withValues(alpha: 0.45),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.auto_awesome_rounded,
+                                              size: 22,
+                                              color: AppColors.accentGold,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              l10n.aiMagicGreeting,
+                                              style: GoogleFonts.montserrat(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.ink,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           _FreeDeliveryBanner(
                             currentTotal: total,
